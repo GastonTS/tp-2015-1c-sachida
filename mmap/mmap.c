@@ -19,7 +19,7 @@ int main (int argc, char *argv[]){
 	char* mapeo;
 	int size;
 
-	char* file_name = "./archivo_mmap.txt";
+	char* file_name = "./archivo_mmap.txt" ;
 	//Se abre el archivo para solo lectura
 	mapper = open (file_name, O_RDONLY);
 	size = size_of(mapper);
