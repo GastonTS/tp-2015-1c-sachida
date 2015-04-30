@@ -1,0 +1,5 @@
+[TRACE] 01:38:53:338 EJLOG/(8619:8619): Esto es un Trace
+[DEBUG] 01:38:53:338 EJLOG/(8619:8619): Esto es un Debug
+[INFO] 01:38:53:338 EJLOG/(8619:8619): Esto es un Info
+[WARNING] 01:38:53:338 EJLOG/(8619:8619): Esto es un Warning
+[ERROR] 01:38:53:338 EJLOG/(8619:8619): Esto es un Error
