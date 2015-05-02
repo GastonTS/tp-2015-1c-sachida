@@ -34,3 +34,6 @@
 #Eclipse
 **/.project
 **/.cproject
+
+*.d
+.settings

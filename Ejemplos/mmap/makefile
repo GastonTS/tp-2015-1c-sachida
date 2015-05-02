@@ -1,4 +1,4 @@
-NAME=Configmmap
+NAME=mmap
 LIBS= -lcommons 
 MODS=-Wall -MMD -MP
 CC=gcc

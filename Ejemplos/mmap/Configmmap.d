@@ -1,1 +1,0 @@
-Configmmap.o: mmap.c
