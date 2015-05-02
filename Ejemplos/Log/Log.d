@@ -1,0 +1,1 @@
+Log.o: Log.c

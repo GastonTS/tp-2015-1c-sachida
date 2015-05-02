@@ -40,6 +40,7 @@ void initConfig(){
 }
 
 void freeConfig(){
+	free(CONFIG->IP);
 	free(CONFIG);//Termine de usar la config, libero memoria
 }
 
