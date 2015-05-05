@@ -15,3 +15,12 @@ echo "mongodb-org-server hold" | sudo dpkg --set-selections
 echo "mongodb-org-shell hold" | sudo dpkg --set-selections
 echo "mongodb-org-mongos hold" | sudo dpkg --set-selections
 echo "mongodb-org-tools hold" | sudo dpkg --set-selections
+
+#start mongodb..
+echo "staring mongodb"
+sudo service mongod start
+
+echo "The following line should say something like: '[initandlisten] waiting for connections on port 27017'"
+tail -1 /var/log/mongodb/mongod.log
+
+# curl http://localhost:27017/
