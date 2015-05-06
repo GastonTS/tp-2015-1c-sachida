@@ -6,7 +6,8 @@ echo "deb http://repo.mongodb.org/apt/ubuntu "$(lsb_release -sc)"/mongodb-org/3.
 
 echo "updating and intalling latest mongodb"
 sudo apt-get update
-sudo apt-get install -y mongodb-org
+#sudo apt-get install -y mongodb-org
+sudo apt-get install -y mongodb
 
 #pin versions
 echo "pin versions.."
