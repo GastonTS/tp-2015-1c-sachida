@@ -1,1 +1,0 @@
-clientemultihilo.d: ../clientemultihilo.c

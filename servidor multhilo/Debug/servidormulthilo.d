@@ -1,1 +1,0 @@
-servidormulthilo.d: ../servidormulthilo.c
