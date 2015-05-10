@@ -1,0 +1,15 @@
+[TRACE] 01:38:53:338 EJLOG/(8619:8619): Esto es un Trace
+[DEBUG] 01:38:53:338 EJLOG/(8619:8619): Esto es un Debug
+[INFO] 01:38:53:338 EJLOG/(8619:8619): Esto es un Info
+[WARNING] 01:38:53:338 EJLOG/(8619:8619): Esto es un Warning
+[ERROR] 01:38:53:338 EJLOG/(8619:8619): Esto es un Error
+[TRACE] 16:04:18:934 EJLOG/(3232:3232): Esto es un Trace
+[DEBUG] 16:04:18:936 EJLOG/(3232:3232): Esto es un Debug
+[INFO] 16:04:18:936 EJLOG/(3232:3232): Esto es un Info
+[WARNING] 16:04:18:936 EJLOG/(3232:3232): Esto es un Warning
+[ERROR] 16:04:18:937 EJLOG/(3232:3232): Esto es un Error
+[TRACE] 16:21:27:488 EJLOG/(3845:3845): Esto es un Trace
+[DEBUG] 16:21:27:515 EJLOG/(3845:3845): Esto es un Debug
+[INFO] 16:21:27:516 EJLOG/(3845:3845): Esto es un Info
+[WARNING] 16:21:27:517 EJLOG/(3845:3845): Esto es un Warning
+[ERROR] 16:21:27:518 EJLOG/(3845:3845): Esto es un Error
