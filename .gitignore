@@ -32,12 +32,9 @@
 *.dSYM/
 
 #Eclipse
-**/.project
-**/.cproject
-
 *.d
 .settings
-.project
+#.project
 .cproject
 
 *.o
