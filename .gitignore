@@ -37,3 +37,15 @@
 
 *.d
 .settings
+.project
+.cproject
+
+*.o
+*.so
+*.d
+*.mk
+*.a
+Release
+Debug
+build
+
