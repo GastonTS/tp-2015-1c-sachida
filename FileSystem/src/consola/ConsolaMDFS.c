@@ -48,7 +48,7 @@ const char* const validCommands[]= {
 				"exitMDFS"	//Aunque no tenga una funcion, lo asigno asi no aparece comando invalido cuando salgo
 };
 
-void main() {
+void startConsole() {
 	// // lo defino como un char** porque necesito tener un "array"
 	//con todas las cadenas, donde la primera es el comando y las demas los parametros
 	char **splitCommand;
