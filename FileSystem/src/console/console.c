@@ -1,8 +1,11 @@
+#include "../console/console.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <commons/collections/list.h>
 #include <commons/string.h>
 #include <string.h>
+
 
 void readCommand(char *command, int maximoLargo);
 void freeSplits(char ** splits);
@@ -68,6 +71,8 @@ void startConsole() {
 			help();
 		} else if (string_equals_ignore_case(parameters[0], "exit")) {
 			exit = 1;
+		} else {
+			printf("Invalid command \n");
 		}
 
 		freeSplits(parameters);
