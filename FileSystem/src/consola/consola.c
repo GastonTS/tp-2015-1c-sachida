@@ -32,7 +32,7 @@ void startConsole() {
 	char **parameters;
 	//char *command;
 	char command[100];
-	int exit = false;
+	int exit = 0;
 
 	do {
 		printf("> ");
@@ -67,7 +67,7 @@ void startConsole() {
 		} else if (string_equals_ignore_case(parameters[0], "help")) {
 			help();
 		} else if (string_equals_ignore_case(parameters[0], "exit")) {
-			exit = true;
+			exit = 1;
 		}
 
 		freeSplits(parameters);
