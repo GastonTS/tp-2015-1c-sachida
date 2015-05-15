@@ -2,6 +2,8 @@
 
 mongoc_client_t *client;
 
+int mongo_init();
+
 int mongo_init() {
 	mongoc_init(); //Initialize driver
 
@@ -26,6 +28,19 @@ void mongo_generateId(char id[25]) {
 
 void mongo_shutdown() {
 	mongoc_client_destroy(client);
+}
+
+void mongo_createIndexIfAbsent(mongoc_collection_t *collection, char *name, const bson_t *keys, bool unique) {
+
+	mongoc_index_opt_t *opt = malloc(sizeof(mongoc_index_opt_t));
+	mongoc_index_opt_init(opt);
+
+	opt->unique = unique;
+	opt->background = 1;
+	opt->name = name;
+
+	// Creates only if not present.
+	mongoc_collection_create_index(collection, keys, opt, NULL);
 }
 
 int mongo_saveDoc(bson_t *doc, mongoc_collection_t *collection) {
@@ -63,7 +78,6 @@ int mongo_saveDoc(bson_t *doc, mongoc_collection_t *collection) {
  }
  */
 
-
 const bson_t* mongo_getDocById(char id[25], mongoc_collection_t *collection) {
 	mongoc_cursor_t *cursor;
 	const bson_t *item;
@@ -99,7 +113,6 @@ const bson_t* mongo_getDocByQuery(bson_t *query, mongoc_collection_t *collection
 	return NULL;
 }
 
-
 bool mongo_deleteDocByQuery(bson_t *query, mongoc_collection_t *collection) {
 	bool r;
 
@@ -110,4 +123,25 @@ bool mongo_deleteDocByQuery(bson_t *query, mongoc_collection_t *collection) {
 	return r;
 }
 
+/*
+ bool mongo_existsIndex(mongoc_collection_t *collection, char *name) {
+ mongoc_cursor_t *cursor;
+ const bson_t *index;
+ bson_error_t error = { 0 };
 
+ bson_iter_t iter;
+ const bson_value_t *value = malloc(sizeof(bson_value_t *));
+
+ cursor = mongoc_collection_find_indexes(collection, &error);
+
+ while (mongoc_cursor_next(cursor, &index)) {
+ bson_iter_init(&iter, index);
+ bson_iter_find(&iter, "name");
+ value = bson_iter_value(&iter);
+
+ printf("%s", value->value.v_utf8.str);
+ }
+
+ return 1;
+ }
+ */

@@ -10,10 +10,13 @@ void mongo_file_checkInit() {
 }
 
 int mongo_file_init() {
-	// TODO, ensure indexes (name|parentId)
 	mongoc_client_t *client = mongo_getClient();
 
 	fileCollection = mongoc_client_get_collection(client, "filesystem", "file");
+
+	// Create index to avoid duplicate files in the same path.
+	const bson_t *indexKeys = BCON_NEW("name", BCON_INT32(1), "parentId", BCON_INT32(1));
+	mongo_createIndexIfAbsent(fileCollection, "name_1_parentId_1", indexKeys, 1);
 
 	return EXIT_SUCCESS;
 }

@@ -10,10 +10,13 @@ void mongo_dir_checkInit() {
 }
 
 int mongo_dir_init() {
-	// TODO, ensure indexes (name|parentId)
 	mongoc_client_t *client = mongo_getClient();
 
 	dirCollection = mongoc_client_get_collection(client, "filesystem", "dir");
+
+	// Create index to avoid duplicate dirs in the same path.
+	const bson_t *indexKeys = BCON_NEW("name", BCON_INT32(1), "parentId", BCON_INT32(1));
+	mongo_createIndexIfAbsent(dirCollection, "name_1_parentId_1", indexKeys, 1);
 
 	return EXIT_SUCCESS;
 }

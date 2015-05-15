@@ -8,7 +8,7 @@
 #include "../mongo/mongo_dir.h"
 #include "../mongo/mongo_file.h"
 
-void readCommand(char *command, int maximoLargo);
+void readCommand(char *command);
 void freeSplits(char ** splits);
 
 bool isCurrentRootDir();
@@ -40,9 +40,8 @@ char currentDirName[150];
 char currentDirId[25];
 
 void startConsole() {
-	// lo defino como un char** porque necesito tener un "array" de los parametros
 	char **parameters;
-	char command[100];
+	char *command = malloc(sizeof(char*));
 	int exit = 0;
 
 	strcpy(currentDirName, "/");
@@ -50,62 +49,66 @@ void startConsole() {
 
 	do {
 		printf("%s > ", currentDirName);
-		readCommand(command, 100);
+		readCommand(command);
 
-		parameters = string_split(command, " ");
+		// Ignore empty enter
+		if (command[0] != '\0') {
+			parameters = string_split(command, " ");
 
-		if (string_equals_ignore_case(parameters[0], "format")) {
-			formatMDFS();
-		} else if (string_equals_ignore_case(parameters[0], "rm")) {
-			deleteResource(parameters);
-		} else if (string_equals_ignore_case(parameters[0], "mv")) {
-			moveResource(parameters[1]);
-		} else if (string_equals_ignore_case(parameters[0], "mkdir")) {
-			makeDir(parameters[1]);
-		} else if (string_equals_ignore_case(parameters[0], "touch")) {
-			makeFile(parameters[1]);
-		} else if (string_equals_ignore_case(parameters[0], "cd")) {
-			changeDir(parameters[1]);
-		} else if (string_equals_ignore_case(parameters[0], "md5")) {
-			MD5(parameters[1]);
-		} else if (string_equals_ignore_case(parameters[0], "copyToMDFS")) {
-			copyToMDFS(parameters[1]);
-		} else if (string_equals_ignore_case(parameters[0], "copyToFS")) {
-			copyToFS(parameters[1]);
-		} else if (string_equals_ignore_case(parameters[0], "seeBlock")) {
-			seeBlock(parameters[1]);
-		} else if (string_equals_ignore_case(parameters[0], "deleteBlock")) {
-			deleteBlock(parameters[1]);
-		} else if (string_equals_ignore_case(parameters[0], "copyBlock")) {
-			copyBlock(parameters[1]);
-		} else if (string_equals_ignore_case(parameters[0], "upNode")) {
-			upNode(parameters[1]);
-		} else if (string_equals_ignore_case(parameters[0], "deleteNode")) {
-			deleteNode(parameters[1]);
-		} else if (string_equals_ignore_case(parameters[0], "help")) {
-			help();
-		} else if (string_equals_ignore_case(parameters[0], "exit")) {
-			exit = 1;
-		} else if (string_equals_ignore_case(parameters[0], "")) {
-			// ignore enter
-		} else {
-			printf("Invalid command \n");
+			if (string_equals_ignore_case(parameters[0], "format")) {
+				formatMDFS();
+			} else if (string_equals_ignore_case(parameters[0], "rm")) {
+				deleteResource(parameters);
+			} else if (string_equals_ignore_case(parameters[0], "mv")) {
+				moveResource(parameters[1]);
+			} else if (string_equals_ignore_case(parameters[0], "mkdir")) {
+				makeDir(parameters[1]);
+			} else if (string_equals_ignore_case(parameters[0], "touch")) {
+				makeFile(parameters[1]);
+			} else if (string_equals_ignore_case(parameters[0], "cd")) {
+				changeDir(parameters[1]);
+			} else if (string_equals_ignore_case(parameters[0], "md5")) {
+				MD5(parameters[1]);
+			} else if (string_equals_ignore_case(parameters[0], "copyToMDFS")) {
+				copyToMDFS(parameters[1]);
+			} else if (string_equals_ignore_case(parameters[0], "copyToFS")) {
+				copyToFS(parameters[1]);
+			} else if (string_equals_ignore_case(parameters[0], "seeBlock")) {
+				seeBlock(parameters[1]);
+			} else if (string_equals_ignore_case(parameters[0], "deleteBlock")) {
+				deleteBlock(parameters[1]);
+			} else if (string_equals_ignore_case(parameters[0], "copyBlock")) {
+				copyBlock(parameters[1]);
+			} else if (string_equals_ignore_case(parameters[0], "upNode")) {
+				upNode(parameters[1]);
+			} else if (string_equals_ignore_case(parameters[0], "deleteNode")) {
+				deleteNode(parameters[1]);
+			} else if (string_equals_ignore_case(parameters[0], "help")) {
+				help();
+			} else if (string_equals_ignore_case(parameters[0], "exit")) {
+				exit = 1;
+			} else if (string_equals_ignore_case(parameters[0], "\n")) {
+				// ignore enter
+			} else {
+				printf("Invalid command \n");
+			}
+			freeSplits(parameters);
 		}
-
-		freeSplits(parameters);
 	} while (!exit);
 
 }
 
-void readCommand(char *lectura, int maximoLargo) {
-	//Habria que buscar una funcion parecida a fgets, pero que no sea necesario un maximo, asi evitamos poner un maximo arbitrario
-	fgets(lectura, maximoLargo, stdin);
+void readCommand(char *input) {
+	char buffer[4096];
 
-	if ((strlen(lectura) > 1) && (lectura[strlen(lectura) - 1] == '\n')) {
-		//agrego el /0 para que lo considere como una cadena
-		lectura[strlen(lectura) - 1] = '\0';
-	}
+	fgets(buffer, sizeof(buffer), stdin);
 
+	strcpy(input, buffer);
+
+	input[strlen(input) - 1] = '\0'; // Removes the \n
+
+	// TODO: make this work ! double pointer wtf..
+	// string_trim(&input);
 }
 
 //asigna los splits en un auxiliar para ir liberandolos uno por uno
