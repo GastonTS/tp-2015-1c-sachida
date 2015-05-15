@@ -1,27 +1,33 @@
-#include "../console/console.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <commons/collections/list.h>
 #include <commons/string.h>
 #include <string.h>
 
+#include "console.h"
+#include "../mongo/mongo_dir.h"
+#include "../mongo/mongo_file.h"
 
 void readCommand(char *command, int maximoLargo);
 void freeSplits(char ** splits);
+
+bool isCurrentRootDir();
+
 void formatMDFS();
 
 void deleteResource(char **parameters);
-void deleteFile(char *file);
-void deleteDir(char *dir);
+void deleteFile(char *fileName);
+void deleteDir(char *dirName);
 
 void moveResource(char *resource);
 
-void createDir(char *dir);
+void makeFile(char *fileName);
+void makeDir(char *dirName);
+void changeDir(char *dirName);
 
-void copyToMDFS(char *file);
-void copyToFS(char *file);
-void MD5(char *file);
+void copyToMDFS(char *fileName);
+void copyToFS(char *fileName);
+void MD5(char *fileName);
 void seeBlock(char *block);
 void deleteBlock(char *block);
 void copyBlock(char* block);
@@ -30,15 +36,20 @@ void deleteNode(char *node);
 void help();
 int isNullParameter(char *parameter);
 
+char currentDirName[150];
+char currentDirId[25];
+
 void startConsole() {
 	// lo defino como un char** porque necesito tener un "array" de los parametros
 	char **parameters;
-	//char *command;
 	char command[100];
 	int exit = 0;
 
+	strcpy(currentDirName, "/");
+	strcpy(currentDirId, ROOT_DIR_ID);
+
 	do {
-		printf("> ");
+		printf("%s > ", currentDirName);
 		readCommand(command, 100);
 
 		parameters = string_split(command, " ");
@@ -50,7 +61,11 @@ void startConsole() {
 		} else if (string_equals_ignore_case(parameters[0], "mv")) {
 			moveResource(parameters[1]);
 		} else if (string_equals_ignore_case(parameters[0], "mkdir")) {
-			createDir(parameters[1]);
+			makeDir(parameters[1]);
+		} else if (string_equals_ignore_case(parameters[0], "touch")) {
+			makeFile(parameters[1]);
+		} else if (string_equals_ignore_case(parameters[0], "cd")) {
+			changeDir(parameters[1]);
 		} else if (string_equals_ignore_case(parameters[0], "md5")) {
 			MD5(parameters[1]);
 		} else if (string_equals_ignore_case(parameters[0], "copyToMDFS")) {
@@ -71,6 +86,8 @@ void startConsole() {
 			help();
 		} else if (string_equals_ignore_case(parameters[0], "exit")) {
 			exit = 1;
+		} else if (string_equals_ignore_case(parameters[0], "")) {
+			// ignore enter
 		} else {
 			printf("Invalid command \n");
 		}
@@ -106,11 +123,15 @@ void freeSplits(char ** splits) {
 //La hice para evitar que mande el comando sin el parametro y lo tome como valido
 int isNullParameter(char *parameter) {
 	if (parameter == NULL) {
-		printf("No puso el parametro\n");
+		printf("You are missing one parameter.. \n");
 		return 1;
 	}
 
 	return 0;
+}
+
+bool isCurrentRootDir() {
+	return string_equals_ignore_case(currentDirId, ROOT_DIR_ID);
 }
 
 //Todas estas excepto el help son las que vamos a tener que ir desarrollando cuando hagamos el FileSystem
@@ -126,28 +147,82 @@ void deleteResource(char **parameters) {
 	}
 }
 
-void deleteFile(char *file) {
-	if (!isNullParameter(file)) {
-		printf("Borra el archivo %s\n", file);
+void deleteFile(char *fileName) {
+	if (!isNullParameter(fileName)) {
+		// TODO resolve dir.
+		mongo_file_deleteFileByNameInDir(fileName, currentDirId);
 	}
 }
 
-void deleteDir(char *dir) {
-	if (!isNullParameter(dir)) {
-		printf("Borra el directorio %s\n", dir);
+void deleteDir(char *dirName) {
+	if (!isNullParameter(dirName)) {
+		// TODO resolve dir.
+		if (!mongo_dir_deleteDirByNameInDir(dirName, currentDirId)) {
+			printf("An error occurred!\n");
+		}
 	}
 }
-
 
 void moveResource(char *resource) {
 	if (!isNullParameter(resource)) {
-		printf("Mueve el recurso %s\n", resource);
+		// TODO
+		printf("Moves resource %s\n", resource);
 	}
 }
 
-void createDir(char *dir) {
-	if (!isNullParameter(dir)) {
-		printf("Crea el directorio %s\n", dir);
+void makeFile(char *fileName) {
+	if (!isNullParameter(fileName)) {
+		file_t *file = malloc(sizeof(file_t));
+		strcpy(file->name, fileName);
+		strcpy(file->parentId, currentDirId);
+		file->size = 0;
+		mongo_file_save(file);
+	}
+}
+
+void makeDir(char *dirName) {
+	if (!isNullParameter(dirName)) {
+		dir_t *dir = malloc(sizeof(dir_t));
+		strcpy(dir->name, dirName);
+		strcpy(dir->parentId, currentDirId);
+		mongo_dir_save(dir);
+	}
+}
+
+void changeDir(char *dirName) {
+	if (!isNullParameter(dirName)) {
+		int i = 0;
+		char **dirNames;
+		dirNames = string_split(dirName, "/");
+
+		while (dirNames[i]) {
+			dirName = dirNames[i];
+			if (strcmp(dirName, "..") == 0) {
+				if (!isCurrentRootDir()) {
+					dir_t *currentDir = mongo_dir_getById(currentDirId);
+
+					strcpy(currentDirName, string_substring_until(currentDirName, string_length(currentDirName) - string_length(currentDir->name) - 1));
+					strcpy(currentDirId, currentDir->parentId);
+
+					if (isCurrentRootDir()) {
+						strcat(currentDirName, "/");
+					}
+				}
+			} else {
+				dir_t *dir = mongo_dir_getByNameInDir(dirName, currentDirId);
+
+				if (dir) {
+					if (!isCurrentRootDir()) {
+						strcat(currentDirName, "/");
+					}
+					strcat(currentDirName, dir->name);
+					strcpy(currentDirId, dir->id);
+				} else {
+					printf("Directory not found.\n");
+				}
+			}
+			i++;
+		}
 	}
 }
 
@@ -168,7 +243,6 @@ void copyToFS(char *file) {
 		printf("Copia el archivo %s al FileSystem\n", file);
 	}
 }
-
 
 void seeBlock(char *block) {
 	if (!isNullParameter(block)) {
