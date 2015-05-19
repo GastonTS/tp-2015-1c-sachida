@@ -1,4 +1,4 @@
-NAME=ConsolaMDFS
+NAME=FileSystem
 LIBS= -lcommons 
 MODS=-Wall -MMD -MP
 CC=gcc
