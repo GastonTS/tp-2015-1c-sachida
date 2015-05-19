@@ -1,4 +1,6 @@
-sudo apt-get install git gcc automake autoconf libtool
+echo "Install libraries.."
+sudo apt-get update
+sudo apt-get install -y --force-yes gcc automake autoconf libtool
 
 wget https://github.com/mongodb/mongo-c-driver/releases/download/1.1.5/mongo-c-driver-1.1.5.tar.gz
 tar xzf mongo-c-driver-1.1.5.tar.gz

@@ -7,7 +7,7 @@
 echo "updating and intalling latest mongodb"
 sudo apt-get update
 #sudo apt-get install -y mongodb-org
-sudo apt-get install -y mongodb
+sudo apt-get install -y --force-yes mongodb
 
 #pin versions
 #echo "pin versions.."
