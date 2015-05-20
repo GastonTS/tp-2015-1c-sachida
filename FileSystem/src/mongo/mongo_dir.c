@@ -56,16 +56,7 @@ t_list* mongo_dir_getByParentId(char parentId[25]) {
 
 	query = BCON_NEW("parentId", BCON_UTF8(parentId));
 
-	t_list *bsonDirs = mongo_getByQuery(query, dirCollection);
-	t_list *dirs = list_create();
-
-	int i;
-	for (i = 0; i< bsonDirs->elements_count; i++) {
-		bson_t *doc = list_get(bsonDirs, i);
-		list_add(dirs, dir_getDirFromBSON(doc));
-	}
-
-	return dirs;
+	return mongo_getByQuery(query, dir_getDirFromBSON, dirCollection);
 }
 
 dir_t* mongo_dir_getByNameInDir(char *name, char parentId[25]) {

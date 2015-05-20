@@ -39,6 +39,17 @@ int mongo_file_save(file_t *file) {
 	return EXIT_SUCCESS;
 }
 
+
+t_list* mongo_file_getByParentId(char parentId[25]) {
+	bson_t *query;
+
+	mongo_file_checkInit();
+
+	query = BCON_NEW("parentId", BCON_UTF8(parentId));
+
+	return mongo_getByQuery(query, file_getFileFromBSON, fileCollection);
+}
+
 file_t* mongo_file_getById(char id[25]) {
 	const bson_t *doc;
 

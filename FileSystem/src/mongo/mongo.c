@@ -58,7 +58,7 @@ int mongo_saveDoc(bson_t *doc, mongoc_collection_t *collection) {
 	return EXIT_SUCCESS;
 }
 
-t_list* mongo_getByQuery(bson_t *query, mongoc_collection_t *collection) {
+t_list* mongo_getByQuery(bson_t *query, void* (parser)(const bson_t*) , mongoc_collection_t *collection) {
 	mongoc_cursor_t *cursor;
 	const bson_t *item;
 	t_list *items;
@@ -68,7 +68,7 @@ t_list* mongo_getByQuery(bson_t *query, mongoc_collection_t *collection) {
 	cursor = mongoc_collection_find(collection, MONGOC_QUERY_NONE, 0, 0, 0, query, NULL, NULL);
 
 	while (mongoc_cursor_next(cursor, &item)) {
-		list_add(items, item);
+		list_add(items, (parser)(item));
 	}
 
 	mongoc_cursor_destroy(cursor);

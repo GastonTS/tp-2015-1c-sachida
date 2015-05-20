@@ -16,7 +16,7 @@ void mongo_createIndexIfAbsent(mongoc_collection_t *collection, char *name, cons
 
 int mongo_saveDoc(bson_t *doc, mongoc_collection_t *collection);
 
-t_list* mongo_getByQuery(bson_t *query, mongoc_collection_t *collection);
+t_list* mongo_getByQuery(bson_t *query, void* (*parser)(const bson_t*) , mongoc_collection_t *collection);
 const bson_t* mongo_getDocById(char id[25], mongoc_collection_t *collection);
 const bson_t* mongo_getDocByQuery(bson_t *query, mongoc_collection_t *collection);
 bool mongo_deleteDocByQuery(bson_t *query, mongoc_collection_t *collection);

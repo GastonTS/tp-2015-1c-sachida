@@ -7,6 +7,14 @@
 #include "../mongo/mongo_dir.h"
 #include "../mongo/mongo_file.h"
 
+#define ANSI_COLOR_RED     "\x1b[31m"
+#define ANSI_COLOR_GREEN   "\x1b[32m"
+#define ANSI_COLOR_YELLOW  "\x1b[33m"
+#define ANSI_COLOR_BLUE    "\x1b[34m"
+#define ANSI_COLOR_MAGENTA "\x1b[35m"
+#define ANSI_COLOR_CYAN    "\x1b[36m"
+#define ANSI_COLOR_RESET   "\x1b[0m"
+
 void readCommand(char *command);
 void freeSplits(char ** splits);
 
@@ -114,7 +122,6 @@ void readCommand(char *input) {
 	// string_trim(&input);
 }
 
-
 void freeSplits(char ** splits) {
 	char **auxSplit = splits;
 
@@ -125,7 +132,6 @@ void freeSplits(char ** splits) {
 
 	free(splits);
 }
-
 
 int isNullParameter(char *parameter) {
 	if (parameter == NULL) {
@@ -139,7 +145,6 @@ int isNullParameter(char *parameter) {
 bool isCurrentRootDir() {
 	return string_equals_ignore_case(currentDirId, ROOT_DIR_ID);
 }
-
 
 void formatMDFS() {
 	printf("Formatea el MDFS\n");
@@ -233,15 +238,22 @@ void changeDir(char *dirName) {
 }
 
 void listResources() {
-	t_list *dirs = mongo_dir_getByParentId(currentDirId);
 
-	int i = 0;
-	for (i = 0; i< dirs->elements_count; i++) {
-		dir_t *dir = list_get(dirs, i);
-		printf("%s  \n", dir->name);
+	void printDir(dir_t *dir) {
+		// printf("\t" ANSI_COLOR_BLUE " %s/ " ANSI_COLOR_RESET "\n", dir->name);
+		printf("\t %s/ \n", dir->name);
 	}
-}
 
+	t_list *dirs = mongo_dir_getByParentId(currentDirId);
+	list_iterate(dirs, printDir);
+
+	void printFile(file_t *file) {
+		printf("\t %s \n", file->name);
+	}
+
+	t_list *files = mongo_file_getByParentId(currentDirId);
+	list_iterate(files, printFile);
+}
 
 void MD5(char *file) {
 	if (!isNullParameter(file)) {
