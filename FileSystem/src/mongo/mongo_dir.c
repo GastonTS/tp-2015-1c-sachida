@@ -49,6 +49,25 @@ int mongo_dir_save(dir_t *dir) {
 	return EXIT_SUCCESS;
 }
 
+t_list* mongo_dir_getByParentId(char parentId[25]) {
+	bson_t *query;
+
+	mongo_dir_checkInit();
+
+	query = BCON_NEW("parentId", BCON_UTF8(parentId));
+
+	t_list *bsonDirs = mongo_getByQuery(query, dirCollection);
+	t_list *dirs = list_create();
+
+	int i;
+	for (i = 0; i< bsonDirs->elements_count; i++) {
+		bson_t *doc = list_get(bsonDirs, i);
+		list_add(dirs, dir_getDirFromBSON(doc));
+	}
+
+	return dirs;
+}
+
 dir_t* mongo_dir_getByNameInDir(char *name, char parentId[25]) {
 	bson_t *query;
 	const bson_t *doc;

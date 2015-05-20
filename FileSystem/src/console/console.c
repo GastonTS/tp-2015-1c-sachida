@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <commons/collections/list.h>
 #include <commons/string.h>
 #include <string.h>
 
@@ -24,6 +23,8 @@ void moveResource(char *resource);
 void makeFile(char *fileName);
 void makeDir(char *dirName);
 void changeDir(char *dirName);
+
+void listResources();
 
 void copyToMDFS(char *fileName);
 void copyToFS(char *fileName);
@@ -67,6 +68,8 @@ void startConsole() {
 				makeFile(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "cd")) {
 				changeDir(parameters[1]);
+			} else if (string_equals_ignore_case(parameters[0], "ll")) {
+				listResources();
 			} else if (string_equals_ignore_case(parameters[0], "md5")) {
 				MD5(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "copyToMDFS")) {
@@ -107,11 +110,11 @@ void readCommand(char *input) {
 
 	input[strlen(input) - 1] = '\0'; // Removes the \n
 
-	// TODO: make this work ! double pointer wtf..
+	// TODO: make this work !
 	// string_trim(&input);
 }
 
-//asigna los splits en un auxiliar para ir liberandolos uno por uno
+
 void freeSplits(char ** splits) {
 	char **auxSplit = splits;
 
@@ -123,7 +126,7 @@ void freeSplits(char ** splits) {
 	free(splits);
 }
 
-//La hice para evitar que mande el comando sin el parametro y lo tome como valido
+
 int isNullParameter(char *parameter) {
 	if (parameter == NULL) {
 		printf("You are missing one parameter.. \n");
@@ -137,7 +140,7 @@ bool isCurrentRootDir() {
 	return string_equals_ignore_case(currentDirId, ROOT_DIR_ID);
 }
 
-//Todas estas excepto el help son las que vamos a tener que ir desarrollando cuando hagamos el FileSystem
+
 void formatMDFS() {
 	printf("Formatea el MDFS\n");
 }
@@ -228,6 +231,17 @@ void changeDir(char *dirName) {
 		}
 	}
 }
+
+void listResources() {
+	t_list *dirs = mongo_dir_getByParentId(currentDirId);
+
+	int i = 0;
+	for (i = 0; i< dirs->elements_count; i++) {
+		dir_t *dir = list_get(dirs, i);
+		printf("%s  \n", dir->name);
+	}
+}
+
 
 void MD5(char *file) {
 	if (!isNullParameter(file)) {

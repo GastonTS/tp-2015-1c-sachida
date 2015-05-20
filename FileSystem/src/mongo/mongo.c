@@ -58,25 +58,23 @@ int mongo_saveDoc(bson_t *doc, mongoc_collection_t *collection) {
 	return EXIT_SUCCESS;
 }
 
-/*
- * TODO CON LISTAS DE COMMONS..
- bson_t** mongo_getAll() {
- mongoc_cursor_t *cursor;
- const bson_t *items[10];
- char *str;
- int i = 0;
+t_list* mongo_getByQuery(bson_t *query, mongoc_collection_t *collection) {
+	mongoc_cursor_t *cursor;
+	const bson_t *item;
+	t_list *items;
 
- mongo_checkInit();
+	items = list_create();
 
- cursor = mongoc_collection_find(collection, MONGOC_QUERY_NONE, 0, 0, 0, NULL, NULL, NULL);
+	cursor = mongoc_collection_find(collection, MONGOC_QUERY_NONE, 0, 0, 0, query, NULL, NULL);
 
- while (mongoc_cursor_next(cursor, &items[i]))
+	while (mongoc_cursor_next(cursor, &item)) {
+		list_add(items, item);
+	}
 
- mongoc_cursor_destroy(cursor);
+	mongoc_cursor_destroy(cursor);
 
- return items;
- }
- */
+	return items;
+}
 
 const bson_t* mongo_getDocById(char id[25], mongoc_collection_t *collection) {
 	mongoc_cursor_t *cursor;
