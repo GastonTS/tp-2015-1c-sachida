@@ -37,6 +37,11 @@ void testCreateFile() {
 	 printf("FILE:\n %s\n", bson_as_json(docs[i], NULL));
 	 }
 	 */
+
+
+	mongo_dir_shutdown();
+	mongo_file_shutdown();
+	mongo_shutdown();
 }
 
 

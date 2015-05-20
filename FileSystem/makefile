@@ -1,11 +1,11 @@
 NAME=FileSystem
-LIBS= -lcommons 
+LIBS= -I/usr/local/include/libmongoc-1.0 -I/usr/local/include/libbson-1.0 -lcommons -lbson-1.0 -lmongoc-1.0
 MODS=-Wall -MMD -MP
 CC=gcc
 MV=mv -f
 RM=rm -rf
 GO=./$(NAME).o
-SRCS=$(shell find ./ -iname *.c)
+SRCS=$(shell find ./ -iname "*.c")
 
 all: clean dependents build
 debug: CC += -DDEBUG -g -O0
