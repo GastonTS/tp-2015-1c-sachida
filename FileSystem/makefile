@@ -1,7 +1,7 @@
 NAME=FileSystem
 LIBS= -I/usr/local/include/libmongoc-1.0 -I/usr/local/include/libbson-1.0 -lcommons -lbson-1.0 -lmongoc-1.0
 MODS=-Wall -MMD -MP
-CC=gcc
+CC=gcc -g
 MV=mv -f
 RM=rm -rf
 GO=./$(NAME).o

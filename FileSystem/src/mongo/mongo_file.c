@@ -17,6 +17,7 @@ int mongo_file_init() {
 	// Create index to avoid duplicate files in the same path.
 	const bson_t *indexKeys = BCON_NEW("name", BCON_INT32(1), "parentId", BCON_INT32(1));
 	mongo_createIndexIfAbsent(fileCollection, "name_1_parentId_1", indexKeys, 1);
+	free(indexKeys);
 
 	return EXIT_SUCCESS;
 }
@@ -40,7 +41,7 @@ int mongo_file_save(file_t *file) {
 }
 
 
-t_list* mongo_file_getByParentId(char parentId[25]) {
+t_list* mongo_file_getByParentId(char *parentId) {
 	bson_t *query;
 
 	mongo_file_checkInit();
@@ -60,7 +61,7 @@ file_t* mongo_file_getById(char id[25]) {
 	return file_getFileFromBSON(doc);
 }
 
-bool mongo_file_deleteFileByNameInDir(char *name, char parentId[25]) {
+bool mongo_file_deleteFileByNameInDir(char *name, char *parentId) {
 	bson_t *query;
 
 	mongo_file_checkInit();

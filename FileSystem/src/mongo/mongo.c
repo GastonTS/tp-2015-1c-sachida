@@ -41,6 +41,8 @@ void mongo_createIndexIfAbsent(mongoc_collection_t *collection, char *name, cons
 
 	// Creates only if not present.
 	mongoc_collection_create_index(collection, keys, opt, NULL);
+
+	free(opt);
 }
 
 int mongo_saveDoc(bson_t *doc, mongoc_collection_t *collection) {

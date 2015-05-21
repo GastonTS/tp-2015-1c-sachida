@@ -17,6 +17,7 @@ int mongo_dir_init() {
 	// Create index to avoid duplicate dirs in the same path.
 	const bson_t *indexKeys = BCON_NEW("name", BCON_INT32(1), "parentId", BCON_INT32(1));
 	mongo_createIndexIfAbsent(dirCollection, "name_1_parentId_1", indexKeys, 1);
+	free(indexKeys);
 
 	return EXIT_SUCCESS;
 }
@@ -49,7 +50,7 @@ int mongo_dir_save(dir_t *dir) {
 	return EXIT_SUCCESS;
 }
 
-t_list* mongo_dir_getByParentId(char parentId[25]) {
+t_list* mongo_dir_getByParentId(char *parentId) {
 	bson_t *query;
 
 	mongo_dir_checkInit();
@@ -59,7 +60,7 @@ t_list* mongo_dir_getByParentId(char parentId[25]) {
 	return mongo_getByQuery(query, dir_getDirFromBSON, dirCollection);
 }
 
-dir_t* mongo_dir_getByNameInDir(char *name, char parentId[25]) {
+dir_t* mongo_dir_getByNameInDir(char *name, char *parentId) {
 	bson_t *query;
 	const bson_t *doc;
 
@@ -75,7 +76,7 @@ dir_t* mongo_dir_getByNameInDir(char *name, char parentId[25]) {
 	return NULL;
 }
 
-bool mongo_dir_deleteDirByNameInDir(char *name, char parentId[25]) {
+bool mongo_dir_deleteDirByNameInDir(char *name, char *parentId) {
 	bson_t *query;
 
 	mongo_dir_checkInit();

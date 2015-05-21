@@ -47,13 +47,16 @@ void deleteNode(char *node);
 void help();
 int isNull(char *parameter);
 
-char currentDirPrompt[500];
-char currentDirId[25];
+char *currentDirPrompt;
+char *currentDirId;
 
 void startConsole() {
 	char **parameters;
 	char *command = malloc(sizeof(char*));
 	int exit = 0;
+
+	currentDirPrompt = malloc(sizeof(char*));
+	currentDirId = malloc(sizeof(char*));
 
 	strcpy(currentDirPrompt, "/");
 	strcpy(currentDirId, ROOT_DIR_ID);
@@ -109,6 +112,9 @@ void startConsole() {
 		}
 	} while (!exit);
 
+	free(command);
+	free(currentDirId);
+	free(currentDirPrompt);
 }
 
 void readCommand(char *input) {
@@ -124,7 +130,7 @@ void readCommand(char *input) {
 	// string_trim(&input);
 }
 
-void freeSplits(char ** splits) {
+void freeSplits(char **splits) {
 	char **auxSplit = splits;
 
 	while (*auxSplit != NULL) {
@@ -174,12 +180,16 @@ bool resolveDir(char *dirPath, char *dirPromt, char *dirId) {
 				if (!isRootDir(newDirId)) {
 					dir_t *currentDir = mongo_dir_getById(newDirId);
 
-					strcpy(newDirPrompt, string_substring_until(newDirPrompt, string_length(newDirPrompt) - string_length(currentDir->name) - 1));
+					// TODO...
+					//strcpy(newDirPrompt, string_substring_until(newDirPrompt, string_length(newDirPrompt) - string_length(currentDir->name) - 1));
+					//strncpy(newDirPrompt, newDirPrompt, string_length(newDirPrompt) - string_length(currentDir->name) - 1);
+
 					strcpy(newDirId, currentDir->parentId);
 
 					if (isRootDir(newDirId)) {
 						strcat(newDirPrompt, "/");
 					}
+					dir_free(currentDir);
 				}
 			} else {
 				dir_t *dir = mongo_dir_getByNameInDir(dirName, newDirId);
@@ -190,6 +200,8 @@ bool resolveDir(char *dirPath, char *dirPromt, char *dirId) {
 					}
 					strcat(newDirPrompt, dir->name);
 					strcpy(newDirId, dir->id);
+
+					dir_free(dir);
 				} else {
 					printf("Directory %s not found.\n", dirName);
 					return 0;
@@ -201,6 +213,10 @@ bool resolveDir(char *dirPath, char *dirPromt, char *dirId) {
 
 	strcpy(dirPromt, newDirPrompt);
 	strcpy(dirId, newDirId);
+
+	free(newDirPrompt);
+	freeSplits(dirNames);
+
 	return 1;
 }
 
@@ -242,6 +258,8 @@ void moveResource(char *resource, char *destination) {
 			if (resolveDir(destination, NULL, destinationId)) {
 				printf("Moves resource %s to %s\n", resource, destination);
 			}
+
+			dir_free(dirToMove);
 		} else {
 			printf("Directory %s not found.\n", resource);
 		}
@@ -260,10 +278,13 @@ void makeFile(char *fileName) {
 
 void makeDir(char *dirName) {
 	if (!isNull(dirName)) {
-		dir_t *dir = malloc(sizeof(dir_t));
+		dir_t *dir = dir_create();
+
 		strcpy(dir->name, dirName);
 		strcpy(dir->parentId, currentDirId);
 		mongo_dir_save(dir);
+
+		dir_free(dir);
 	}
 }
 
@@ -277,6 +298,9 @@ void changeDir(char *dirName) {
 			strcpy(currentDirId, newDirId);
 			strcpy(currentDirPrompt, newDirPrompt);
 		}
+
+		free(newDirPrompt);
+		free(newDirId);
 	}
 }
 
@@ -289,6 +313,8 @@ void listResources() {
 
 	t_list *dirs = mongo_dir_getByParentId(currentDirId);
 	list_iterate(dirs, printDir);
+
+	list_destroy_and_destroy_elements(dirs, dir_free);
 
 	void printFile(file_t *file) {
 		printf("\t %s \n", file->name);

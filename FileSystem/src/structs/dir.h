@@ -7,12 +7,15 @@
 
 typedef struct {
 	char id[25];
-	char name[100];
-	char parentId[25];
+	char *name;
+	char *parentId;
 } dir_t;
 
 
 bson_t* dir_getBSON(dir_t *dir);
 dir_t* dir_getDirFromBSON(const bson_t *doc);
+
+dir_t* dir_create();
+void dir_free(dir_t* dir);
 
 #endif

@@ -16,27 +16,40 @@ bson_t* dir_getBSON(dir_t *dir) {
 		);
 }
 
-
 dir_t* dir_getDirFromBSON(const bson_t *doc) {
 	bson_iter_t iter;
-	const bson_value_t *value = malloc(sizeof(bson_value_t *));
+	const bson_value_t *value;
 	char *key = malloc(sizeof(char*));
-	dir_t *dir = malloc(sizeof(dir_t));
+	dir_t *dir = dir_create();
 
-	if (bson_iter_init (&iter, doc)) {
-	   while (bson_iter_next(&iter)) {
-		   strcpy(key, bson_iter_key(&iter));
-		   value = bson_iter_value(&iter);
+	if (bson_iter_init(&iter, doc)) {
+		while (bson_iter_next(&iter)) {
+			strcpy(key, bson_iter_key(&iter));
+			value = bson_iter_value(&iter);
 
-		   if (strcmp(key, "_id") == 0) {
-			   strcpy(dir->id, value->value.v_utf8.str);
-		   } else if (strcmp(key, "name") == 0) {
-			   strcpy(dir->name, value->value.v_utf8.str);
-		   } else if (strcmp(key, "parentId") == 0) {
-			   strcpy(dir->parentId, value->value.v_utf8.str);
-		   }
-	   }
+			if (strcmp(key, "_id") == 0) {
+				strcpy(dir->id, value->value.v_utf8.str);
+			} else if (strcmp(key, "name") == 0) {
+				strcpy(dir->name, value->value.v_utf8.str);
+			} else if (strcmp(key, "parentId") == 0) {
+				strcpy(dir->parentId, value->value.v_utf8.str);
+			}
+		}
 	}
+	free(key);
 
 	return dir;
+}
+
+dir_t* dir_create() {
+	dir_t* dir = malloc(sizeof(dir_t));
+	dir->name = malloc(sizeof(char*));
+	dir->parentId = malloc(sizeof(char*));
+	return dir;
+}
+
+void dir_free(dir_t* dir) {
+	free(dir->name);
+	free(dir->parentId);
+	free(dir);
 }

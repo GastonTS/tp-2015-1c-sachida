@@ -18,7 +18,7 @@ bson_t* file_getBSON(file_t *file) {
 
 file_t* file_getFileFromBSON(const bson_t *doc) {
 	bson_iter_t iter;
-	const bson_value_t *value = malloc(sizeof(bson_value_t *));
+	const bson_value_t *value;
 	char *key = malloc(sizeof(char*));
 	file_t *file = malloc(sizeof(file_t));
 
@@ -38,6 +38,14 @@ file_t* file_getFileFromBSON(const bson_t *doc) {
 		   }
 	   }
 	}
+	free(key);
 
 	return file;
+}
+
+
+void file_free(file_t *file) {
+	free(file->name);
+	free(file->parentId);
+	free(file);
 }
