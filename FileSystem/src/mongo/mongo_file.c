@@ -1,6 +1,8 @@
 #include "mongo.h"
 #include "mongo_file.h"
 
+void mongo_file_checkInit();
+
 mongoc_collection_t *fileCollection;
 
 void mongo_file_checkInit() {
@@ -40,16 +42,6 @@ int mongo_file_save(file_t *file) {
 	return EXIT_SUCCESS;
 }
 
-t_list* mongo_file_getByParentId(char *parentId) {
-	bson_t *query;
-
-	mongo_file_checkInit();
-
-	query = BCON_NEW("parentId", BCON_UTF8(parentId));
-
-	return mongo_getByQuery(query, (void*) file_getFileFromBSON, fileCollection);
-}
-
 file_t* mongo_file_getById(char id[25]) {
 	const bson_t *doc;
 
@@ -60,6 +52,32 @@ file_t* mongo_file_getById(char id[25]) {
 	return file_getFileFromBSON(doc);
 }
 
+t_list* mongo_file_getByParentId(char *parentId) {
+	bson_t *query;
+
+	mongo_file_checkInit();
+
+	query = BCON_NEW("parentId", BCON_UTF8(parentId));
+
+	return mongo_getByQuery(query, (void*) file_getFileFromBSON, fileCollection);
+}
+
+file_t* mongo_file_getByNameInDir(char *name, char *parentId) {
+	bson_t *query;
+	const bson_t *doc;
+
+	mongo_file_checkInit();
+
+	query = BCON_NEW("name", BCON_UTF8(name), "parentId", BCON_UTF8(parentId));
+
+	doc = mongo_getDocByQuery(query, fileCollection);
+	if (doc) {
+		return file_getFileFromBSON(doc);
+	}
+
+	return NULL;
+}
+
 bool mongo_file_deleteFileByNameInDir(char *name, char *parentId) {
 	bson_t *query;
 
@@ -68,5 +86,17 @@ bool mongo_file_deleteFileByNameInDir(char *name, char *parentId) {
 	query = BCON_NEW("name", BCON_UTF8(name), "parentId", BCON_UTF8(parentId));
 
 	return mongo_deleteDocByQuery(query, fileCollection);
+}
+
+void mongo_file_updateParentId(char *id, char *newParentId) {
+	bson_t *query;
+	bson_t *update;
+
+	mongo_file_checkInit();
+
+	query = BCON_NEW("_id", BCON_UTF8(id));
+	update = BCON_NEW("$set", "{", "parentId", BCON_UTF8(newParentId), "}");
+
+	mongo_update(query, update, fileCollection);
 }
 

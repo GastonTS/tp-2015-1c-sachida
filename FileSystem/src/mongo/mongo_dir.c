@@ -1,6 +1,8 @@
 #include "mongo.h"
 #include "mongo_dir.h"
 
+void mongo_dir_checkInit();
+
 mongoc_collection_t *dirCollection;
 
 void mongo_dir_checkInit() {
@@ -26,16 +28,6 @@ void mongo_dir_shutdown() {
 	mongoc_collection_destroy(dirCollection);
 }
 
-dir_t* mongo_dir_getById(char id[25]) {
-	const bson_t *doc;
-
-	mongo_dir_checkInit();
-
-	doc = mongo_getDocById(id, dirCollection);
-
-	return dir_getDirFromBSON(doc);
-}
-
 int mongo_dir_save(dir_t *dir) {
 	bool r;
 
@@ -48,6 +40,16 @@ int mongo_dir_save(dir_t *dir) {
 	}
 
 	return EXIT_SUCCESS;
+}
+
+dir_t* mongo_dir_getById(char id[25]) {
+	const bson_t *doc;
+
+	mongo_dir_checkInit();
+
+	doc = mongo_getDocById(id, dirCollection);
+
+	return dir_getDirFromBSON(doc);
 }
 
 t_list* mongo_dir_getByParentId(char *parentId) {

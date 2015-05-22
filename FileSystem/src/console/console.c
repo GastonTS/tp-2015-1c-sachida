@@ -253,26 +253,39 @@ void deleteDir(char *dirName) {
 void moveResource(char *resource, char *destination) {
 	if (!isNull(resource) && !isNull(destination)) {
 
-		// TODO support for  files. (duplicate names maybe?)
+		char *destinationId = malloc(sizeof(char) * 25);
 
 		dir_t *dirToMove = mongo_dir_getByNameInDir(resource, currentDirId);
-
 		if (dirToMove) {
-			char *destinationId = malloc(sizeof(char) * 25);
 			if (resolveDir(destination, NULL, destinationId)) {
 				mongo_dir_updateParentId(dirToMove->id, destinationId);
 			}
-
-			free(destinationId);
 			dir_free(dirToMove);
 		} else {
-			printf("Directory %s not found.\n", resource);
+			// If couldn't find a dir, then try to find a file:
+
+			file_t *fileToMove = mongo_file_getByNameInDir(resource, currentDirId);
+			if (fileToMove) {
+				if (resolveDir(destination, NULL, destinationId)) {
+					mongo_file_updateParentId(fileToMove->id, destinationId);
+				}
+				file_free(fileToMove);
+			} else {
+				printf("Directory or file %s not found.\n", resource);
+			}
 		}
+
+		free(destinationId);
 	}
 }
 
 void makeFile(char *fileName) {
 	if (!isNull(fileName)) {
+		if (mongo_dir_getByNameInDir(fileName, currentDirId)) {
+			printf("Cannot create file %s: Directory exists\n", fileName);
+			return;
+		}
+
 		file_t *file = file_create();
 
 		strcpy(file->name, fileName);
@@ -286,6 +299,11 @@ void makeFile(char *fileName) {
 
 void makeDir(char *dirName) {
 	if (!isNull(dirName)) {
+		if (mongo_file_getByNameInDir(dirName, currentDirId)) {
+			printf("Cannot create directory %s: File exists\n", dirName);
+			return;
+		}
+
 		dir_t *dir = dir_create();
 
 		strcpy(dir->name, dirName);
