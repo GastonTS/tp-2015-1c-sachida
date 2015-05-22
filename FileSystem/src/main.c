@@ -5,7 +5,6 @@
 #include "mongo/mongo_dir.h"
 #include "console/console.h"
 
-
 int main(void) {
 	startConsole();
 	return EXIT_SUCCESS;

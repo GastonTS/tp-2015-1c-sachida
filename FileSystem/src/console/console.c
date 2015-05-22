@@ -83,7 +83,7 @@ void startConsole() {
 				changeDir(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "ll")) {
 				listResources();
-			} else if (string_equals_ignore_case(parameters[0], "md5")) {
+			} else if (string_equals_ignore_case(parameters[0], "md5sum")) {
 				MD5(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "copyToMDFS")) {
 				copyToMDFS(parameters[1]);
@@ -353,24 +353,28 @@ void listResources() {
 
 void MD5(char *file) {
 	if (!isNull(file)) {
+		// TODO
 		printf("Obtiene el MD5 de %s\n", file);
 	}
 }
 
 void copyToMDFS(char *file) {
 	if (!isNull(file)) {
+		// TODO
 		printf("Copia el archivo %s al MDFS\n", file);
 	}
 }
 
 void copyToFS(char *file) {
 	if (!isNull(file)) {
+		// TODO
 		printf("Copia el archivo %s al FileSystem\n", file);
 	}
 }
 
 void seeBlock(char *block) {
 	if (!isNull(block)) {
+		// TODO
 		printf("Vee el Bloque nro %s\n", block);
 	}
 }
@@ -383,31 +387,37 @@ void deleteBlock(char *block) {
 
 void copyBlock(char *block) {
 	if (!isNull(block)) {
+		// TODO
 		printf("Copia el Bloque nro %s\n", block);
 	}
 }
 
 void upNode(char *node) {
 	if (!isNull(node)) {
+		// TODO
 		printf("Agrega el nodo %s\n", node);
 	}
 }
 
 void deleteNode(char *node) {
 	if (!isNull(node)) {
+		// TODO
 		printf("Borra el nodo %s\n", node);
 	}
 }
 
 void help() {
 	printf("Comandos Validos\n");
-	printf("formatMDFS		Formatea el MDFS\n");
-	printf("rm file		Borra el archivo file\n");
-	printf("rm -r dir		Borra el directorio dir\n");
-	printf("mv file		Mueve el archivo file\n");
-	printf("mv dir		Mueve el directorio dir\n");
-	printf("mkdir dir		Crea un directorio llamado dir\n");
-	printf("MD5 file		Obtiene el MD5 de file\n");
+	printf("formatMDFS\t\t Formats MDFS\n");
+	printf("rm file\t\t\t Deletes the file named `file` \n");
+	printf("rm -r dir\t\t Deletes the dir named `dir`\n");
+	printf("mv file dest\t\t Moves the file named `file` to the dir named `dir`\n");
+	printf("mv dir dest\t\t Moves the dir named `dir` to the dir named `dir`\n");
+	printf("mkdir dir\t\t Makes a new dir in the current dir named `dir`\n");
+	printf("ll\t\t\t Lists all the files and dirs in the current dir\n");
+	printf("md5sum file\t\t Gets the MD5 check sum of the file named `file`\n");
+
+	printf("\n\n UNIMPLEMENTED:\n");
 	printf("copyToMDFS file		Copia el archivo file al MDFS\n");
 	printf("copyToFS file		Copia el archivo file al File System\n");
 	printf("seeBlock block		Muestra el bloque block\n");
