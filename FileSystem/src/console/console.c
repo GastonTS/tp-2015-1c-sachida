@@ -431,10 +431,10 @@ void help() {
 	printf("\t exit\t\t\t\t Exits the MDFS\n\n");
 
 	printf("\n\n CHECK:\n");
-	printf("seeBlock block		Muestra el bloque block\n");
-	printf("deleteBlock block	Borra el bloque block\n");
-	printf("copyBlock block		Copia el bloque block\n");
-	printf("upNode node		Agrega el nodo node\n");
-	printf("deleteNode node		Borra el nodo node\n");
+	printf("catb block		Muestra el bloque block\n");
+	printf("rmb <block>		Borra el bloque block\n");
+	printf("cpb <block>		Copia el bloque block\n");
+	printf("mkn <node>		Agrega el nodo node\n");
+	printf("rmn <node>		Borra el nodo node\n");
 }
 
