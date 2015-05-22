@@ -60,7 +60,7 @@ int mongo_saveDoc(bson_t *doc, mongoc_collection_t *collection) {
 	return EXIT_SUCCESS;
 }
 
-t_list* mongo_getByQuery(bson_t *query, void* (parser)(const bson_t*) , mongoc_collection_t *collection) {
+t_list* mongo_getByQuery(bson_t *query, void* (parser)(const bson_t*), mongoc_collection_t *collection) {
 	mongoc_cursor_t *cursor;
 	const bson_t *item;
 	t_list *items;
@@ -73,27 +73,18 @@ t_list* mongo_getByQuery(bson_t *query, void* (parser)(const bson_t*) , mongoc_c
 		list_add(items, (parser)(item));
 	}
 
-	mongoc_cursor_destroy(cursor);
 	bson_destroy(query);
+	mongoc_cursor_destroy(cursor);
 
 	return items;
 }
 
 const bson_t* mongo_getDocById(char id[25], mongoc_collection_t *collection) {
-	mongoc_cursor_t *cursor;
-	const bson_t *item;
 	bson_t *query;
 
-	// Query
 	query = BCON_NEW("_id", BCON_UTF8(id));
 
-	cursor = mongoc_collection_find(collection, MONGOC_QUERY_NONE, 0, 0, 0, query, NULL, NULL);
-	mongoc_cursor_next(cursor, &item);
-
-	mongoc_cursor_destroy(cursor);
-	bson_destroy(query);
-
-	return item;
+	return mongo_getDocByQuery(query, collection);
 }
 
 const bson_t* mongo_getDocByQuery(bson_t *query, mongoc_collection_t *collection) {
@@ -104,8 +95,8 @@ const bson_t* mongo_getDocByQuery(bson_t *query, mongoc_collection_t *collection
 	cursor = mongoc_collection_find(collection, MONGOC_QUERY_NONE, 0, 0, 0, query, NULL, NULL);
 	r = mongoc_cursor_next(cursor, &item);
 
-	mongoc_cursor_destroy(cursor);
 	bson_destroy(query);
+	mongoc_cursor_destroy(cursor);
 
 	if (r) {
 		return item;
@@ -122,6 +113,14 @@ bool mongo_deleteDocByQuery(bson_t *query, mongoc_collection_t *collection) {
 	bson_destroy(query);
 
 	return r;
+}
+
+void mongo_update(bson_t *query, bson_t *update, mongoc_collection_t *collection) {
+
+	mongoc_collection_update(collection, MONGOC_UPDATE_MULTI_UPDATE, query, update, NULL, NULL);
+
+	bson_destroy(query);
+	bson_destroy(update);
 }
 
 /*

@@ -20,7 +20,7 @@ void freeSplits(char ** splits);
 
 bool isCurrentRootDir();
 bool isRootDir(char *dirId);
-bool resolveDir(char *dirPath, char *dirPromt, char *dirId);
+bool resolveDir(char *dirPath, char *dirPrompt, char *dirId);
 
 void formatMDFS();
 
@@ -159,7 +159,7 @@ bool isRootDir(char *dirId) {
 }
 
 // Resolves a path like: folder/../folder/folder2/../..
-bool resolveDir(char *dirPath, char *dirPromt, char *dirId) {
+bool resolveDir(char *dirPath, char *dirPrompt, char *dirId) {
 	char **dirNames;
 	char *dirName;
 	int i = 0;
@@ -210,8 +210,12 @@ bool resolveDir(char *dirPath, char *dirPromt, char *dirId) {
 		i++;
 	}
 
-	strcpy(dirPromt, newDirPrompt);
-	strcpy(dirId, newDirId);
+	if (dirPrompt) {
+		strcpy(dirPrompt, newDirPrompt);
+	}
+	if (dirId) {
+		strcpy(dirId, newDirId);
+	}
 
 	free(newDirPrompt);
 	free(newDirId);
@@ -247,7 +251,7 @@ void deleteDir(char *dirName) {
 }
 
 void moveResource(char *resource, char *destination) {
-	if (!isNull(resource) && !isNull(resource)) {
+	if (!isNull(resource) && !isNull(destination)) {
 
 		// TODO support for  files. (duplicate names maybe?)
 
@@ -256,7 +260,7 @@ void moveResource(char *resource, char *destination) {
 		if (dirToMove) {
 			char *destinationId = malloc(sizeof(char) * 25);
 			if (resolveDir(destination, NULL, destinationId)) {
-				printf("Moves resource %s to %s\n", resource, destination);
+				mongo_dir_updateParentId(dirToMove->id, destinationId);
 			}
 
 			free(destinationId);
@@ -317,16 +321,16 @@ void listResources() {
 	}
 
 	t_list *dirs = mongo_dir_getByParentId(currentDirId);
-	list_iterate(dirs, printDir);
-	list_destroy_and_destroy_elements(dirs, dir_free);
+	list_iterate(dirs, (void*) printDir);
+	list_destroy_and_destroy_elements(dirs, (void*) dir_free);
 
 	void printFile(file_t *file) {
 		printf("\t %s \n", file->name);
 	}
 
 	t_list *files = mongo_file_getByParentId(currentDirId);
-	list_iterate(files, printFile);
-	list_destroy_and_destroy_elements(files, file_free);
+	list_iterate(files, (void*) printFile);
+	list_destroy_and_destroy_elements(files, (void*) file_free);
 }
 
 void MD5(char *file) {

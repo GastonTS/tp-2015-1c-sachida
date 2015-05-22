@@ -26,7 +26,7 @@ dir_t* dir_getDirFromBSON(const bson_t *doc) {
 		while (bson_iter_next(&iter)) {
 			key = bson_iter_key(&iter);
 			value = bson_iter_value(&iter);
-
+			// bson_iter_utf8(&iter, &length);
 			if (strcmp(key, "_id") == 0) {
 				strcpy(dir->id, value->value.v_utf8.str);
 			} else if (strcmp(key, "name") == 0) {

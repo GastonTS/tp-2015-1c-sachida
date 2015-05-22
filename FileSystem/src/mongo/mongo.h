@@ -19,7 +19,10 @@ int mongo_saveDoc(bson_t *doc, mongoc_collection_t *collection);
 t_list* mongo_getByQuery(bson_t *query, void* (*parser)(const bson_t*) , mongoc_collection_t *collection);
 const bson_t* mongo_getDocById(char id[25], mongoc_collection_t *collection);
 const bson_t* mongo_getDocByQuery(bson_t *query, mongoc_collection_t *collection);
+
 bool mongo_deleteDocByQuery(bson_t *query, mongoc_collection_t *collection);
+
+void mongo_update(bson_t *query, bson_t *update, mongoc_collection_t *collection);
 
 //bson_t** mongo_getAll();
 
