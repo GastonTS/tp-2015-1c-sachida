@@ -22,7 +22,7 @@ bool isCurrentRootDir();
 bool isRootDir(char *dirId);
 bool resolveDir(char *dirPath, char *dirPrompt, char *dirId);
 
-void formatMDFS();
+void format();
 
 void deleteResource(char **parameters);
 void deleteFile(char *fileName);
@@ -36,9 +36,8 @@ void changeDir(char *dirName);
 
 void listResources();
 
-void copyToMDFS(char *fileName);
-void copyToFS(char *fileName);
-void MD5(char *fileName);
+void copyFile(char **parameters);
+void md5sum(char *fileName);
 void seeBlock(char *block);
 void deleteBlock(char *block);
 void copyBlock(char* block);
@@ -70,7 +69,7 @@ void startConsole() {
 			parameters = string_split(command, " ");
 
 			if (string_equals_ignore_case(parameters[0], "format")) {
-				formatMDFS();
+				format();
 			} else if (string_equals_ignore_case(parameters[0], "rm")) {
 				deleteResource(parameters);
 			} else if (string_equals_ignore_case(parameters[0], "mv")) {
@@ -84,11 +83,9 @@ void startConsole() {
 			} else if (string_equals_ignore_case(parameters[0], "ll")) {
 				listResources();
 			} else if (string_equals_ignore_case(parameters[0], "md5sum")) {
-				MD5(parameters[1]);
-			} else if (string_equals_ignore_case(parameters[0], "copyToMDFS")) {
-				copyToMDFS(parameters[1]);
-			} else if (string_equals_ignore_case(parameters[0], "copyToFS")) {
-				copyToFS(parameters[1]);
+				md5sum(parameters[1]);
+			} else if (string_equals_ignore_case(parameters[0], "cp")) {
+				copyFile(parameters);
 			} else if (string_equals_ignore_case(parameters[0], "seeBlock")) {
 				seeBlock(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "deleteBlock")) {
@@ -226,7 +223,8 @@ bool resolveDir(char *dirPath, char *dirPrompt, char *dirId) {
 
 // FUNCTIONS ..
 
-void formatMDFS() {
+void format() {
+	// TODO
 	printf("Formatea el MDFS\n");
 }
 
@@ -351,24 +349,35 @@ void listResources() {
 	list_destroy_and_destroy_elements(files, (void*) file_free);
 }
 
-void MD5(char *file) {
+void md5sum(char *file) {
 	if (!isNull(file)) {
 		// TODO
 		printf("Obtiene el MD5 de %s\n", file);
 	}
 }
 
-void copyToMDFS(char *file) {
-	if (!isNull(file)) {
-		// TODO
-		printf("Copia el archivo %s al MDFS\n", file);
-	}
-}
+void copyFile(char **parameters) {
+	char *option = parameters[1];
+	char *source = parameters[2];
+	char *dest = parameters[3];
 
-void copyToFS(char *file) {
-	if (!isNull(file)) {
+	if (!isNull(option) && !isNull(source) && !isNull(dest)) {
 		// TODO
-		printf("Copia el archivo %s al FileSystem\n", file);
+		if (string_equals_ignore_case(option, "-fromfs")) {
+			char *file;
+			char **dirNames = string_split(source, "/");
+			int i = 0;
+			while(dirNames[i]) {
+				file = dirNames[i];
+				i++;
+			}
+			printf("Copia el archivo %s al MDFS: %s\n", file, dest);
+			freeSplits(dirNames);
+		} else if (string_equals_ignore_case(option, "-tofs")) {
+			printf("Copia el archivo %s al FS: %s\n", source, dest);
+		} else {
+			printf ("Invalid option %s \n", option);
+		}
 	}
 }
 
@@ -407,24 +416,25 @@ void deleteNode(char *node) {
 }
 
 void help() {
-	printf("Comandos Validos\n");
-	printf("formatMDFS\t\t Formats MDFS\n");
-	printf("rm file\t\t\t Deletes the file named `file` \n");
-	printf("rm -r dir\t\t Deletes the dir named `dir`\n");
-	printf("mv file dest\t\t Moves the file named `file` to the dir named `dir`\n");
-	printf("mv dir dest\t\t Moves the dir named `dir` to the dir named `dir`\n");
-	printf("mkdir dir\t\t Makes a new dir in the current dir named `dir`\n");
-	printf("ll\t\t\t Lists all the files and dirs in the current dir\n");
-	printf("md5sum file\t\t Gets the MD5 check sum of the file named `file`\n");
+	printf("Valid commands:\n\n");
+	printf("\t format\t\t\t\t Formats MDFS\n");
+	printf("\t rm <file>\t\t\t Deletes the file <file> \n");
+	printf("\t rm -r <dir>\t\t\t Deletes the dir <dir>\n");
+	printf("\t mv <file> <dest>\t\t Moves the file named <file> to the dir named <dir>\n");
+	printf("\t mv <dir> <dest>\t\t Moves the dir named <dir> to the dir named <dir>\n");
+	printf("\t mkdir <dir>\t\t\t Makes a new dir in the current dir named <dir>\n");
+	printf("\t ll\t\t\t\t Lists all the files and dirs in the current dir\n");
+	printf("\t md5sum <file>\t\t\t Gets the MD5 check sum of the file named <file>\n");
+	printf("\t cp -tofs <file> <dest>\t\t Copies the file <file> from the MDFS to the local FileSystem at <dest>\n");
+	printf("\t cp -fromfs <file> <dest>\t Copies the file <file> from the local FileSystem to the MDFS at <dest>\n");
+	printf("\t help\t\t\t\t Prints Help (this message)\n");
+	printf("\t exit\t\t\t\t Exits the MDFS\n\n");
 
-	printf("\n\n UNIMPLEMENTED:\n");
-	printf("copyToMDFS file		Copia el archivo file al MDFS\n");
-	printf("copyToFS file		Copia el archivo file al File System\n");
+	printf("\n\n CHECK:\n");
 	printf("seeBlock block		Muestra el bloque block\n");
 	printf("deleteBlock block	Borra el bloque block\n");
 	printf("copyBlock block		Copia el bloque block\n");
 	printf("upNode node		Agrega el nodo node\n");
 	printf("deleteNode node		Borra el nodo node\n");
-	printf("exitMDFS		Cierra la consola del MDFS\n\n");
 }
 
