@@ -17,7 +17,7 @@ int mongo_file_init() {
 	// Create index to avoid duplicate files in the same path.
 	const bson_t *indexKeys = BCON_NEW("name", BCON_INT32(1), "parentId", BCON_INT32(1));
 	mongo_createIndexIfAbsent(fileCollection, "name_1_parentId_1", indexKeys, 1);
-	free(indexKeys);
+	//bson_free(indexKeys);
 
 	return EXIT_SUCCESS;
 }

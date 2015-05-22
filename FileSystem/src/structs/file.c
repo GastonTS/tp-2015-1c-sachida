@@ -19,30 +19,35 @@ bson_t* file_getBSON(file_t *file) {
 file_t* file_getFileFromBSON(const bson_t *doc) {
 	bson_iter_t iter;
 	const bson_value_t *value;
-	char *key = malloc(sizeof(char*));
-	file_t *file = malloc(sizeof(file_t));
+	const char *key;
+	file_t *file = file_create();
 
-	if (bson_iter_init (&iter, doc)) {
-	   while (bson_iter_next(&iter)) {
-		   strcpy(key, bson_iter_key(&iter));
-		   value = bson_iter_value(&iter);
+	if (bson_iter_init(&iter, doc)) {
+		while (bson_iter_next(&iter)) {
+			key = bson_iter_key(&iter);
+			value = bson_iter_value(&iter);
 
-		   if (strcmp(key, "_id") == 0) {
-			   strcpy(file->id, value->value.v_utf8.str);
-		   } else if (strcmp(key, "name") == 0) {
-			   strcpy(file->name, value->value.v_utf8.str);
-		   } else if (strcmp(key, "size") == 0) {
-			   file->size = value->value.v_int32;
-		   } else if (strcmp(key, "parentId") == 0) {
-			   strcpy(file->parentId, value->value.v_utf8.str);
-		   }
-	   }
+			if (strcmp(key, "_id") == 0) {
+				strcpy(file->id, value->value.v_utf8.str);
+			} else if (strcmp(key, "name") == 0) {
+				strcpy(file->name, value->value.v_utf8.str);
+			} else if (strcmp(key, "size") == 0) {
+				file->size = value->value.v_int32;
+			} else if (strcmp(key, "parentId") == 0) {
+				strcpy(file->parentId, value->value.v_utf8.str);
+			}
+		}
 	}
-	free(key);
 
 	return file;
 }
 
+file_t* file_create() {
+	file_t* file = malloc(sizeof(file_t));
+	file->name = malloc(sizeof(char) * 512);
+	file->parentId = malloc(sizeof(char) * 25);
+	return file;
+}
 
 void file_free(file_t *file) {
 	free(file->name);

@@ -74,6 +74,7 @@ t_list* mongo_getByQuery(bson_t *query, void* (parser)(const bson_t*) , mongoc_c
 	}
 
 	mongoc_cursor_destroy(cursor);
+	bson_destroy(query);
 
 	return items;
 }

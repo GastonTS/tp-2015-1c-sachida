@@ -13,4 +13,7 @@ typedef struct {
 bson_t* file_getBSON(file_t *file);
 file_t* file_getFileFromBSON(const bson_t *doc);
 
+file_t* file_create();
+void file_free(file_t* file);
+
 #endif

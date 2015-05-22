@@ -19,7 +19,7 @@ void readCommand(char *command);
 void freeSplits(char ** splits);
 
 bool isCurrentRootDir();
-bool isRootDir(char dirId[25]);
+bool isRootDir(char *dirId);
 bool resolveDir(char *dirPath, char *dirPromt, char *dirId);
 
 void formatMDFS();
@@ -52,11 +52,11 @@ char *currentDirId;
 
 void startConsole() {
 	char **parameters;
-	char *command = malloc(sizeof(char*));
+	char *command = malloc(sizeof(char) * 512);
 	int exit = 0;
 
-	currentDirPrompt = malloc(sizeof(char*));
-	currentDirId = malloc(sizeof(char*));
+	currentDirPrompt = malloc(sizeof(char) * 512);
+	currentDirId = malloc(sizeof(char) * 25);
 
 	strcpy(currentDirPrompt, "/");
 	strcpy(currentDirId, ROOT_DIR_ID);
@@ -154,7 +154,7 @@ bool isCurrentRootDir() {
 	return isRootDir(currentDirId);
 }
 
-bool isRootDir(char dirId[25]) {
+bool isRootDir(char *dirId) {
 	return string_equals_ignore_case(dirId, ROOT_DIR_ID);
 }
 
@@ -164,8 +164,8 @@ bool resolveDir(char *dirPath, char *dirPromt, char *dirId) {
 	char *dirName;
 	int i = 0;
 
-	char *newDirPrompt = malloc(sizeof(char*));
-	char newDirId[25];
+	char *newDirPrompt = malloc(sizeof(char) * 512);
+	char *newDirId = malloc(sizeof(char) * 25);
 
 	strcpy(newDirPrompt, currentDirPrompt);
 	strcpy(newDirId, currentDirId);
@@ -180,9 +180,8 @@ bool resolveDir(char *dirPath, char *dirPromt, char *dirId) {
 				if (!isRootDir(newDirId)) {
 					dir_t *currentDir = mongo_dir_getById(newDirId);
 
-					// TODO...
-					//strcpy(newDirPrompt, string_substring_until(newDirPrompt, string_length(newDirPrompt) - string_length(currentDir->name) - 1));
-					//strncpy(newDirPrompt, newDirPrompt, string_length(newDirPrompt) - string_length(currentDir->name) - 1);
+					// Removes the last folder in the prompt
+					newDirPrompt[string_length(newDirPrompt) - string_length(currentDir->name) - 1] = '\0';
 
 					strcpy(newDirId, currentDir->parentId);
 
@@ -215,6 +214,7 @@ bool resolveDir(char *dirPath, char *dirPromt, char *dirId) {
 	strcpy(dirId, newDirId);
 
 	free(newDirPrompt);
+	free(newDirId);
 	freeSplits(dirNames);
 
 	return 1;
@@ -254,11 +254,12 @@ void moveResource(char *resource, char *destination) {
 		dir_t *dirToMove = mongo_dir_getByNameInDir(resource, currentDirId);
 
 		if (dirToMove) {
-			char *destinationId = malloc(sizeof(char*));
+			char *destinationId = malloc(sizeof(char) * 25);
 			if (resolveDir(destination, NULL, destinationId)) {
 				printf("Moves resource %s to %s\n", resource, destination);
 			}
 
+			free(destinationId);
 			dir_free(dirToMove);
 		} else {
 			printf("Directory %s not found.\n", resource);
@@ -268,11 +269,14 @@ void moveResource(char *resource, char *destination) {
 
 void makeFile(char *fileName) {
 	if (!isNull(fileName)) {
-		file_t *file = malloc(sizeof(file_t));
+		file_t *file = file_create();
+
 		strcpy(file->name, fileName);
 		strcpy(file->parentId, currentDirId);
 		file->size = 0;
 		mongo_file_save(file);
+
+		file_free(file);
 	}
 }
 
@@ -291,10 +295,11 @@ void makeDir(char *dirName) {
 void changeDir(char *dirName) {
 	if (!isNull(dirName)) {
 
-		char *newDirPrompt = malloc(sizeof(char*));
-		char *newDirId = malloc(sizeof(char*));
+		char *newDirPrompt = malloc(sizeof(char) * 512);
+		char *newDirId = malloc(sizeof(char) * 25);
 
 		if (resolveDir(dirName, newDirPrompt, newDirId)) {
+			// TODO, igualar al puntero haciendo previous free?
 			strcpy(currentDirId, newDirId);
 			strcpy(currentDirPrompt, newDirPrompt);
 		}
@@ -313,7 +318,6 @@ void listResources() {
 
 	t_list *dirs = mongo_dir_getByParentId(currentDirId);
 	list_iterate(dirs, printDir);
-
 	list_destroy_and_destroy_elements(dirs, dir_free);
 
 	void printFile(file_t *file) {
@@ -322,6 +326,7 @@ void listResources() {
 
 	t_list *files = mongo_file_getByParentId(currentDirId);
 	list_iterate(files, printFile);
+	list_destroy_and_destroy_elements(files, file_free);
 }
 
 void MD5(char *file) {

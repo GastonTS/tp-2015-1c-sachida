@@ -19,12 +19,12 @@ bson_t* dir_getBSON(dir_t *dir) {
 dir_t* dir_getDirFromBSON(const bson_t *doc) {
 	bson_iter_t iter;
 	const bson_value_t *value;
-	char *key = malloc(sizeof(char*));
+	const char *key;
 	dir_t *dir = dir_create();
 
 	if (bson_iter_init(&iter, doc)) {
 		while (bson_iter_next(&iter)) {
-			strcpy(key, bson_iter_key(&iter));
+			key = bson_iter_key(&iter);
 			value = bson_iter_value(&iter);
 
 			if (strcmp(key, "_id") == 0) {
@@ -36,15 +36,14 @@ dir_t* dir_getDirFromBSON(const bson_t *doc) {
 			}
 		}
 	}
-	free(key);
 
 	return dir;
 }
 
 dir_t* dir_create() {
 	dir_t* dir = malloc(sizeof(dir_t));
-	dir->name = malloc(sizeof(char*));
-	dir->parentId = malloc(sizeof(char*));
+	dir->name = malloc(sizeof(char) * 512);
+	dir->parentId = malloc(sizeof(char) * 25);
 	return dir;
 }
 

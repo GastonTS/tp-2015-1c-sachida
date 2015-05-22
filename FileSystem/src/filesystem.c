@@ -7,8 +7,6 @@
 
 
 int main(void) {
-	//testCreateDir();
-	//testCreateFile();
 	startConsole();
 	return EXIT_SUCCESS;
 }
