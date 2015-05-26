@@ -90,6 +90,12 @@ bool mongo_dir_deleteDirByNameInDir(char *name, char *parentId) {
 	// TODO, delete files? and folders recursively. do here?
 }
 
+bool mongo_dir_deleteAll() {
+	mongo_dir_checkInit();
+
+	return mongo_deleteDocByQuery(bson_new(), dirCollection);
+}
+
 void mongo_dir_updateParentId(char *id, char *newParentId) {
 	bson_t *query;
 	bson_t *update;

@@ -88,6 +88,12 @@ bool mongo_file_deleteFileByNameInDir(char *name, char *parentId) {
 	return mongo_deleteDocByQuery(query, fileCollection);
 }
 
+bool mongo_file_deleteAll() {
+	mongo_file_checkInit();
+
+	return mongo_deleteDocByQuery(bson_new(), fileCollection);
+}
+
 void mongo_file_updateParentId(char *id, char *newParentId) {
 	bson_t *query;
 	bson_t *update;

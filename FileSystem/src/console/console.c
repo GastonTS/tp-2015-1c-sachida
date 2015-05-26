@@ -225,8 +225,10 @@ bool resolveDir(char *dirPath, char *dirPrompt, char *dirId) {
 // FUNCTIONS ..
 
 void format() {
-	// TODO
-	printf("Formatea el MDFS\n");
+	mongo_dir_deleteAll();
+	mongo_file_deleteAll();
+	strcpy(currentDirId, ROOT_DIR_ID);
+	strcpy(currentDirPrompt, "/");
 }
 
 void deleteResource(char **parameters) {
