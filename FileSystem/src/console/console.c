@@ -99,6 +99,7 @@ void startConsole() {
 			} else if (string_equals_ignore_case(parameters[0], "help")) {
 				help();
 			} else if (string_equals_ignore_case(parameters[0], "exit")) {
+				printf("bye\n");
 				exit = 1;
 			} else if (string_equals_ignore_case(parameters[0], "\n")) {
 				// ignore enter
