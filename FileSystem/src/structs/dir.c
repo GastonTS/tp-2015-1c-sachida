@@ -1,9 +1,6 @@
-#include <bcon.h>
-#include <bson.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "../mongo/mongo.h"
 #include "dir.h"
 
 bson_t* dir_getBSON(dir_t *dir) {
@@ -13,6 +10,7 @@ bson_t* dir_getBSON(dir_t *dir) {
 			"_id", BCON_UTF8(dir->id),
 			"name", BCON_UTF8(dir->name),
 			"parentId", BCON_UTF8(dir->parentId)
+
 		);
 }
 
@@ -34,6 +32,8 @@ dir_t* dir_getDirFromBSON(const bson_t *doc) {
 			} else if (strcmp(key, "parentId") == 0) {
 				strcpy(dir->parentId, value->value.v_utf8.str);
 			}
+
+
 		}
 	}
 
