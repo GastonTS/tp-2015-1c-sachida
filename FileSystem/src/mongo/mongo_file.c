@@ -11,7 +11,7 @@ void mongo_file_checkInit() {
 	}
 }
 
-int mongo_file_init() {
+bool mongo_file_init() {
 	mongoc_client_t *client = mongo_getClient();
 
 	fileCollection = mongoc_client_get_collection(client, "filesystem", "file");
@@ -28,18 +28,11 @@ void mongo_file_shutdown() {
 	mongoc_collection_destroy(fileCollection);
 }
 
-int mongo_file_save(file_t *file) {
-	bool r;
+bool mongo_file_save(file_t *file) {
 
 	mongo_file_checkInit();
 
-	r = mongo_saveDoc(file_getBSON(file), fileCollection);
-
-	if (!r) {
-		return EXIT_FAILURE;
-	}
-
-	return EXIT_SUCCESS;
+	return mongo_saveDoc(file_getBSON(file), fileCollection);
 }
 
 file_t* mongo_file_getById(char id[25]) {

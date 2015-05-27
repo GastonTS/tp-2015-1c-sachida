@@ -11,7 +11,7 @@ bson_t* file_getBSON(file_t *file) {
 			"name", BCON_UTF8(file->name),
 			"size", BCON_INT32(file->size),
 			"parentId", BCON_UTF8(file->parentId)
-		);
+		);// TODO change to the other method..
 }
 
 file_t* file_getFileFromBSON(const bson_t *doc) {

@@ -11,7 +11,7 @@ void mongo_dir_checkInit() {
 	}
 }
 
-int mongo_dir_init() {
+bool mongo_dir_init() {
 	mongoc_client_t *client = mongo_getClient();
 
 	dirCollection = mongoc_client_get_collection(client, "filesystem", "dir");
@@ -28,18 +28,11 @@ void mongo_dir_shutdown() {
 	mongoc_collection_destroy(dirCollection);
 }
 
-int mongo_dir_save(dir_t *dir) {
-	bool r;
+bool mongo_dir_save(dir_t *dir) {
 
 	mongo_dir_checkInit();
 
-	r = mongo_saveDoc(dir_getBSON(dir), dirCollection);
-
-	if (!r) {
-		return EXIT_FAILURE;
-	}
-
-	return EXIT_SUCCESS;
+	return mongo_saveDoc(dir_getBSON(dir), dirCollection);
 }
 
 dir_t* mongo_dir_getById(char id[25]) {

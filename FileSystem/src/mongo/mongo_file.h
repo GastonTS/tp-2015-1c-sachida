@@ -3,10 +3,10 @@
 
 #include "../structs/file.h"
 
-int mongo_file_init();
+bool mongo_file_init();
 void mongo_file_shutdown();
 
-int mongo_file_save(file_t *file);
+bool mongo_file_save(file_t *file);
 
 t_list* mongo_file_getByParentId(char *parentId);
 file_t* mongo_file_getById(char id[25]);

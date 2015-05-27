@@ -3,10 +3,10 @@
 
 #include "../structs/dir.h"
 
-int mongo_dir_init();
+bool mongo_dir_init();
 void mongo_dir_shutdown();
 
-int mongo_dir_save(dir_t *file);
+bool mongo_dir_save(dir_t *file);
 
 t_list* mongo_dir_getByParentId(char *parentId);
 dir_t* mongo_dir_getById(char id[25]);
