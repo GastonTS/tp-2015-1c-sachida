@@ -370,7 +370,7 @@ void copyFile(char **parameters) {
 			char *file;
 			char **dirNames = string_split(source, "/");
 			int i = 0;
-			while(dirNames[i]) {
+			while (dirNames[i]) {
 				file = dirNames[i];
 				i++;
 			}
@@ -379,7 +379,7 @@ void copyFile(char **parameters) {
 		} else if (string_equals_ignore_case(option, "-tofs")) {
 			printf("Copia el archivo %s al FS: %s\n", source, dest);
 		} else {
-			printf ("Invalid option %s \n", option);
+			printf("Invalid option %s \n", option);
 		}
 	}
 }

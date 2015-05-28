@@ -6,12 +6,13 @@
 bson_t* file_getBSON(file_t *file) {
 
 	mongo_generateId(file->id);
-	return BCON_NEW(
-			"_id", BCON_UTF8(file->id),
-			"name", BCON_UTF8(file->name),
-			"size", BCON_INT32(file->size),
-			"parentId", BCON_UTF8(file->parentId)
-		);// TODO change to the other method..
+
+	bson_t *bson = bson_new();
+	BSON_APPEND_UTF8(bson, "_id", file->id);
+	BSON_APPEND_UTF8(bson, "name", file->name);
+	BSON_APPEND_INT32(bson, "size", file->size);
+	BSON_APPEND_UTF8(bson, "parentId", file->parentId);
+	return bson;
 }
 
 file_t* file_getFileFromBSON(const bson_t *doc) {

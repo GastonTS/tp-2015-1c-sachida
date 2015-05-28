@@ -6,8 +6,8 @@
 #include "mongo/mongo_dir.h"
 #include "console/console.h"
 // TODO DELETE
-#include "mongo/mongo_node.h"
-void testNode();
+//#include "mongo/mongo_node.h"
+//void testNode();
 
 typedef struct {
 	int *port;
@@ -26,14 +26,14 @@ int main(void) {
 		return EXIT_FAILURE;
 	}
 
-	testNode();
+	//testNode();
 
 	startConsole();
 
 	config_free(fsConfig);
 	return EXIT_SUCCESS;
 }
-
+/*
 void testNode() {
 
 	node_t* node = node_create(24);
@@ -49,7 +49,7 @@ void testNode() {
 	node_printBlocksTest(node2);
 
 }
-
+*/
 bool initConfig(fscfg_t *fsConfig) {
 	bool missing = 0;
 	t_config* config;

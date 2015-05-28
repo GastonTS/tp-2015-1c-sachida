@@ -13,7 +13,7 @@ bson_t* node_getBSON(node_t *node) {
 
 	bson_t *bson = bson_new();
 	BSON_APPEND_UTF8(bson, "_id", node->id);
-	BSON_APPEND_BINARY(bson, "blocks", BSON_SUBTYPE_BINARY, node->blocks->bitarray, node->blocks->size);
+	// TODO BSON_APPEND_BINARY(bson, "blocks", BSON_SUBTYPE_BINARY, node->blocks->bitarray, node->blocks->size);
 	BSON_APPEND_INT32(bson, "blocksCount", *node->blocksCount);
 	return bson;
 }
@@ -23,11 +23,6 @@ node_t* node_getNodeFromBSON(const bson_t *doc) {
 	const bson_value_t *value;
 	const char *key;
 	node_t *node = malloc(sizeof(node_t));
-
-	/*
-	 * TODO try this maybe? if ( bson_find( iterator, mongo_cursor_bson( cursor ), "name" )) {
-        printf( "name: %s\n", bson_iterator_string( it ) );
-    }*/
 
 	if (bson_iter_init(&iter, doc)) {
 		while (bson_iter_next(&iter)) {
