@@ -379,6 +379,7 @@ void copyFile(char **parameters) {
 				i++;
 			}
 			printf("Copia el archivo %s al MDFS: %s\n", file, dest);
+			readFile(source);
 			freeSplits(dirNames);
 		} else if (string_equals_ignore_case(option, "-tofs")) {
 			printf("Copia el archivo %s al FS: %s\n", source, dest);
@@ -435,6 +436,37 @@ void deleteNode(char *node) {
 	}
 }
 
+// TODO move:
+void readFile(char *route) {
+	FILE *fp;
+	char *line = NULL;
+	size_t len = 0;
+	ssize_t read;
+	int bytes = 0;
+
+	fp = fopen(route, "r");
+	if (fp == NULL) {
+		printf("Local file %s not found\n", route);
+		return;
+	}
+
+	while ((read = getline(&line, &len, fp)) != -1) {
+		if (bytes + read > 20 * 1024 * 1024) {
+			break;
+			// TODO, fill the rest with \0 .. and other stuff.
+		}
+		bytes += read;
+		//printf("Retrieved line of length %zu :\n", read);
+		//printf("%s", line);
+	}
+
+	printf("Read %d bytes \n", bytes);
+	fclose(fp);
+	if (line) {
+		free(line);
+	}
+}
+
 void help() {
 	printf("Valid commands:\n\n");
 	printf("\t format\t\t\t\t Formats MDFS\n");
@@ -447,6 +479,9 @@ void help() {
 	printf("\t md5sum <file>\t\t\t Gets the MD5 check sum of the file named <file>\n");
 	printf("\t cp -tofs <file> <dest>\t\t Copies the file <file> from the MDFS to the local FileSystem at <dest>\n");
 	printf("\t cp -fromfs <file> <dest>\t Copies the file <file> from the local FileSystem to the MDFS at <dest>\n");
+
+	printf("\t nodestat <nodename>\t\t Prints the status (blocks usage) of the node named <nodename>(this message)\n");
+
 	printf("\t help\t\t\t\t Prints Help (this message)\n");
 	printf("\t exit\t\t\t\t Exits the MDFS\n\n");
 
