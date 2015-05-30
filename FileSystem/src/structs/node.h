@@ -6,6 +6,7 @@
 
 typedef struct {
 	char id[25];
+	char *name;
 	t_bitarray *blocks;
 	int *blocksCount;
 } node_t;
@@ -21,6 +22,6 @@ bool node_isBlockUsed(node_t* node, int blockIndex);
 node_t* node_create(int blocksCount);
 void node_free(node_t* node);
 
-void node_printBlocksTest(node_t *node);
+void node_printBlocksStatus(node_t *node);
 
 #endif

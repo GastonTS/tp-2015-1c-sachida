@@ -6,6 +6,7 @@
 #include "console.h"
 #include "../mongo/mongo_dir.h"
 #include "../mongo/mongo_file.h"
+#include "../mongo/mongo_node.h"
 
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
@@ -37,6 +38,7 @@ void changeDir(char *dirName);
 void listResources();
 
 void copyFile(char **parameters);
+void printNodeStatus(char *nodeName);
 void md5sum(char *fileName);
 void seeBlock(char *block);
 void deleteBlock(char *block);
@@ -86,6 +88,8 @@ void startConsole() {
 				md5sum(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "cp")) {
 				copyFile(parameters);
+			} else if (string_equals_ignore_case(parameters[0], "nodestat")) {
+				printNodeStatus(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "seeBlock")) {
 				seeBlock(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "deleteBlock")) {
@@ -380,6 +384,19 @@ void copyFile(char **parameters) {
 			printf("Copia el archivo %s al FS: %s\n", source, dest);
 		} else {
 			printf("Invalid option %s \n", option);
+		}
+	}
+}
+
+void printNodeStatus(char *nodeName) {
+	if (!isNull(nodeName)) {
+		node_t *node = mongo_node_getByName(nodeName);
+
+		if (node) {
+			node_printBlocksStatus(node);
+			node_free(node);
+		} else {
+			printf("No existe el nodo %s\n", nodeName);
 		}
 	}
 }

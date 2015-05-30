@@ -80,7 +80,7 @@ bool mongo_dir_deleteDirByNameInDir(char *name, char *parentId) {
 
 	return mongo_deleteDocByQuery(query, dirCollection);
 
-	// TODO, delete files? and folders recursively. do here?
+	// TODO, delete files? and folders recursively. do here? add service layer.
 }
 
 bool mongo_dir_deleteAll() {
