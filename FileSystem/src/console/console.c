@@ -48,6 +48,9 @@ void deleteNode(char *node);
 void help();
 int isNull(char *parameter);
 
+void readFile(char *route);
+
+
 char *currentDirPrompt;
 char *currentDirId;
 
@@ -358,8 +361,28 @@ void listResources() {
 
 void md5sum(char *file) {
 	if (!isNull(file)) {
-		// TODO
-		printf("Obtiene el MD5 de %s\n", file);
+		// TODO armar bien esto..
+		printf("MD5 de %s\n", file);
+		char *input = strdup("asdasd");
+
+		FILE *md5pipe = NULL;
+		size_t size = 9 + strlen(input) + 10 + 1;
+		char *command = malloc(size);
+		snprintf(command, size, "echo -n \"%s\" | md5sum", input);
+
+		md5pipe = popen(command, "r");
+
+		if (md5pipe != NULL) {
+			char buffer[32];
+			fread(buffer, 1, 32, md5pipe);
+			printf("%s\n", buffer);
+
+			free(input);
+			pclose(md5pipe);
+			free(command);
+		} else {
+			printf("No se pudo obtener el md5sum.\n");
+		}
 	}
 }
 
