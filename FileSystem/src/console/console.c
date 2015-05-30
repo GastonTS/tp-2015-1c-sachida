@@ -40,6 +40,7 @@ void listResources();
 void copyFile(char **parameters);
 void printNodeStatus(char *nodeName);
 void md5sum(char *fileName);
+void md5(char *str);
 void seeBlock(char *block);
 void deleteBlock(char *block);
 void copyBlock(char* block);
@@ -49,7 +50,6 @@ void help();
 int isNull(char *parameter);
 
 void readFile(char *route);
-
 
 char *currentDirPrompt;
 char *currentDirId;
@@ -365,24 +365,29 @@ void md5sum(char *file) {
 		printf("MD5 de %s\n", file);
 		char *input = strdup("asdasd");
 
-		FILE *md5pipe = NULL;
-		size_t size = 9 + strlen(input) + 10 + 1;
-		char *command = malloc(size);
-		snprintf(command, size, "echo -n \"%s\" | md5sum", input);
+		md5(input);
 
-		md5pipe = popen(command, "r");
+		free(input);
+	}
+}
 
-		if (md5pipe != NULL) {
-			char buffer[32];
-			fread(buffer, 1, 32, md5pipe);
-			printf("%s\n", buffer);
+void md5(char *str) {
+	FILE *md5pipe = NULL;
+	size_t size = 9 + strlen(str) + 10 + 1;
+	char *command = malloc(size);
+	snprintf(command, size, "echo -n \"%s\" | md5sum", str);
 
-			free(input);
-			pclose(md5pipe);
-			free(command);
-		} else {
-			printf("No se pudo obtener el md5sum.\n");
-		}
+	md5pipe = popen(command, "r");
+
+	if (md5pipe != NULL) {
+		char buffer[32];
+		fread(buffer, 1, 32, md5pipe);
+		printf("%s\n", buffer);
+
+		pclose(md5pipe);
+		free(command);
+	} else {
+		printf("No se pudo obtener el md5.\n");
 	}
 }
 
@@ -459,35 +464,72 @@ void deleteNode(char *node) {
 	}
 }
 
-// TODO move:
-void readFile(char *route) {
+t_list* getFileBlocks(char *route) {
+	int blockSize = 20 * 1024 * 1024; // 20 MB.
+
 	FILE *fp;
 	char *line = NULL;
+	ssize_t linesize;
 	size_t len = 0;
-	ssize_t read;
-	int bytes = 0;
+
+	int bytesRead = 0;
+	char *buffer = malloc(sizeof(char) * blockSize);
+	t_list *blocks = list_create();
+	strcpy(buffer, "");
 
 	fp = fopen(route, "r");
 	if (fp == NULL) {
 		printf("Local file %s not found\n", route);
-		return;
+		return NULL;
 	}
 
-	while ((read = getline(&line, &len, fp)) != -1) {
-		if (bytes + read > 20 * 1024 * 1024) {
-			break;
-			// TODO, fill the rest with \0 .. and other stuff.
+	while ((linesize = getline(&line, &len, fp)) != -1) {
+		if (bytesRead + linesize > blockSize) {
+			printf("New block");
+			list_add(blocks, buffer);
+			// TODO, fill the rest with \0 .. and other stuff.input[strlen(input) - 1] = '\0';
+
+			// Reset all data for the next buffer.
+			buffer = malloc(sizeof(char) * blockSize);
+			strcpy(buffer, line);
+			bytesRead = linesize;
+		} else {
+			//printf("%d\%   \n", bytesRead * 100 / blockSize);
+			strcat(buffer, line);
+			bytesRead += linesize;
 		}
-		bytes += read;
-		//printf("Retrieved line of length %zu :\n", read);
-		//printf("%s", line);
 	}
+	list_add(blocks, buffer);
 
-	printf("Read %d bytes \n", bytes);
+	//free's
 	fclose(fp);
 	if (line) {
 		free(line);
 	}
+
+	return blocks;
+}
+
+// TODO move:
+void readFile(char *route) {
+	t_list *blocks = getFileBlocks(route);
+
+	printf("List size: %d \n", list_size(blocks));
+	void printBlockSize(char *buffer) {
+		printf("Buffer size: %d \n", strlen(buffer));
+	}
+	list_iterate(blocks, (void *) printBlockSize);
+	printf("MD5:");
+
+	char *fileBuffer = strdup("");
+	void concatBuffers(char *buffer) {
+		fileBuffer = realloc(fileBuffer, sizeof(char) * (strlen(buffer) + strlen(fileBuffer) + 1));
+		strcat(fileBuffer, buffer);
+	}
+	list_iterate(blocks, (void *) concatBuffers);
+	md5(fileBuffer);
+
+	list_destroy_and_destroy_elements(blocks, free);
 }
 
 void help() {
