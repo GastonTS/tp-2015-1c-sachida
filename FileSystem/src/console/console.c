@@ -5,9 +5,7 @@
 #include <string.h>
 
 #include "console.h"
-#include "../mongo/mongo_dir.h"
-#include "../mongo/mongo_file.h"
-#include "../mongo/mongo_node.h"
+#include "../filesystem/filesystem.h"
 
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
@@ -27,9 +25,6 @@ bool resolveDir(char *dirPath, char *dirPrompt, char *dirId);
 void format();
 
 void deleteResource(char **parameters);
-void deleteFile(char *fileName);
-void deleteDir(char *dirName);
-
 void moveResource(char *resource, char *destination);
 
 void makeFile(char *fileName);
@@ -189,7 +184,7 @@ bool resolveDir(char *dirPath, char *dirPrompt, char *dirId) {
 		if (strcmp(dirName, "") != 0) {
 			if (strcmp(dirName, "..") == 0) {
 				if (!isRootDir(newDirId)) {
-					dir_t *currentDir = mongo_dir_getById(newDirId);
+					dir_t *currentDir = filesystem_getDirById(newDirId);
 
 					// Removes the last folder in the prompt
 					newDirPrompt[string_length(newDirPrompt) - string_length(currentDir->name) - 1] = '\0';
@@ -202,7 +197,7 @@ bool resolveDir(char *dirPath, char *dirPrompt, char *dirId) {
 					dir_free(currentDir);
 				}
 			} else {
-				dir_t *dir = mongo_dir_getByNameInDir(dirName, newDirId);
+				dir_t *dir = filesystem_getDirByNameInDir(dirName, newDirId);
 
 				if (dir) {
 					if (!isRootDir(newDirId)) {
@@ -238,29 +233,23 @@ bool resolveDir(char *dirPath, char *dirPrompt, char *dirId) {
 // FUNCTIONS ..
 
 void format() {
-	mongo_dir_deleteAll();
-	mongo_file_deleteAll();
-	strcpy(currentDirId, ROOT_DIR_ID);
-	strcpy(currentDirPrompt, "/");
+	if (filesystem_format()) {
+		strcpy(currentDirId, ROOT_DIR_ID);
+		strcpy(currentDirPrompt, "/");
+	} else {
+		printf("An unexpected error occured\n");
+	}
 }
 
 void deleteResource(char **parameters) {
-	if (string_equals_ignore_case(parameters[1], "-r")) {
-		deleteDir(parameters[2]);
-	} else {
-		deleteFile(parameters[1]);
-	}
-}
-
-void deleteFile(char *fileName) {
-	if (!isNull(fileName)) {
-		mongo_file_deleteFileByNameInDir(fileName, currentDirId);
-	}
-}
-
-void deleteDir(char *dirName) {
-	if (!isNull(dirName)) {
-		mongo_dir_deleteDirByNameInDir(dirName, currentDirId);
+	if (!isNull(parameters[1])) {
+		if (string_equals_ignore_case(parameters[1], "-r")) {
+			if (!isNull(parameters[2])) {
+				filesystem_deleteDirByNameInDir(parameters[2], currentDirId);
+			}
+		} else {
+			filesystem_deleteFileByNameInDir(parameters[1], currentDirId);
+		}
 	}
 }
 
@@ -269,19 +258,19 @@ void moveResource(char *resource, char *destination) {
 
 		char *destinationId = malloc(sizeof(char) * 25);
 
-		dir_t *dirToMove = mongo_dir_getByNameInDir(resource, currentDirId);
+		dir_t *dirToMove = filesystem_getDirByNameInDir(resource, currentDirId);
 		if (dirToMove) {
 			if (resolveDir(destination, NULL, destinationId)) {
-				mongo_dir_updateParentId(dirToMove->id, destinationId);
+				filesystem_moveDir(dirToMove, destinationId);
 			}
 			dir_free(dirToMove);
 		} else {
 			// If couldn't find a dir, then try to find a file:
 
-			file_t *fileToMove = mongo_file_getByNameInDir(resource, currentDirId);
+			file_t *fileToMove = filesystem_getFileByNameInDir(resource, currentDirId);
 			if (fileToMove) {
 				if (resolveDir(destination, NULL, destinationId)) {
-					mongo_file_updateParentId(fileToMove->id, destinationId);
+					filesystem_moveFile(fileToMove, destinationId);
 				}
 				file_free(fileToMove);
 			} else {
@@ -295,17 +284,15 @@ void moveResource(char *resource, char *destination) {
 
 void makeFile(char *fileName) {
 	if (!isNull(fileName)) {
-		if (mongo_dir_getByNameInDir(fileName, currentDirId)) {
-			printf("Cannot create file %s: Directory exists\n", fileName);
-			return;
-		}
 
 		file_t *file = file_create();
-
 		strcpy(file->name, fileName);
 		strcpy(file->parentId, currentDirId);
 		file->size = 0;
-		mongo_file_save(file);
+
+		if (!filesystem_addFile(file)) {
+			printf("Cannot create file %s: Directory exists\n", fileName);
+		}
 
 		file_free(file);
 	}
@@ -313,16 +300,14 @@ void makeFile(char *fileName) {
 
 void makeDir(char *dirName) {
 	if (!isNull(dirName)) {
-		if (mongo_file_getByNameInDir(dirName, currentDirId)) {
-			printf("Cannot create directory %s: File exists\n", dirName);
-			return;
-		}
 
 		dir_t *dir = dir_create();
-
 		strcpy(dir->name, dirName);
 		strcpy(dir->parentId, currentDirId);
-		mongo_dir_save(dir);
+
+		if (!filesystem_addDir(dir)) {
+			printf("Cannot create directory %s: File exists\n", dirName);
+		}
 
 		dir_free(dir);
 	}
@@ -352,7 +337,7 @@ void listResources() {
 		printf("\t %s/ \n", dir->name);
 	}
 
-	t_list *dirs = mongo_dir_getByParentId(currentDirId);
+	t_list *dirs = filesystem_getDirsInDir(currentDirId);
 	list_iterate(dirs, (void*) printDir);
 	list_destroy_and_destroy_elements(dirs, (void*) dir_free);
 
@@ -360,7 +345,7 @@ void listResources() {
 		printf("\t %s \n", file->name);
 	}
 
-	t_list *files = mongo_file_getByParentId(currentDirId);
+	t_list *files = filesystem_getFilesInDir(currentDirId);
 	list_iterate(files, (void*) printFile);
 	list_destroy_and_destroy_elements(files, (void*) file_free);
 }
@@ -425,7 +410,7 @@ void copyFile(char **parameters) {
 
 void printNodeStatus(char *nodeName) {
 	if (!isNull(nodeName)) {
-		node_t *node = mongo_node_getByName(nodeName);
+		node_t *node = filesystem_getNodeByName(nodeName);
 
 		if (node) {
 			node_printBlocksStatus(node);
