@@ -28,7 +28,7 @@ int main(void) {
 
 	//testNode();
 
-	startConsole();
+	console_start();
 
 	config_free(fsConfig);
 	return EXIT_SUCCESS;

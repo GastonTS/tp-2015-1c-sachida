@@ -83,6 +83,16 @@ bool mongo_dir_deleteDirByNameInDir(char *name, char *parentId) {
 	return mongo_deleteDocByQuery(query, dirCollection);
 }
 
+bool mongo_dir_deleteById(char *id) {
+	bson_t *query;
+
+	mongo_dir_checkInit();
+
+	query = BCON_NEW("_id", BCON_UTF8(id));
+
+	return mongo_deleteDocByQuery(query, dirCollection);
+}
+
 bool mongo_dir_deleteAll() {
 	mongo_dir_checkInit();
 

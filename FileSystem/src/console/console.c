@@ -21,6 +21,7 @@ void freeSplits(char ** splits);
 bool isCurrentRootDir();
 bool isRootDir(char *dirId);
 bool resolveDir(char *dirPath, char *dirPrompt, char *dirId);
+int isNull(char *parameter);
 
 void format();
 
@@ -36,14 +37,13 @@ void listResources();
 void copyFile(char **parameters);
 void printNodeStatus(char *nodeName);
 void md5sum(char *fileName);
-void md5(char *str);
+
 void seeBlock(char *block);
 void deleteBlock(char *block);
 void copyBlock(char* block);
 void upNode(char *node);
 void deleteNode(char *node);
 void help();
-int isNull(char *parameter);
 
 void readFile(char *route);
 
@@ -51,7 +51,7 @@ char *currentDirPrompt;
 char *currentDirId;
 t_log* logger;
 
-void startConsole() {
+void console_start() {
 	char **parameters;
 	char *command = malloc(sizeof(char) * 512);
 	int exit = 0;
@@ -230,7 +230,7 @@ bool resolveDir(char *dirPath, char *dirPrompt, char *dirId) {
 	return 1;
 }
 
-// FUNCTIONS ..
+// FUNCTIONS FOR EACH COMMAND ..
 
 void format() {
 	if (filesystem_format()) {
@@ -320,7 +320,6 @@ void changeDir(char *dirName) {
 		char *newDirId = malloc(sizeof(char) * 25);
 
 		if (resolveDir(dirName, newDirPrompt, newDirId)) {
-			// TODO, igualar al puntero haciendo previous free?
 			strcpy(currentDirId, newDirId);
 			strcpy(currentDirPrompt, newDirPrompt);
 		}
@@ -350,38 +349,6 @@ void listResources() {
 	list_destroy_and_destroy_elements(files, (void*) file_free);
 }
 
-void md5sum(char *file) {
-	if (!isNull(file)) {
-		// TODO armar bien esto..
-		printf("MD5 de %s\n", file);
-		char *input = strdup("asdasd");
-
-		md5(input);
-
-		free(input);
-	}
-}
-
-void md5(char *str) {
-	FILE *md5pipe = NULL;
-	size_t size = 9 + strlen(str) + 10 + 1;
-	char *command = malloc(size);
-	snprintf(command, size, "echo -n \"%s\" | md5sum", str);
-
-	md5pipe = popen(command, "r");
-
-	if (md5pipe != NULL) {
-		char buffer[32];
-		fread(buffer, 1, 32, md5pipe);
-		printf("%s\n", buffer);
-
-		pclose(md5pipe);
-		free(command);
-	} else {
-		printf("No se pudo obtener el md5.\n");
-	}
-}
-
 void copyFile(char **parameters) {
 	char *option = parameters[1];
 	char *source = parameters[2];
@@ -405,6 +372,21 @@ void copyFile(char **parameters) {
 		} else {
 			printf("Invalid option %s \n", option);
 		}
+	}
+}
+
+void md5sum(char *fileName) {
+	if (!isNull(fileName)) {
+		file_t *file = filesystem_getFileByNameInDir(fileName, currentDirId);
+		if (file) {
+			// TODO armar bien esto..
+			printf("MD5 de %s\n", fileName);
+			printf("%s\n", filesystem_md5sum(file));
+			file_free(file);
+		} else {
+			printf("File not found.\n");
+		}
+
 	}
 }
 
@@ -536,7 +518,7 @@ void help() {
 	printf("\t cp -tofs <file> <dest>\t\t Copies the file <file> from the MDFS to the local FileSystem at <dest>\n");
 	printf("\t cp -fromfs <file> <dest>\t Copies the file <file> from the local FileSystem to the MDFS at <dest>\n");
 
-	printf("\t nodestat <nodename>\t\t Prints the status (blocks usage) of the node named <nodename>(this message)\n");
+	printf("\t nodestat <nodename>\t\t Prints the status (blocks usage) of the node named <nodename>\n");
 
 	printf("\t help\t\t\t\t Prints Help (this message)\n");
 	printf("\t exit\t\t\t\t Exits the MDFS\n\n");
