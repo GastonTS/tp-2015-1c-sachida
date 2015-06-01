@@ -27,6 +27,8 @@ bool mongo_node_save(node_t *node) {
 
 	mongo_node_checkInit();
 
+	mongo_generateId(node->id);
+
 	return mongo_saveDoc(node_getBSON(node), nodeCollection);
 }
 

@@ -7,10 +7,6 @@ t_bitarray* getByteArrayForBlocksCount(int count);
 bool node_blockIsValidIndex(node_t *node, int blockIndex);
 
 bson_t* node_getBSON(node_t *node) {
-
-	// TODO: move all this to the mongos.
-	mongo_generateId(node->id);
-
 	bson_t *bson = bson_new();
 	BSON_APPEND_UTF8(bson, "_id", node->id);
 	// TODO BSON_APPEND_BINARY(bson, "blocks", BSON_SUBTYPE_BINARY, node->blocks->bitarray, node->blocks->size);

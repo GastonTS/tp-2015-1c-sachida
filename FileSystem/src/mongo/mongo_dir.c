@@ -32,6 +32,8 @@ bool mongo_dir_save(dir_t *dir) {
 
 	mongo_dir_checkInit();
 
+	mongo_generateId(dir->id);
+
 	return mongo_saveDoc(dir_getBSON(dir), dirCollection);
 }
 

@@ -4,9 +4,6 @@
 #include "file.h"
 
 bson_t* file_getBSON(file_t *file) {
-
-	mongo_generateId(file->id);
-
 	bson_t *bson = bson_new();
 	BSON_APPEND_UTF8(bson, "_id", file->id);
 	BSON_APPEND_UTF8(bson, "name", file->name);

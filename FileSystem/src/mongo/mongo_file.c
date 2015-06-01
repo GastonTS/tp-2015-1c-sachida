@@ -32,6 +32,8 @@ bool mongo_file_save(file_t *file) {
 
 	mongo_file_checkInit();
 
+	mongo_generateId(file->id);
+
 	return mongo_saveDoc(file_getBSON(file), fileCollection);
 }
 

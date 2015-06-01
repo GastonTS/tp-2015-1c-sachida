@@ -4,9 +4,6 @@
 #include "dir.h"
 
 bson_t* dir_getBSON(dir_t *dir) {
-
-	mongo_generateId(dir->id);
-
 	bson_t *bson = bson_new();
 	BSON_APPEND_UTF8(bson, "_id", dir->id);
 	BSON_APPEND_UTF8(bson, "name", dir->name);

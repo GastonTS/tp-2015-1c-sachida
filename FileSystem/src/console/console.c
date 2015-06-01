@@ -280,38 +280,54 @@ void moveResource(char *resource, char *destination) {
 	}
 }
 
+bool canCreateResource(char *resourceName) {
+	dir_t *dir = mongo_dir_getByNameInDir(resourceName, currentDirId);
+	if (dir) {
+		printf("Cannot create %s: Directory exists\n", resourceName);
+		dir_free(dir);
+		return 0;
+	}
+	dir_free(dir);
+
+	file_t *file = mongo_file_getByNameInDir(resourceName, currentDirId);
+	if (file) {
+		printf("Cannot create %s: File exists\n", resourceName);
+		file_free(file);
+		return 0;
+	}
+	file_free(file);
+
+	return 1;
+}
+
 void makeFile(char *fileName) {
 	if (!isNull(fileName)) {
-		if (mongo_dir_getByNameInDir(fileName, currentDirId)) {
-			printf("Cannot create file %s: Directory exists\n", fileName);
-			return;
+		if (canCreateResource(fileName)) {
+
+			file_t *file = file_create();
+
+			strcpy(file->name, fileName);
+			strcpy(file->parentId, currentDirId);
+			file->size = 0;
+			mongo_file_save(file);
+
+			file_free(file);
 		}
-
-		file_t *file = file_create();
-
-		strcpy(file->name, fileName);
-		strcpy(file->parentId, currentDirId);
-		file->size = 0;
-		mongo_file_save(file);
-
-		file_free(file);
 	}
 }
 
 void makeDir(char *dirName) {
 	if (!isNull(dirName)) {
-		if (mongo_file_getByNameInDir(dirName, currentDirId)) {
-			printf("Cannot create directory %s: File exists\n", dirName);
-			return;
+		if (canCreateResource(dirName)) {
+
+			dir_t *dir = dir_create();
+
+			strcpy(dir->name, dirName);
+			strcpy(dir->parentId, currentDirId);
+			mongo_dir_save(dir);
+
+			dir_free(dir);
 		}
-
-		dir_t *dir = dir_create();
-
-		strcpy(dir->name, dirName);
-		strcpy(dir->parentId, currentDirId);
-		mongo_dir_save(dir);
-
-		dir_free(dir);
 	}
 }
 
