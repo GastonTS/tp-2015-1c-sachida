@@ -38,15 +38,15 @@ void testNode() {
 
 	node_t* node = node_create(24);
 
+	node->name = strdup("Node2");
 	node_setBlockUsed(node, 1);
-	node_setBlockUsed(node, 3);
-	node_setBlockUsed(node, 5);
+	node_setBlockUsed(node, 2);
+	node_setBlockUsed(node, 23);
 	mongo_node_save(node);
 
+	//node_t* node2 = mongo_node_getById("55662890508b963fc46ae5e1");
 
-	node_t* node2 = mongo_node_getById("55662890508b963fc46ae5e1");
-
-	node_printBlocksTest(node2);
+	//node_printBlocksTest(node2);
 
 }
 */

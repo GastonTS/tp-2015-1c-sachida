@@ -8,6 +8,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// TODO replace.
+#define ID_SIZE sizeof(char) * 25
+
 mongoc_client_t* mongo_getClient();
 void mongo_generateId();
 void mongo_shutdown();

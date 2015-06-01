@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <commons/string.h>
+#include <commons/log.h>
 #include <string.h>
 
 #include "console.h"
-#include "../mongo/mongo_dir.h"
-#include "../mongo/mongo_file.h"
+#include "../filesystem/filesystem.h"
 
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
@@ -25,9 +25,6 @@ bool resolveDir(char *dirPath, char *dirPrompt, char *dirId);
 void format();
 
 void deleteResource(char **parameters);
-void deleteFile(char *fileName);
-void deleteDir(char *dirName);
-
 void moveResource(char *resource, char *destination);
 
 void makeFile(char *fileName);
@@ -37,7 +34,9 @@ void changeDir(char *dirName);
 void listResources();
 
 void copyFile(char **parameters);
+void printNodeStatus(char *nodeName);
 void md5sum(char *fileName);
+void md5(char *str);
 void seeBlock(char *block);
 void deleteBlock(char *block);
 void copyBlock(char* block);
@@ -46,13 +45,18 @@ void deleteNode(char *node);
 void help();
 int isNull(char *parameter);
 
+void readFile(char *route);
+
 char *currentDirPrompt;
 char *currentDirId;
+t_log* logger;
 
 void startConsole() {
 	char **parameters;
 	char *command = malloc(sizeof(char) * 512);
 	int exit = 0;
+
+	logger = log_create("filesystem.log", "MDFS", 0, log_level_from_string("TRACE"));
 
 	currentDirPrompt = malloc(sizeof(char) * 512);
 	currentDirId = malloc(sizeof(char) * 25);
@@ -66,6 +70,7 @@ void startConsole() {
 
 		// Ignore empty enter
 		if (command[0] != '\0') {
+			log_info(logger, "Command: %s", command);
 			parameters = string_split(command, " ");
 
 			if (string_equals_ignore_case(parameters[0], "format")) {
@@ -86,6 +91,8 @@ void startConsole() {
 				md5sum(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "cp")) {
 				copyFile(parameters);
+			} else if (string_equals_ignore_case(parameters[0], "nodestat")) {
+				printNodeStatus(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "seeBlock")) {
 				seeBlock(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "deleteBlock")) {
@@ -113,6 +120,7 @@ void startConsole() {
 	free(command);
 	free(currentDirId);
 	free(currentDirPrompt);
+	log_destroy(logger);
 }
 
 void readCommand(char *input) {
@@ -176,7 +184,7 @@ bool resolveDir(char *dirPath, char *dirPrompt, char *dirId) {
 		if (strcmp(dirName, "") != 0) {
 			if (strcmp(dirName, "..") == 0) {
 				if (!isRootDir(newDirId)) {
-					dir_t *currentDir = mongo_dir_getById(newDirId);
+					dir_t *currentDir = filesystem_getDirById(newDirId);
 
 					// Removes the last folder in the prompt
 					newDirPrompt[string_length(newDirPrompt) - string_length(currentDir->name) - 1] = '\0';
@@ -189,7 +197,7 @@ bool resolveDir(char *dirPath, char *dirPrompt, char *dirId) {
 					dir_free(currentDir);
 				}
 			} else {
-				dir_t *dir = mongo_dir_getByNameInDir(dirName, newDirId);
+				dir_t *dir = filesystem_getDirByNameInDir(dirName, newDirId);
 
 				if (dir) {
 					if (!isRootDir(newDirId)) {
@@ -225,29 +233,23 @@ bool resolveDir(char *dirPath, char *dirPrompt, char *dirId) {
 // FUNCTIONS ..
 
 void format() {
-	mongo_dir_deleteAll();
-	mongo_file_deleteAll();
-	strcpy(currentDirId, ROOT_DIR_ID);
-	strcpy(currentDirPrompt, "/");
+	if (filesystem_format()) {
+		strcpy(currentDirId, ROOT_DIR_ID);
+		strcpy(currentDirPrompt, "/");
+	} else {
+		printf("An unexpected error occured\n");
+	}
 }
 
 void deleteResource(char **parameters) {
-	if (string_equals_ignore_case(parameters[1], "-r")) {
-		deleteDir(parameters[2]);
-	} else {
-		deleteFile(parameters[1]);
-	}
-}
-
-void deleteFile(char *fileName) {
-	if (!isNull(fileName)) {
-		mongo_file_deleteFileByNameInDir(fileName, currentDirId);
-	}
-}
-
-void deleteDir(char *dirName) {
-	if (!isNull(dirName)) {
-		mongo_dir_deleteDirByNameInDir(dirName, currentDirId);
+	if (!isNull(parameters[1])) {
+		if (string_equals_ignore_case(parameters[1], "-r")) {
+			if (!isNull(parameters[2])) {
+				filesystem_deleteDirByNameInDir(parameters[2], currentDirId);
+			}
+		} else {
+			filesystem_deleteFileByNameInDir(parameters[1], currentDirId);
+		}
 	}
 }
 
@@ -256,19 +258,19 @@ void moveResource(char *resource, char *destination) {
 
 		char *destinationId = malloc(sizeof(char) * 25);
 
-		dir_t *dirToMove = mongo_dir_getByNameInDir(resource, currentDirId);
+		dir_t *dirToMove = filesystem_getDirByNameInDir(resource, currentDirId);
 		if (dirToMove) {
 			if (resolveDir(destination, NULL, destinationId)) {
-				mongo_dir_updateParentId(dirToMove->id, destinationId);
+				filesystem_moveDir(dirToMove, destinationId);
 			}
 			dir_free(dirToMove);
 		} else {
 			// If couldn't find a dir, then try to find a file:
 
-			file_t *fileToMove = mongo_file_getByNameInDir(resource, currentDirId);
+			file_t *fileToMove = filesystem_getFileByNameInDir(resource, currentDirId);
 			if (fileToMove) {
 				if (resolveDir(destination, NULL, destinationId)) {
-					mongo_file_updateParentId(fileToMove->id, destinationId);
+					filesystem_moveFile(fileToMove, destinationId);
 				}
 				file_free(fileToMove);
 			} else {
@@ -280,54 +282,34 @@ void moveResource(char *resource, char *destination) {
 	}
 }
 
-bool canCreateResource(char *resourceName) {
-	dir_t *dir = mongo_dir_getByNameInDir(resourceName, currentDirId);
-	if (dir) {
-		printf("Cannot create %s: Directory exists\n", resourceName);
-		dir_free(dir);
-		return 0;
-	}
-	dir_free(dir);
-
-	file_t *file = mongo_file_getByNameInDir(resourceName, currentDirId);
-	if (file) {
-		printf("Cannot create %s: File exists\n", resourceName);
-		file_free(file);
-		return 0;
-	}
-	file_free(file);
-
-	return 1;
-}
-
 void makeFile(char *fileName) {
 	if (!isNull(fileName)) {
-		if (canCreateResource(fileName)) {
 
-			file_t *file = file_create();
+		file_t *file = file_create();
+		strcpy(file->name, fileName);
+		strcpy(file->parentId, currentDirId);
+		file->size = 0;
 
-			strcpy(file->name, fileName);
-			strcpy(file->parentId, currentDirId);
-			file->size = 0;
-			mongo_file_save(file);
-
-			file_free(file);
+		if (!filesystem_addFile(file)) {
+			printf("Cannot create file %s: Directory or file already exists with that name.\n", fileName);
 		}
+
+		file_free(file);
 	}
 }
 
 void makeDir(char *dirName) {
 	if (!isNull(dirName)) {
-		if (canCreateResource(dirName)) {
 
-			dir_t *dir = dir_create();
+		dir_t *dir = dir_create();
+		strcpy(dir->name, dirName);
+		strcpy(dir->parentId, currentDirId);
 
-			strcpy(dir->name, dirName);
-			strcpy(dir->parentId, currentDirId);
-			mongo_dir_save(dir);
-
-			dir_free(dir);
+		if (!filesystem_addDir(dir)) {
+			printf("Cannot create directory %s: Directory or file already exists with that name.\n", dirName);
 		}
+
+		dir_free(dir);
 	}
 }
 
@@ -355,7 +337,7 @@ void listResources() {
 		printf("\t %s/ \n", dir->name);
 	}
 
-	t_list *dirs = mongo_dir_getByParentId(currentDirId);
+	t_list *dirs = filesystem_getDirsInDir(currentDirId);
 	list_iterate(dirs, (void*) printDir);
 	list_destroy_and_destroy_elements(dirs, (void*) dir_free);
 
@@ -363,15 +345,40 @@ void listResources() {
 		printf("\t %s \n", file->name);
 	}
 
-	t_list *files = mongo_file_getByParentId(currentDirId);
+	t_list *files = filesystem_getFilesInDir(currentDirId);
 	list_iterate(files, (void*) printFile);
 	list_destroy_and_destroy_elements(files, (void*) file_free);
 }
 
 void md5sum(char *file) {
 	if (!isNull(file)) {
-		// TODO
-		printf("Obtiene el MD5 de %s\n", file);
+		// TODO armar bien esto..
+		printf("MD5 de %s\n", file);
+		char *input = strdup("asdasd");
+
+		md5(input);
+
+		free(input);
+	}
+}
+
+void md5(char *str) {
+	FILE *md5pipe = NULL;
+	size_t size = 9 + strlen(str) + 10 + 1;
+	char *command = malloc(size);
+	snprintf(command, size, "echo -n \"%s\" | md5sum", str);
+
+	md5pipe = popen(command, "r");
+
+	if (md5pipe != NULL) {
+		char buffer[32];
+		fread(buffer, 1, 32, md5pipe);
+		printf("%s\n", buffer);
+
+		pclose(md5pipe);
+		free(command);
+	} else {
+		printf("No se pudo obtener el md5.\n");
 	}
 }
 
@@ -391,11 +398,25 @@ void copyFile(char **parameters) {
 				i++;
 			}
 			printf("Copia el archivo %s al MDFS: %s\n", file, dest);
+			readFile(source);
 			freeSplits(dirNames);
 		} else if (string_equals_ignore_case(option, "-tofs")) {
 			printf("Copia el archivo %s al FS: %s\n", source, dest);
 		} else {
 			printf("Invalid option %s \n", option);
+		}
+	}
+}
+
+void printNodeStatus(char *nodeName) {
+	if (!isNull(nodeName)) {
+		node_t *node = filesystem_getNodeByName(nodeName);
+
+		if (node) {
+			node_printBlocksStatus(node);
+			node_free(node);
+		} else {
+			printf("No existe el nodo %s\n", nodeName);
 		}
 	}
 }
@@ -434,6 +455,74 @@ void deleteNode(char *node) {
 	}
 }
 
+t_list* getFileBlocks(char *route) {
+	int blockSize = 20 * 1024 * 1024; // 20 MB.
+
+	FILE *fp;
+	char *line = NULL;
+	ssize_t linesize;
+	size_t len = 0;
+
+	int bytesRead = 0;
+	char *buffer = malloc(sizeof(char) * blockSize);
+	t_list *blocks = list_create();
+	strcpy(buffer, "");
+
+	fp = fopen(route, "r");
+	if (fp == NULL) {
+		printf("Local file %s not found\n", route);
+		return NULL;
+	}
+
+	while ((linesize = getline(&line, &len, fp)) != -1) {
+		if (bytesRead + linesize > blockSize) {
+			printf("New block");
+			list_add(blocks, buffer);
+			// TODO, fill the rest with \0 .. and other stuff.input[strlen(input) - 1] = '\0';
+
+			// Reset all data for the next buffer.
+			buffer = malloc(sizeof(char) * blockSize);
+			strcpy(buffer, line);
+			bytesRead = linesize;
+		} else {
+			//printf("%d\%   \n", bytesRead * 100 / blockSize);
+			strcat(buffer, line);
+			bytesRead += linesize;
+		}
+	}
+	list_add(blocks, buffer);
+
+	//free's
+	fclose(fp);
+	if (line) {
+		free(line);
+	}
+
+	return blocks;
+}
+
+// TODO move:
+void readFile(char *route) {
+	t_list *blocks = getFileBlocks(route);
+
+	printf("List size: %d \n", list_size(blocks));
+	void printBlockSize(char *buffer) {
+		printf("Buffer size: %d \n", strlen(buffer));
+	}
+	list_iterate(blocks, (void *) printBlockSize);
+	printf("MD5:");
+
+	char *fileBuffer = strdup("");
+	void concatBuffers(char *buffer) {
+		fileBuffer = realloc(fileBuffer, sizeof(char) * (strlen(buffer) + strlen(fileBuffer) + 1));
+		strcat(fileBuffer, buffer);
+	}
+	list_iterate(blocks, (void *) concatBuffers);
+	md5(fileBuffer);
+
+	list_destroy_and_destroy_elements(blocks, free);
+}
+
 void help() {
 	printf("Valid commands:\n\n");
 	printf("\t format\t\t\t\t Formats MDFS\n");
@@ -446,6 +535,9 @@ void help() {
 	printf("\t md5sum <file>\t\t\t Gets the MD5 check sum of the file named <file>\n");
 	printf("\t cp -tofs <file> <dest>\t\t Copies the file <file> from the MDFS to the local FileSystem at <dest>\n");
 	printf("\t cp -fromfs <file> <dest>\t Copies the file <file> from the local FileSystem to the MDFS at <dest>\n");
+
+	printf("\t nodestat <nodename>\t\t Prints the status (blocks usage) of the node named <nodename>(this message)\n");
+
 	printf("\t help\t\t\t\t Prints Help (this message)\n");
 	printf("\t exit\t\t\t\t Exits the MDFS\n\n");
 

@@ -92,7 +92,7 @@ const bson_t* mongo_getDocByQuery(bson_t *query, mongoc_collection_t *collection
 	const bson_t *item;
 	bool r;
 
-	cursor = mongoc_collection_find(collection, MONGOC_QUERY_NONE, 0, 0, 0, query, NULL, NULL);
+	cursor = mongoc_collection_find(collection, MONGOC_QUERY_NONE, 0, 1, 0, query, NULL, NULL);
 	r = mongoc_cursor_next(cursor, &item);
 
 	bson_destroy(query);

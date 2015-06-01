@@ -46,3 +46,7 @@ Release
 Debug
 build
 
+
+.metadata
+RemoteSystemsTempFiles
+*.log

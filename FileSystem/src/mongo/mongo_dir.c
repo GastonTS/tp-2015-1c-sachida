@@ -81,8 +81,6 @@ bool mongo_dir_deleteDirByNameInDir(char *name, char *parentId) {
 	query = BCON_NEW("name", BCON_UTF8(name), "parentId", BCON_UTF8(parentId));
 
 	return mongo_deleteDocByQuery(query, dirCollection);
-
-	// TODO, delete files? and folders recursively. do here?
 }
 
 bool mongo_dir_deleteAll() {

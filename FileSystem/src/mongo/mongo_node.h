@@ -9,6 +9,7 @@ void mongo_node_shutdown();
 bool mongo_node_save(node_t *node);
 
 node_t* mongo_node_getById(char id[25]);
+node_t* mongo_node_getByName(char *name);
 
 bool mongo_node_deleteAll();
 
