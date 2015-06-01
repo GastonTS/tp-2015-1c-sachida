@@ -18,12 +18,16 @@ int main (int argc, char *argv[]){
 	int mapper;
 	char* mapeo;
 	int size;
-
-	char* file_name = "./archivo_mmap.txt" ;
+	int pagesize;
+	const sizemapper;
+	int nroBloque = 2;
+	char* file_name = "/home/utnso/Sachida/tp-2015-1c-sachida/Ejemplos/Mmap/src/archivo_mmap.txt" ;
 	//Se abre el archivo para solo lectura
 	mapper = open (file_name, O_RDONLY);
-	size = size_of(mapper);
-	if( (mapeo = mmap( NULL, size, PROT_READ, MAP_SHARED, mapper, 0 )) == MAP_FAILED){
+	pagesize = getpagesize();
+	//size = size_of(mapper);
+	size = 20;
+	if( (mapeo = mmap( NULL, size, PROT_READ, MAP_SHARED, mapper, pagesize*(nroBloque-1) )) == MAP_FAILED){
 		//Si no se pudo ejecutar el MMAP, imprimir el error y abortar;
 		fprintf(stderr, "Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size", file_name, size, strerror(errno));
 		abort();
