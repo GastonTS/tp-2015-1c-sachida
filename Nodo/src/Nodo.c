@@ -151,26 +151,35 @@ char* getBloque(int nroBloque){
 void setBloque(int nroBloque){}
 /*Grabara los datos enviados*/
 
-void getFileContent(){}
+void getFileContent(){
 /*Devolverá   el   contenido   del   archivo   de   Espacio   Temporal solicitado.
- * Se usara en el return de las funciones para devolver los archivos almencenadaso en memoria temporal*/
+ * Se usara en el return de las funciones para devolver los archivos almencenadaso en memoria temporal
+ * getFileContent probablemente no sea tan "útil" como usuario, pero sí la usan los Nodos para pasarse datos para el Reduce, y, ya que está, exponérsela al FS ayuda a que,
+ * por ejemplo, mientras desarrollan puedan chequear de manera "fácil" que los temporales se estén generando bien. Poder inspeccionar lo que está pasando en el sistema siempre
+ *  es bueno, y si encima viene casi gratis en cuanto a esfuerzo de desarrollo, mejor.
+ * */
+}
 
 int nodeMap (rutinaMap, int nroBloque){
+	/* El Nodo4 guarda el contenido de map.py en un archivo en el filesystem local. Le da permisos de ejecución.
+	 * El hilo mapper le solicita al Nodo4 que envie el contenido del Bloque6 por entrada estánda a map.py. El STDOUT lo almacena en un archivo temporal (ej: map.py.result.tmp)
+	 * Usa la tool sort para ordenar el archivo temporal del paso anterior ya en el archivo definitivo
+	# cat map.py.result.tmp | sort > librazo12347.tmp
+	 * El hilo mapper se conecta al nodo, y le indica la rutina de maping, el bloque de datos donde aplicarla y tiene que almacenar
+	* los resultados de manera ordenada (sort) en el FS Temporal del nodo. Debera dar una respuesta al hilo MApper*/
 	int lugarDeAlmacenamiento;
 	return lugarDeAlmacenamiento;
 }
 
-/* El hilo mapper se conecta al nodo, y le indica la rutina de maping, el bloque de datos donde aplicarla y tiene que almacenar
-* los resultados de manera ordenada (sort) en el FS Temporal del nodo. Debera dar una respuesta al hilo MApper
-*/
 
 void nodeReduce (array[string nameNode, int nroBloque], rutinaReduce, char nombreDondeGuarda){
 	//el reduce recibe un nodo y un nombre de archivo (el FS se encargara de rearmar ese archivo y pasarlo)
+	 /* El hilo reduce, indica aplicar la rutina sobre varios archvos del espacio temporal, de los cuales uno debe ser siempre local al nodo
+	 * El reduce le manda el nombre de los bloques y los nodos donde se encuentran, el codigo de la rutina de reduce y el nombre del
+	 * archivo donde se alamcenara. Al finalizar se debe informar al JOB que termino */
 	return 0;
 }
- /* El hilo reduce, indica aplicar la rutina sobre varios archvos del espacio temporal, de los cuales uno debe ser siempre local al nodo
- * El reduce le manda el nombre de los bloques y los nodos donde se encuentran, el codigo de la rutina de reduce y el nombre del
- * archivo donde se alamcenara. Al finalizar se debe informar al JOB que termino */
+
 
 
 void getInfoConf(char* conf)
