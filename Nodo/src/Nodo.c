@@ -1,11 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <string.h>
-#include <errno.h>
+#include "Nodo.h"
 
 void createNode(char *dirArchivo);
 char* getBloque(int nroBloque);
@@ -14,18 +7,111 @@ void getFileContent();
 void nodeMap(rutinaMap, int nroBloque);
 void nodeReduce(int[string nameNode, int nroBloque], rutinaReduce, char nombreDondeGuarda);
 
-int main(void) {
-	createNode();
+//Le agregue los argumentos para que se pueda pasar el archivo de conf como parametro del main
+int main(int argc, char *argv[]) {
+	if(argc != 2)
+		{
+			printf("ERROR, la sintaxis del servidor es: ./Nodo.c archivo_configuracion \n");
+			return -1;
+		}
+	//Creo el logger parametros -->
+	//Nombre del archivo de log
+	//nombre del programa que crea el log
+	//se muestra el log por pantalla?
+	//nivel minimo de log
+	logger = log_create("Log.txt", "Nodo",false, LOG_LEVEL_DEBUG);
+
+	//Llamo a la funcion que esta abajo de todo que saca los datos del archivo de config
+	getInfoConf(argv[1]);
+
+
+	//createNode();
 	/*pasar datos de los archivos de configuracion a constantes*/
 	getBloque(5);
 	return EXIT_SUCCESS;
 }
 /* Almacenar los datos del FS y hacer Map y Reduce segun lo requerido por los Jobs */
 void createNode(char *dirArchivo) {
+
+	//TODO DANI NO ENTIENDO QUE ES ESTE PARAMETRO
+
 	 /*al crear el nodo con su respectivo bloque de datos, ponerle de nombre node_name
 	Funcion de la biblioteca lisen. para esperar al FS
 	 stat se consigue el tamaño de la rchivo
 	truncate -s 1G miarchivo.bin*/
+
+	/* VAN LOS SOCKETS*/
+	//Primero se conecta al filesystem
+	int sockfd, numbytes; //descriptores
+	char* buffer;
+	//Para enviar y recibir datos creamos un buffer o paquete donde se almacenan
+	char buf[MAXDATASIZE];
+
+	struct hostent *he;
+
+	struct sockaddr_in fileSystem;
+
+	t_mensaje mensaje;  //Estructura para intercambiar mensajes (PROTOCOLO)
+
+	//Creo el buffer para comunicarme con el filesystem
+	if((buffer = (char*) malloc (sizeof(char) * MAXDATASIZE)) == NULL)
+	{
+		log_error(logger, "Error al reservar memoria para el buffer en conectar con FileSystem");
+		exit(-1);
+	}
+
+	if((sockfd = socket(AF_INET,SOCK_STREAM,0))==-1){
+		printf("Error en crear el socket del FileSystem");
+		exit(-1);
+	}
+
+	fileSystem.sin_family = AF_INET;
+	fileSystem.sin_port = htons(puerto_fs);
+	fileSystem.sin_addr.s_addr = inet_addr(ip_fs);
+	memset(&(fileSystem.sin_zero),0,8);
+
+	if(connect(sockfd,(struct sockaddr *)&fileSystem,sizeof(struct sockaddr))==-1){
+		printf("error en el connect al FileSystem");
+		exit(-1);
+	}
+
+	log_info(logger,"Se conecto al FileSystem correctamente");
+
+	if((numbytes=recv(sockfd, buffer, SIZE_MSG,0))==-1){
+		printf("Error en el recv handshake del fileSystem");
+		exit(-1);
+	}
+
+	//Copio el mensaje que recibi en el buffer
+	memcpy(&mensaje,buffer,SIZE_MSG);
+
+	if((mensaje.id_proceso  == FILESYSTEM)&&(mensaje.tipo=HANDSHAKE))
+	{
+		log_info(logger, "Conexion Lograda con el FileSystem");
+	}
+	else
+	{
+		log_error(logger, "No recibi Handshake del FileSystem");
+		exit(-1);
+	}
+
+	memset(buffer,'\0',MAXDATASIZE);
+
+	mensaje.tipo = HANDSHAKEOK;
+	mensaje.id_proceso = NODO;
+	memcpy(buffer,&mensaje,SIZE_MSG);
+
+	if((numbytes=send(sockfd,buffer,SIZE_MSG,0))<=0)
+	{
+		printf("Error en el send handshakeok al FileSystem");
+		exit(-1);
+	}
+
+	//TODO SI ME PUDE CONECTAR AL FILESYSTEM ENTONCES CREAR EL ARCHIVO DE DATOS Y EL TMP
+	//TODO ENGLOBAR LO DE ARRIBA EN UNA VARIABLE
+	//TODO QUEDAR A LA ESPERA DEL FILESYSTEM, NODOS, O JOBS PARA REALIZAR DISTINTAS TAREAS
+
+
 }
 
 int size_of(int fd){
@@ -58,12 +144,9 @@ char* getBloque(int nroBloque){
 			//Se unmapea , y se cierrra el archivo
 			munmap( mapeo, size );
 			close(mapper);
-			return mapeo
+			return mapeo;
 		}
 
-
-
-}
 
 void setBloque(int nroBloque){}
 /*Grabara los datos enviados*/
@@ -72,7 +155,8 @@ void getFileContent(){}
 /*Devolverá   el   contenido   del   archivo   de   Espacio   Temporal solicitado.
  * Se usara en el return de las funciones para devolver los archivos almencenadaso en memoria temporal*/
 
-void nodeMap (rutinaMap, int nroBloque){
+int nodeMap (rutinaMap, int nroBloque){
+	int lugarDeAlmacenamiento;
 	return lugarDeAlmacenamiento;
 }
 
@@ -87,4 +171,31 @@ void nodeReduce (array[string nameNode, int nroBloque], rutinaReduce, char nombr
  /* El hilo reduce, indica aplicar la rutina sobre varios archvos del espacio temporal, de los cuales uno debe ser siempre local al nodo
  * El reduce le manda el nombre de los bloques y los nodos donde se encuentran, el codigo de la rutina de reduce y el nombre del
  * archivo donde se alamcenara. Al finalizar se debe informar al JOB que termino */
+
+
+void getInfoConf(char* conf)
+{
+	t_config* config; //creamos la variable que va a ser el archivo de config
+
+	config = config_create(conf); //creamos el "objeto" archivo de config
+
+	strcpy(ip_fs,config_get_string_value(config,"IP_FS"));
+	puerto_fs = config_get_int_value(config,"PUERTO_FS");
+	strcpy(ip_nodo,config_get_string_value(config, "IP_NODO"));
+	puerto_nodo = config_get_int_value(config, "PUERTO_NODO");
+	strcpy(archivo_bin,config_get_string_value(config,"ARCHIVO_BIN"));
+	strcpy(dir_tmp,config_get_string_value(config,"DIR_TMP"));
+	strcpy(nodo_nuevo,config_get_string_value(config,"NODO_NUEVO"));
+
+	puts("Extraccion correcta del archivo de configuracion");
+
+	config_destroy(config); //destruimos el "objeto" archivo de config
+}
+/*
+ * Obtiene todos los datos del archivo de configuracion y los guarda en variables
+ * para que podamos utilizarlo a lo largo del programa
+ * ACLARACION:
+ * 			 El archivo de configuracion se pasa por parametro cuando se realiza la
+ * 			 ejecucion: ./Nodo.c "rutaArchivoConfig"
+ */
 
