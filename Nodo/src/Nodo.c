@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
 	//nombre del programa que crea el log
 	//se muestra el log por pantalla?
 	//nivel minimo de log
-	logger = log_create("Log.txt", "Nodo",false, LOG_LEVEL_DEBUG);
+	logger = log_create("Log.txt", "Node",1, log_level_from_string("DEBUG"));
 
 	//Llamo a la funcion que esta abajo de todo que saca los datos del archivo de config
 	getInfoConf(argv[1]);
@@ -135,11 +135,12 @@ char* getBloque(int nroBloque){
 			//Trate size bytes a partir de la posicion pagesize*(nroBloque-1)
 			if( (mapeo = mmap( NULL, size, PROT_READ, MAP_SHARED, mapper, pagesize*(nroBloque-1) )) == MAP_FAILED){
 				//Si no se pudo ejecutar el MMAP, imprimir el error y abortar;
-				fprintf(stderr, "Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size", file_name, size, strerror(errno));
+				log_error(logger, "Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size",file_name,size);
+				//fprintf(stderr, "Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size", file_name, size, strerror(errno));
 				abort();
 			}
-
-			printf ("Tamaño del archivo: %d\nContenido:'%s'\n", size, mapeo);
+			log_info("Tamaño del archivo: %d\nContenido:'%s'\n", size, mapeo);
+			//printf ("Tamaño del archivo: %d\nContenido:'%s'\n", size, mapeo);
 
 			//Se unmapea , y se cierrra el archivo
 			munmap( mapeo, size );
