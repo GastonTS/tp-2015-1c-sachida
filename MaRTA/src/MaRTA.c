@@ -2,7 +2,21 @@
 #include <stdlib.h>
 #include <commons/config.h>
 #include <commons/log.h>
-#include "MaRTA.h"
+#include <commons/bitarray.h>
+#include "structs/job.h"
+#include "structs/nodo.h"
+
+typedef struct {
+	int puerto_listen;
+	char *ip_fs;
+	int puerto_fs;
+} t_configMaRTA;
+
+t_configMaRTA* cfgMaRTA;
+t_log* logger;
+
+int initConfig(char* archivoConfig);
+void freeMaRTA();
 
 int main(int argc, char *argv[]) {
 
@@ -20,7 +34,6 @@ int main(int argc, char *argv[]) {
 		freeMaRTA();
 		return EXIT_FAILURE;
 	}
-
 
 	freeMaRTA();
 	return EXIT_SUCCESS;
@@ -72,7 +85,7 @@ int initConfig(char* archivoConfig) {
 	return !failure;
 }
 
-void freeMaRTA(){
+void freeMaRTA() {
 	free(cfgMaRTA);
 	log_destroy(logger);
 }
