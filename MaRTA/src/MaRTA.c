@@ -1,5 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <commons/config.h>
 #include <commons/log.h>
 #include <commons/bitarray.h>
@@ -17,6 +22,7 @@ t_log* logger;
 
 int initConfig(char* archivoConfig);
 void freeMaRTA();
+void acceptJobs();
 
 int main(int argc, char *argv[]) {
 
@@ -34,6 +40,8 @@ int main(int argc, char *argv[]) {
 		freeMaRTA();
 		return EXIT_FAILURE;
 	}
+
+	acceptJobs();
 
 	freeMaRTA();
 	return EXIT_SUCCESS;
@@ -90,3 +98,44 @@ void freeMaRTA() {
 	log_destroy(logger);
 }
 
+void acceptJobs() {
+
+	int sockMaRTAfd, sockJobfd;
+	struct sockaddr_in sockMaRTA;
+	struct sockaddr_in sockJob;
+	socklen_t sin_size;
+
+	if ((sockMaRTAfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+		log_error(logger, "Cant create listen socket");
+		exit(-1);
+	}
+
+	sockMaRTA.sin_family = AF_INET;
+	sockMaRTA.sin_port = htons(cfgMaRTA->puerto_listen);
+	sockMaRTA.sin_addr.s_addr = INADDR_ANY;
+	memset(&(sockMaRTA.sin_zero), 0, 8);
+
+	if (bind(sockMaRTAfd, (struct sockaddr*) &sockMaRTA,
+			sizeof(struct sockaddr)) == -1) {
+		log_error(logger, "Cant brind listen socket");
+		exit(-1);
+	}
+
+	if (listen(sockMaRTAfd, 5) == -1) {
+		log_error(logger, "Cant listen");
+		exit(-1);
+	}
+
+	while (1) {
+		sin_size = sizeof(struct sockaddr_in);
+
+		if ((sockJobfd = accept(sockMaRTAfd, (struct sockaddr *) &sockJob,&sin_size)) == -1) {
+			log_error(logger, "Accept failed");
+			exit(-1);
+
+			//TODO: Crear nuevo hilo y funcion atenderJob()
+		}
+		log_info(logger, "Connected Job: %s", inet_ntoa(sockJob.sin_addr));
+	}
+
+}
