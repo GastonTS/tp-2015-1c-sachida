@@ -1,0 +1,6 @@
+PUERTO_MARTA=6000
+IP_MARTA=127.0.0.1
+MAPPER=/home/utnso/workspace/Nodo/tmp /homes/lalalalalalalalalalaa /home/utn/lala/kasdjq/oqowe
+REDUCER=/home/utnso/workspace/Nodo/tmp
+RESULTADO=/home/utnso/workspace/Nodo/nodo.bin
+COMBINER=SI
