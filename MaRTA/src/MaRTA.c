@@ -140,28 +140,22 @@ void acceptJobs() {
 }
 
 t_nodo *mapPlanning(t_list *copias) {
-	t_list* nodosAux = list_create();
+	t_nodo* nodoSeleccionado = NULL;
 	void agregarNodoANodosAux(t_copia *copia) {
-		char nombreNodo[25];
-		strcpy(nombreNodo,copia->nombreNodo);
+
+		bool menorCarga(t_nodo *noTanCargado, t_nodo *cargado) {
+				return cargaDeTrabajo(noTanCargado->maps, noTanCargado->reduces) < cargaDeTrabajo(cargado->maps, cargado->reduces);
+			}
+
+		char* nombreNodo = copia->nombreNodo;
 		bool nodoConNombre(t_nodo nodo) {
 			return esNodo(nodo, nombreNodo);
 		}
-		t_nodo* nodoAux = malloc(sizeof(t_nodo));
-		nodoAux = list_find(nodos, (void*) nodoConNombre);
-		list_add(nodosAux, nodoAux);
-		free(nodoAux);
-	}
+		t_nodo *nodoActual = (t_nodo*) list_find(nodos, (void*) nodoConNombre);
 
+		if(!nodoSeleccionado || menorCarga(nodoActual, nodoSeleccionado))
+			nodoSeleccionado = nodoActual;
+	}
 	list_iterate(copias,(void*) agregarNodoANodosAux);
-
-	bool menorCarga(t_nodo *noTanCargado, t_nodo *cargado) {
-		return cargaDeTrabajo(noTanCargado->maps, noTanCargado->reduces) < cargaDeTrabajo(cargado->maps, cargado->reduces);
-	}
-
-	list_sort(nodosAux, (void*) menorCarga);
-	t_nodo* nodoSeleccionado = malloc(sizeof(t_nodo));
-	nodoSeleccionado = list_get(nodosAux, 1);
-	list_destroy(nodosAux);
 	return nodoSeleccionado;
 }

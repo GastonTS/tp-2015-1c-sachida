@@ -32,7 +32,6 @@ typedef uint16_t t_port;
 int socket_listen(t_port port);
 int socket_accept(int listener);
 int socket_connect(const char* ip, t_port port);
-//e_socket_status socket_recv_error(int count);
 e_socket_status socket_close(int socket);
 
 //**********************************************************************************//

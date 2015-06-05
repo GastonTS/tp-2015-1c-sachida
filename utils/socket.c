@@ -153,7 +153,7 @@ void* hton(void* value, size_t size) {
 	return value;
 }
 
-//send y recv especificos para itneger (con el hton generico pasando el tamaño por param)
+//send y recv especificos para integer (con el hton generico pasando el tamaño por param)
 e_socket_status socket_send_integer(int socket, void* integer, size_t size) {
 	e_socket_status status = socket_send(socket, hton(integer, size), size);
 	hton(integer, size);
@@ -230,7 +230,7 @@ e_socket_status socket_send_packet(int socket, void* packet, size_t size) {
 			spacket = size, 	//el tamaño de lo que realmente va a mandar
 			sbufer = ssize + spacket; //El tamaño de header+contenido
 	void* buffer = malloc(sbufer);
-	hton(memcpy(buffer, &size, ssize), ssize); //copia el contenido del tamaño de lo que va mandar
+	hton(memcpy(buffer, &size, ssize), ssize); //copia el tamaño de lo que va mandar
 	memcpy(buffer + ssize, packet, spacket); //copia el contenido del paquete en el buffer
 	e_socket_status status = socket_send(socket, buffer, sbufer); //manda el buffer
 	free(buffer);
@@ -279,10 +279,10 @@ e_socket_status socket_recv_string(int socket, char** string) {
 
 #define HANDSHAKE_WELCOME 0x01
 #define _HANDSHAKE_WELCOME "WELCOME"
-#define _HANDSHAKE_MARTA "IMPRO"
-#define _HANDSHAKE_FILESYSTEM "IMPLP"
-#define _HANDSHAKE_NODO "IMPCP"
-#define _HANDSHAKE_JOB "IMCPU"
+#define _HANDSHAKE_MARTA "IMMARTA"
+#define _HANDSHAKE_FILESYSTEM "IMFILESYSTEM"
+#define _HANDSHAKE_NODO "IMNODO"
+#define _HANDSHAKE_JOB "IMJOB"
 
 //recibe un string y devuelve el hexa
 static int _get_handshake_code(char* handshake) {
@@ -332,7 +332,7 @@ int socket_handshake_to_server(int socket, int hiserver, int hiclient) {
 		return server;
 	if (0 > socket_send_string(socket, _get_handshake_msg(hiclient))) //Envia su handshake al servidor
 		return SOCKET_ERROR_SEND;
-	int wellcome = _check_handshake(socket, HANDSHAKE_WELCOME); //Espera a que el servidor le de el ok (WELCOME)
+	int wellcome = _check_handshake(socket, HANDSHAKE_WELCOME); //Espera a que el servidor le de el ok (WELLCOME)
 	if (wellcome == SOCKET_ERROR_HANDSHAKE)
 		wellcome = SOCKET_ERROR_WELCOME;
 	return 0 > wellcome ? wellcome : server; //devuelve wellcome (error, o 1 si esta ok)
