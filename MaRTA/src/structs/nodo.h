@@ -1,21 +1,18 @@
 #ifndef SRC_STRUCTS_NODO_H_
 #define SRC_STRUCTS_NODO_H_
 
-typedef struct {
-	int nroBloque;
-} t_taskM;
+#include <commons/collections/list.h>
 
 typedef struct {
-	char **nombresTemporales;
-} t_taskR;
-
-typedef struct {
-	char *nombreNodo;
+	char nombreNodo[25];
 	char *ipNodo;
 	int puertoNodo;
 	char *estado;
-	t_taskM *maps; //Los que esta llevando a cabo
-	t_taskR *reduces; //Los que esta llevando a cabo
+	t_list *maps; //Los que esta llevando a cabo
+	t_list *reduces; //Los que esta llevando a cabo
 } t_nodo;
+
+bool esNodo(t_nodo nodo, char *nombre);
+int cargaDeTrabajo(t_list *maps, t_list *reduces);
 
 #endif
