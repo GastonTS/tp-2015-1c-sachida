@@ -9,31 +9,57 @@ void nodeReduce(int[string nameNode, int nroBloque], rutinaReduce, char nombreDo
 
 //Le agregue los argumentos para que se pueda pasar el archivo de conf como parametro del main
 int main(int argc, char *argv[]) {
+
+	int socket_fileSystem;
+	pthread_t conexionesJob;
+	pthread_t conexionesNodo;
+
 	if(argc != 2)
 		{
 			printf("ERROR, la sintaxis del servidor es: ./Nodo.c archivo_configuracion \n");
 			return -1;
 		}
-	//Creo el logger parametros -->
-	//Nombre del archivo de log
-	//nombre del programa que crea el log
-	//se muestra el log por pantalla?
-	//nivel minimo de log
+
+	/*Creo el logger parametros -->
+	Nombre del archivo de log
+	nombre del programa que crea el log
+	se muestra el log por pantalla?
+	nivel minimo de log */
+
 	logger = log_create("Log.txt", "Node",1, log_level_from_string("DEBUG"));
 
 	//Llamo a la funcion que esta abajo de todo que saca los datos del archivo de config
 	getInfoConf(argv[1]);
+	//Me conecto al File System
+	socket_fileSystem = conectarFileSystem();
+	//todo Ver bien si es necesaria esta funcion
+	createNode();
+
+	//TODO ACA DEBERIAMOS HACER EL WHILE INFINITO ESPERANDO CONEXIONES Y PETICIONES
+	/*TODO QUILOMBO ....
+		   HAY QUE ABRIR UN THREAD PARA ESCUCHAR JOBS Y UNO PARA ESCUCHAR NODOS
+		   PORQUE?
+		   PORQUE DICE QUE TIENEN QUE PUEDEN CORRER EN PARALELO :) CONCHATETACULOPIJA
+	*/
+
+	ptrhead_create(&conexionesJob,NULL,(void*)escucharJobs,NULL);
+	pthread_create(&conexionesNodo,NULL,(void*)escucharNodos,NULL);
 
 
-	//createNode();
-	/*pasar datos de los archivos de configuracion a constantes*/
+	/*TODO TODAS LAS FUNCIONES GETBLOQUE Y ESAS VAN ADENTRO DE LOS TRHEADS */
+
 	getBloque(5);
 	return EXIT_SUCCESS;
+
+
+
+
 }
 /* Almacenar los datos del FS y hacer Map y Reduce segun lo requerido por los Jobs */
-void createNode(char *dirArchivo) {
+void createNode() {
 
 	//TODO DANI NO ENTIENDO QUE ES ESTE PARAMETRO
+	int tamanioArchivoDatos;
 
 	 /*al crear el nodo con su respectivo bloque de datos, ponerle de nombre node_name
 	Funcion de la biblioteca lisen. para esperar al FS
@@ -42,6 +68,193 @@ void createNode(char *dirArchivo) {
 
 	/* VAN LOS SOCKETS*/
 	//Primero se conecta al filesystem
+
+
+	//TODO SI ME PUDE CONECTAR AL FILESYSTEM ENTONCES CREAR EL ARCHIVO DE DATOS Y EL TMP
+	tamanioArchivoDatos = size_of(archivo_bin);
+	//TODO ENGLOBAR LO DE ARRIBA EN UNA VARIABLE
+	//TODO QUEDAR A LA ESPERA DEL FILESYSTEM, NODOS, O JOBS PARA REALIZAR DISTINTAS TAREAS
+
+
+}
+
+void escucharJobs(){
+	fd_set read_fds;
+	fd_set master;
+	int fdmax;
+	int i;
+	int sock_escucha, new_socket;
+
+
+	sock_escucha = escuchar();
+
+	if(sock_escucha == -1 )
+	{
+		printf("ERROR, error iniciando sockets. \n");
+		printf("ERROR, sock_escucha = %d \n", sock_escucha);
+		exit(-1) ;
+	}
+
+	while(exit==1)
+		{
+			read_fds = master;
+			if (select(fdmax + 1, &read_fds, NULL, NULL, NULL) == -1)
+			{
+				log_error(logger, "Error en la funcion select de escucharJobs");
+				exit(-1);
+			}
+			for (i = 0; i <= fdmax; i++)
+			{
+				//pregunto si en algun socket hubo algun cambio
+				if (FD_ISSET(i, &read_fds))
+				{
+					if (i == sock_escucha)
+					{
+						//si es la consola es porque el listen recibio una nueva conexion
+						new_socket = escuchar_puerto(sock_escucha);
+						if(new_socket == -1)
+						{
+							//si es -1 fallo asi que continuo descartando esta
+							log_error(logger,"No se pudo agregar una nueva conexion");
+							continue;
+						}
+						//lo agrego para que lo escuchen en el select
+						FD_SET(new_socket, &master);
+						//si es el mayor lo re asigno
+						if(fdmax < new_socket)
+							fdmax = new_socket;
+
+						continue;
+					}
+
+					if(EstaConectadaCPU(i) != 0)
+					{
+						//si es distinto de 0 la cpu me esta hablando
+						log_debug(logger,"Se detecto actividad en un CPU");
+
+						//escucho la cpu que me habla
+						if(atender_cpu(i)==-1)
+						{
+							log_debug(logger,"Se cayo una CPU");
+							close(i);
+							FD_CLR(i, &master);
+							//hago un metodo que saque la cpu de la lista de cpus
+							cpu_remove(i);
+							//TODO bajo el semaforo ya que hay una cpu menos
+							//sem_wait(&sem_cpu_list);
+							continue;
+						}
+						continue;
+					}
+					//si i no pertenece a ninguno lo saco
+					//close(i);
+					//FD_CLR(i, &master);
+				}
+			}
+		}
+		log_destroy(logger);
+		return;
+}
+
+void escucharNodos(){
+
+}
+
+int escuchar()
+{
+	//llega a hacer el listen
+	int sock_escucha;
+	int yes=1;
+	struct sockaddr_in my_addr;
+
+	if( (sock_escucha=socket(AF_INET,SOCK_STREAM,0))==-1)
+	{
+		log_error(logger, "Error en funcion socket en escuchar");
+		return -1;
+	}
+	//este nose si va
+	if(setsockopt(sock_escucha,SOL_SOCKET,SO_REUSEADDR, &yes,sizeof(int))==-1)
+	{
+		log_error(logger, "Error en funcion setsockopt en escuchar");
+		return -1;
+
+	}
+	my_addr.sin_port=htons(puerto_nodo);
+	my_addr.sin_family=AF_INET;
+	my_addr.sin_addr.s_addr=ip_nodo;
+	memset(&(my_addr.sin_zero),0,8);
+
+	if (bind(sock_escucha,(struct sockaddr *)&my_addr,sizeof(struct sockaddr))==-1)
+	{
+		log_error(logger, "Error en funcion bind en escuchar");
+		return -1;
+	}
+
+	if (listen(sock_escucha,BACKLOG)==-1)
+	{
+		log_error(logger, "Error en funcion listen en escuchar");
+		return -1;
+	}
+
+	return sock_escucha;
+}
+
+int escuchar_puerto(int sock_escucha)
+{
+	socklen_t sin_size;
+	struct sockaddr_in my_addr;
+	struct sockaddr_in their_addr;
+	t_mensaje mensaje;
+
+	int size_mensaje = sizeof(t_mensaje);
+	char* buffer;
+
+	int new_socket;
+	int numbytes;
+
+	if((buffer = (char*) malloc (sizeof(char) * MAXDATASIZE)) == NULL)
+	{
+		log_error(logger,"Error al reservar memoria para el buffer de escuchar puerto");
+		return -1;
+	}
+
+	my_addr.sin_port=htons(puerto_nodo);
+	my_addr.sin_family=AF_INET;
+	my_addr.sin_addr.s_addr=ip_nodo;
+	memset(&(my_addr.sin_zero),0,8);
+
+	sin_size=sizeof(struct sockaddr_in);
+
+	if((new_socket=accept(sock_escucha,(struct sockaddr *)&their_addr,	&sin_size))==-1)
+	{
+		log_error(logger, "Error en funcion accept en escuchar puerto");
+		return -1;
+	}
+
+	memset(buffer,'\0',MAXDATASIZE);
+
+	if((numbytes=read(new_socket,buffer,size_mensaje))<=0)
+	{
+		log_error(logger, "Error en el read en escuchar puerto");
+		close(new_socket);
+		return -1;
+	}
+	//recibo el handshake
+	memcpy(&mensaje,buffer,size_mensaje);
+	if(mensaje.tipo == HANDSHAKE && mensaje.id_proceso == JOB)
+	{
+		log_info(logger, "conexion lograda con JOB");
+		//atenderJob(new_socket);
+	}
+	else
+	{
+		log_error(logger,"no identifique quien se conecto");
+		return -1;
+	}
+	return new_socket;
+}
+
+int conectarFileSystem(){
 	int sockfd, numbytes; //descriptores
 	char* buffer;
 	//Para enviar y recibir datos creamos un buffer o paquete donde se almacenan
@@ -106,14 +319,9 @@ void createNode(char *dirArchivo) {
 		printf("Error en el send handshakeok al FileSystem");
 		exit(-1);
 	}
-
-	//TODO SI ME PUDE CONECTAR AL FILESYSTEM ENTONCES CREAR EL ARCHIVO DE DATOS Y EL TMP
-	//TODO ENGLOBAR LO DE ARRIBA EN UNA VARIABLE
-	//TODO QUEDAR A LA ESPERA DEL FILESYSTEM, NODOS, O JOBS PARA REALIZAR DISTINTAS TAREAS
-
-
+	free(buffer);
+	return sockfd;
 }
-
 int size_of(int fd){
 	struct stat buf;
 	fstat(fd, &buf);
