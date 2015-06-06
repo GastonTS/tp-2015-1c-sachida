@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -8,6 +9,8 @@
 #include <commons/config.h>
 #include <commons/log.h>
 #include <commons/bitarray.h>
+#include <commons/collections/list.h>
+#include "../../utils/socket.h"
 #include "structs/job.h"
 #include "structs/nodo.h"
 
@@ -17,8 +20,9 @@ typedef struct {
 	int puerto_fs;
 } t_configMaRTA;
 
-t_configMaRTA* cfgMaRTA;
-t_log* logger;
+t_configMaRTA *cfgMaRTA;
+t_log *logger;
+t_list *nodos;
 
 int initConfig(char* archivoConfig);
 void freeMaRTA();
@@ -26,8 +30,7 @@ void acceptJobs();
 
 int main(int argc, char *argv[]) {
 
-	logger = log_create("MaRTA.log", "MaRTA", 1,
-			log_level_from_string("TRACE"));
+	logger = log_create("MaRTA.log", "MaRTA", 1, log_level_from_string("TRACE"));
 
 	if (argc != 2) {
 		log_error(logger, "Falta archivo de configuracion en la invocacion");
@@ -40,8 +43,6 @@ int main(int argc, char *argv[]) {
 		freeMaRTA();
 		return EXIT_FAILURE;
 	}
-
-	acceptJobs();
 
 	freeMaRTA();
 	return EXIT_SUCCESS;
@@ -115,8 +116,7 @@ void acceptJobs() {
 	sockMaRTA.sin_addr.s_addr = INADDR_ANY;
 	memset(&(sockMaRTA.sin_zero), 0, 8);
 
-	if (bind(sockMaRTAfd, (struct sockaddr*) &sockMaRTA,
-			sizeof(struct sockaddr)) == -1) {
+	if (bind(sockMaRTAfd, (struct sockaddr*) &sockMaRTA, sizeof(struct sockaddr)) == -1) {
 		log_error(logger, "Cant brind listen socket");
 		exit(-1);
 	}
@@ -129,7 +129,7 @@ void acceptJobs() {
 	while (1) {
 		sin_size = sizeof(struct sockaddr_in);
 
-		if ((sockJobfd = accept(sockMaRTAfd, (struct sockaddr *) &sockJob,&sin_size)) == -1) {
+		if ((sockJobfd = accept(sockMaRTAfd, (struct sockaddr *) &sockJob, &sin_size)) == -1) {
 			log_error(logger, "Accept failed");
 			exit(-1);
 
@@ -137,5 +137,25 @@ void acceptJobs() {
 		}
 		log_info(logger, "Connected Job: %s", inet_ntoa(sockJob.sin_addr));
 	}
+}
 
+t_nodo *mapPlanning(t_list *copias) {
+	t_nodo* nodoSeleccionado = NULL;
+	void agregarNodoANodosAux(t_copia *copia) {
+
+		bool menorCarga(t_nodo *noTanCargado, t_nodo *cargado) {
+				return cargaDeTrabajo(noTanCargado->maps, noTanCargado->reduces) < cargaDeTrabajo(cargado->maps, cargado->reduces);
+			}
+
+		char* nombreNodo = copia->nombreNodo;
+		bool nodoConNombre(t_nodo nodo) {
+			return esNodo(nodo, nombreNodo);
+		}
+		t_nodo *nodoActual = (t_nodo*) list_find(nodos, (void*) nodoConNombre);
+
+		if(!nodoSeleccionado || menorCarga(nodoActual, nodoSeleccionado))
+			nodoSeleccionado = nodoActual;
+	}
+	list_iterate(copias,(void*) agregarNodoANodosAux);
+	return nodoSeleccionado;
 }
