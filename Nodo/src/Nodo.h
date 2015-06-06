@@ -26,6 +26,7 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <pthread.h>///hilos
 
 //Variables y tipos de datos
 #define BACKLOG 2 /* El número de conexiones permitidas */
