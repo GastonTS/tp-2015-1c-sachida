@@ -13,6 +13,7 @@
 #include "../../utils/socket.h"
 #include "structs/job.h"
 #include "structs/nodo.h"
+#include "../test/PlanningTest.h"
 
 typedef struct {
 	int puerto_listen;
@@ -43,6 +44,9 @@ int main(int argc, char *argv[]) {
 		freeMaRTA();
 		return EXIT_FAILURE;
 	}
+	nodos = list_create();
+
+	mapPlanningtest();
 
 	freeMaRTA();
 	return EXIT_SUCCESS;
@@ -141,21 +145,32 @@ void acceptJobs() {
 
 t_nodo *mapPlanning(t_list *copias) {
 	t_nodo* nodoSeleccionado = NULL;
-	void agregarNodoANodosAux(t_copia *copia) {
+	int nroBloque;
 
+	void agregarNodoANodosAux(t_copia *copia) {
 		bool menorCarga(t_nodo *noTanCargado, t_nodo *cargado) {
+			if (noTanCargado && cargado)
 				return cargaDeTrabajo(noTanCargado->maps, noTanCargado->reduces) < cargaDeTrabajo(cargado->maps, cargado->reduces);
-			}
+			return 0;
+		}
 
 		char* nombreNodo = copia->nombreNodo;
-		bool nodoConNombre(t_nodo nodo) {
+
+		bool nodoConNombre(t_nodo *nodo) {
 			return esNodo(nodo, nombreNodo);
 		}
+
 		t_nodo *nodoActual = (t_nodo*) list_find(nodos, (void*) nodoConNombre);
 
-		if(!nodoSeleccionado || menorCarga(nodoActual, nodoSeleccionado))
+		if (nodoSeleccionado == NULL || menorCarga(nodoActual, nodoSeleccionado)) {
 			nodoSeleccionado = nodoActual;
+			nroBloque = copia->nroBloque;
+		}
+
 	}
-	list_iterate(copias,(void*) agregarNodoANodosAux);
+
+	list_iterate(copias, (void*) agregarNodoANodosAux);
+	list_add(nodoSeleccionado->maps, (void *) nroBloque);
+	log_debug(logger, "Se planifico la tarea de map en el bloque %d del %s", nroBloque, nodoSeleccionado->nombreNodo);
 	return nodoSeleccionado;
 }

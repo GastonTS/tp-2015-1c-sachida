@@ -12,7 +12,8 @@ typedef struct {
 	t_list *reduces; //Los que esta llevando a cabo
 } t_nodo;
 
-bool esNodo(t_nodo nodo, char *nombre);
+bool esNodo(t_nodo *nodo, char *nombre);
 int cargaDeTrabajo(t_list *maps, t_list *reduces);
+void freeNodo(t_nodo *nodo);
 
 #endif
