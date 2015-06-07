@@ -9,11 +9,13 @@
 #include <commons/config.h>
 #include <commons/log.h>
 #include <commons/bitarray.h>
+#include <commons/string.h>
 #include <commons/collections/list.h>
 #include "../../utils/socket.h"
 #include "structs/job.h"
 #include "structs/nodo.h"
 #include "../test/PlanningTest.h"
+#include <time.h>
 
 typedef struct {
 	int puerto_listen;
@@ -143,7 +145,23 @@ void acceptJobs() {
 	}
 }
 
-t_nodo *mapPlanning(t_list *copias) {
+char* getTime() { //TODO:revisar si se puede ampliar a mili/microsegundos
+	time_t rawtime;
+	struct tm * timeinfo;
+	time(&rawtime);
+	timeinfo = localtime(&rawtime);
+
+	char * time = asctime(timeinfo);
+	time[3] = '-';
+	time[7] = '-';
+	time[10] = '-';
+	time[19] = '-';
+	time[24] = '\0';
+
+	return time;
+}
+
+void mapPlanning(t_list *copias) {
 	t_nodo* nodoSeleccionado = NULL;
 	int nroBloque;
 
@@ -171,6 +189,15 @@ t_nodo *mapPlanning(t_list *copias) {
 
 	list_iterate(copias, (void*) agregarNodoANodosAux);
 	list_add(nodoSeleccionado->maps, (void *) nroBloque);
-	log_debug(logger, "Se planifico la tarea de map en el bloque %d del %s", nroBloque, nodoSeleccionado->nombreNodo);
-	return nodoSeleccionado;
+
+	char nombreResultado[43] = "\"";
+	strcat(nombreResultado, getTime());
+	strcat(nombreResultado, "-Map-Bloque");
+	char numBloque[4];
+	sprintf(numBloque, "%i", nroBloque);
+	strcat(nombreResultado, numBloque);
+	strcat(nombreResultado, ".txt\"");
+
+	log_debug(logger, "Se planifico la tarea de map en el nodo %s y se va a almacenar en %s", nodoSeleccionado->nombreNodo, nombreResultado);
+	//TODO: Mandar al job nodoSeleccionado->ipNodo - nodoSeleccionado->puertoNodo - nroBloque - nombreResultado
 }
