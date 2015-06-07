@@ -2,10 +2,9 @@
 #define SRC_MARTA_H_
 
 #include <commons/collections/list.h>
-#include "structs/nodo.h"
-
-t_nodo *mapPlanning(t_list *copias);
+#include <commons/log.h>
 
 extern t_list *nodos;
+extern t_log *logger;
 
 #endif

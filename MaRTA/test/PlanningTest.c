@@ -1,10 +1,10 @@
-#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <commons/collections/list.h>
 #include "../src/MaRTA.h"
 #include "../src/structs/nodo.h"
 #include "../src/structs/job.h"
+#include "../src/Planning/MapPlanning.h"
 
 void mapPlanningtest() {
 	t_nodo* nodo1 = malloc(sizeof(t_nodo));
@@ -83,8 +83,12 @@ void mapPlanningtest() {
 	list_add(copias2, (void *) copia2_2);
 	list_add(copias2, (void *) copia2_3);
 
-	mapPlanning(copias);
-	mapPlanning(copias2);
+	map_t *map1;
+	map_t *map2;
+	map1 = mapPlanning(copias, nodos);
+	map2 = mapPlanning(copias2, nodos);
+	free(map1);
+	free(map2);
 
 	list_destroy_and_destroy_elements(nodos, (void *) freeNodo);
 	list_destroy_and_destroy_elements(copias, (void *) free);

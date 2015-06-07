@@ -1,21 +1,11 @@
-#include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <commons/config.h>
-#include <commons/log.h>
-#include <commons/bitarray.h>
-#include <commons/string.h>
 #include <commons/collections/list.h>
-#include "../../utils/socket.h"
-#include "structs/job.h"
-#include "structs/nodo.h"
 #include "../test/PlanningTest.h"
-#include <time.h>
+#include "MaRTA.h"
 
 typedef struct {
 	int puerto_listen;
@@ -143,61 +133,4 @@ void acceptJobs() {
 		}
 		log_info(logger, "Connected Job: %s", inet_ntoa(sockJob.sin_addr));
 	}
-}
-
-char* getTime() { //TODO:revisar si se puede ampliar a mili/microsegundos
-	time_t rawtime;
-	struct tm * timeinfo;
-	time(&rawtime);
-	timeinfo = localtime(&rawtime);
-
-	char * time = asctime(timeinfo);
-	time[3] = '-';
-	time[7] = '-';
-	time[10] = '-';
-	time[19] = '-';
-	time[24] = '\0';
-
-	return time;
-}
-
-void mapPlanning(t_list *copias) {
-	t_nodo* nodoSeleccionado = NULL;
-	int nroBloque;
-
-	void agregarNodoANodosAux(t_copia *copia) {
-		bool menorCarga(t_nodo *noTanCargado, t_nodo *cargado) {
-			if (noTanCargado && cargado)
-				return cargaDeTrabajo(noTanCargado->maps, noTanCargado->reduces) < cargaDeTrabajo(cargado->maps, cargado->reduces);
-			return 0;
-		}
-
-		char* nombreNodo = copia->nombreNodo;
-
-		bool nodoConNombre(t_nodo *nodo) {
-			return esNodo(nodo, nombreNodo);
-		}
-
-		t_nodo *nodoActual = (t_nodo*) list_find(nodos, (void*) nodoConNombre);
-
-		if (nodoSeleccionado == NULL || menorCarga(nodoActual, nodoSeleccionado)) {
-			nodoSeleccionado = nodoActual;
-			nroBloque = copia->nroBloque;
-		}
-
-	}
-
-	list_iterate(copias, (void*) agregarNodoANodosAux);
-	list_add(nodoSeleccionado->maps, (void *) nroBloque);
-
-	char nombreResultado[43] = "\"";
-	strcat(nombreResultado, getTime());
-	strcat(nombreResultado, "-Map-Bloque");
-	char numBloque[4];
-	sprintf(numBloque, "%i", nroBloque);
-	strcat(nombreResultado, numBloque);
-	strcat(nombreResultado, ".txt\"");
-
-	log_debug(logger, "Se planifico la tarea de map en el nodo %s y se va a almacenar en %s", nodoSeleccionado->nombreNodo, nombreResultado);
-	//TODO: Mandar al job nodoSeleccionado->ipNodo - nodoSeleccionado->puertoNodo - nroBloque - nombreResultado
 }
