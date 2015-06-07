@@ -1,11 +1,12 @@
 #include "Nodo.h"
+#include "../../utils/socket.h"
 
-void createNode(char *dirArchivo);
+void createNode();
 char* getBloque(int nroBloque);
 void setBloque(int nroBloque);
 void getFileContent();
-void nodeMap(rutinaMap, int nroBloque);
-void nodeReduce(int[string nameNode, int nroBloque], rutinaReduce, char nombreDondeGuarda);
+//void nodeMap(rutinaMap, int nroBloque);
+//void nodeReduce(int[string nameNode, int nroBloque], rutinaReduce, char nombreDondeGuarda);
 
 //Le agregue los argumentos para que se pueda pasar el archivo de conf como parametro del main
 int main(int argc, char *argv[]) {
@@ -27,13 +28,14 @@ int main(int argc, char *argv[]) {
 	nivel minimo de log */
 
 	logger = log_create("Log.txt", "Node",1, log_level_from_string("DEBUG"));
+	socket_fileSystem =	conectarFileSystem();
 
 	//Llamo a la funcion que esta abajo de todo que saca los datos del archivo de config
-	getInfoConf(argv[1]);
+	//getInfoConf(argv[1]);
 	//Me conecto al File System
-	socket_fileSystem = conectarFileSystem();
+	//socket_fileSystem = conectarFileSystem();
 	//todo Ver bien si es necesaria esta funcion
-	createNode();
+	//createNode();
 
 	//TODO ACA DEBERIAMOS HACER EL WHILE INFINITO ESPERANDO CONEXIONES Y PETICIONES
 	/*TODO QUILOMBO ....
@@ -42,8 +44,8 @@ int main(int argc, char *argv[]) {
 		   PORQUE DICE QUE TIENEN QUE PUEDEN CORRER EN PARALELO :) CONCHATETACULOPIJA
 	*/
 
-	ptrhead_create(&conexionesJob,NULL,(void*)escucharJobs,NULL);
-	pthread_create(&conexionesNodo,NULL,(void*)escucharNodos,NULL);
+	//ptrhead_create(&conexionesJob,NULL,(void*)escucharJobs,NULL);
+	//pthread_create(&conexionesNodo,NULL,(void*)escucharNodos,NULL);
 
 
 	/*TODO TODAS LAS FUNCIONES GETBLOQUE Y ESAS VAN ADENTRO DE LOS TRHEADS */
@@ -79,7 +81,7 @@ void createNode() {
 }
 
 void escucharJobs(){
-	fd_set read_fds;
+	/*fd_set read_fds;
 	fd_set master;
 	int fdmax;
 	int i;
@@ -152,7 +154,7 @@ void escucharJobs(){
 				}
 			}
 		}
-		log_destroy(logger);
+		log_destroy(logger);*/
 		return;
 }
 
@@ -255,29 +257,10 @@ int escuchar_puerto(int sock_escucha)
 }
 
 int conectarFileSystem(){
-	int sockfd, numbytes; //descriptores
-	char* buffer;
-	//Para enviar y recibir datos creamos un buffer o paquete donde se almacenan
-	char buf[MAXDATASIZE];
-
-	struct hostent *he;
-
-	struct sockaddr_in fileSystem;
-
-	t_mensaje mensaje;  //Estructura para intercambiar mensajes (PROTOCOLO)
-
-	//Creo el buffer para comunicarme con el filesystem
-	if((buffer = (char*) malloc (sizeof(char) * MAXDATASIZE)) == NULL)
-	{
-		log_error(logger, "Error al reservar memoria para el buffer en conectar con FileSystem");
-		exit(-1);
-	}
-
-	if((sockfd = socket(AF_INET,SOCK_STREAM,0))==-1){
-		printf("Error en crear el socket del FileSystem");
-		exit(-1);
-	}
-
+	int descriptorFileSystem ;
+	descriptorFileSystem =  socket_connect(ip_fs,puerto_fs);
+	return descriptorFileSystem;
+	/*
 	fileSystem.sin_family = AF_INET;
 	fileSystem.sin_port = htons(puerto_fs);
 	fileSystem.sin_addr.s_addr = inet_addr(ip_fs);
@@ -320,8 +303,9 @@ int conectarFileSystem(){
 		exit(-1);
 	}
 	free(buffer);
-	return sockfd;
+	return sockfd;*/
 }
+
 int size_of(int fd){
 	struct stat buf;
 	fstat(fd, &buf);
@@ -369,25 +353,25 @@ void getFileContent(){
  * */
 }
 
-int nodeMap (rutinaMap, int nroBloque){
-	/* El Nodo4 guarda el contenido de map.py en un archivo en el filesystem local. Le da permisos de ejecución.
+/*int nodeMap (rutinaMap, int nroBloque){
+	 El Nodo4 guarda el contenido de map.py en un archivo en el filesystem local. Le da permisos de ejecución.
 	 * El hilo mapper le solicita al Nodo4 que envie el contenido del Bloque6 por entrada estánda a map.py. El STDOUT lo almacena en un archivo temporal (ej: map.py.result.tmp)
 	 * Usa la tool sort para ordenar el archivo temporal del paso anterior ya en el archivo definitivo
 	# cat map.py.result.tmp | sort > librazo12347.tmp
 	 * El hilo mapper se conecta al nodo, y le indica la rutina de maping, el bloque de datos donde aplicarla y tiene que almacenar
-	* los resultados de manera ordenada (sort) en el FS Temporal del nodo. Debera dar una respuesta al hilo MApper*/
+	* los resultados de manera ordenada (sort) en el FS Temporal del nodo. Debera dar una respuesta al hilo MApper
 	int lugarDeAlmacenamiento;
 	return lugarDeAlmacenamiento;
-}
+}*/
 
 
-void nodeReduce (array[string nameNode, int nroBloque], rutinaReduce, char nombreDondeGuarda){
+/*void nodeReduce (array[string nameNode, int nroBloque], rutinaReduce, char nombreDondeGuarda){
 	//el reduce recibe un nodo y un nombre de archivo (el FS se encargara de rearmar ese archivo y pasarlo)
 	 /* El hilo reduce, indica aplicar la rutina sobre varios archvos del espacio temporal, de los cuales uno debe ser siempre local al nodo
 	 * El reduce le manda el nombre de los bloques y los nodos donde se encuentran, el codigo de la rutina de reduce y el nombre del
-	 * archivo donde se alamcenara. Al finalizar se debe informar al JOB que termino */
+	 * archivo donde se alamcenara. Al finalizar se debe informar al JOB que termino
 	return 0;
-}
+}*/
 
 
 

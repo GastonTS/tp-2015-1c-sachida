@@ -27,6 +27,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <pthread.h>///hilos
+#include "../../utils/socket.h"
 
 //Variables y tipos de datos
 #define BACKLOG 2 /* El número de conexiones permitidas */
@@ -52,7 +53,7 @@ typedef struct {
 int puerto_fs;
 int puerto_nodo;
 char ip_nodo[16];
-char ip_fs[16];
+char* ip_fs;
 char* archivo_bin;
 char* dir_tmp;
 char nodo_nuevo[2];
