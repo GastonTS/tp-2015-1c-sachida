@@ -1,26 +1,27 @@
 #include "Nodo.h"
-#include "../../utils/socket.h"
 
 void createNode();
 char* getBloque(int nroBloque);
-void setBloque(int nroBloque);
-void getFileContent();
+//void setBloque(int nroBloque);
+//void getFileContent();
 //void nodeMap(rutinaMap, int nroBloque);
 //void nodeReduce(int[string nameNode, int nroBloque], rutinaReduce, char nombreDondeGuarda);
+int size_of(int fd);
+int fileSize;
+int conectarFileSystem();
 
 //Le agregue los argumentos para que se pueda pasar el archivo de conf como parametro del main
 int main(int argc, char *argv[]) {
-
+	getBloque(5);
 	int socket_fileSystem;
-	pthread_t conexionesJob;
-	pthread_t conexionesNodo;
-
+	//pthread_t conexionesJob;
+	//pthread_t conexionesNodo;
 	if(argc != 2)
 		{
 			printf("ERROR, la sintaxis del servidor es: ./Nodo.c archivo_configuracion \n");
 			return -1;
 		}
-
+	getInfoConf(argv[1]);
 	/*Creo el logger parametros -->
 	Nombre del archivo de log
 	nombre del programa que crea el log
@@ -29,19 +30,14 @@ int main(int argc, char *argv[]) {
 
 	logger = log_create("Log.txt", "Node",1, log_level_from_string("DEBUG"));
 	socket_fileSystem =	conectarFileSystem();
-
-	//Llamo a la funcion que esta abajo de todo que saca los datos del archivo de config
-	//getInfoConf(argv[1]);
-	//Me conecto al File System
-	//socket_fileSystem = conectarFileSystem();
 	//todo Ver bien si es necesaria esta funcion
-	//createNode();
+	createNode();
 
 	//TODO ACA DEBERIAMOS HACER EL WHILE INFINITO ESPERANDO CONEXIONES Y PETICIONES
 	/*TODO QUILOMBO ....
 		   HAY QUE ABRIR UN THREAD PARA ESCUCHAR JOBS Y UNO PARA ESCUCHAR NODOS
 		   PORQUE?
-		   PORQUE DICE QUE TIENEN QUE PUEDEN CORRER EN PARALELO :) CONCHATETACULOPIJA
+		   PORQUE DICE QUE TIENEN QUE PUEDEN CORRER EN PARALELO :)
 	*/
 
 	//ptrhead_create(&conexionesJob,NULL,(void*)escucharJobs,NULL);
@@ -49,39 +45,32 @@ int main(int argc, char *argv[]) {
 
 
 	/*TODO TODAS LAS FUNCIONES GETBLOQUE Y ESAS VAN ADENTRO DE LOS TRHEADS */
-
-	getBloque(5);
 	return EXIT_SUCCESS;
-
-
-
-
 }
-/* Almacenar los datos del FS y hacer Map y Reduce segun lo requerido por los Jobs */
-void createNode() {
 
+
+// Almacenar los datos del FS y hacer Map y Reduce segun lo requerido por los Jobs
+ void createNode() {
 	//TODO DANI NO ENTIENDO QUE ES ESTE PARAMETRO
-	int tamanioArchivoDatos;
-
-	 /*al crear el nodo con su respectivo bloque de datos, ponerle de nombre node_name
-	Funcion de la biblioteca lisen. para esperar al FS
+	fileSize = size_of(archivo_bin);
+	printf(fileSize);
+	 /*Funcion de la biblioteca lisen. para esperar al FS
 	 stat se consigue el tamaño de la rchivo
 	truncate -s 1G miarchivo.bin*/
 
-	/* VAN LOS SOCKETS*/
+	 //VAN LOS SOCKETS
 	//Primero se conecta al filesystem
 
 
 	//TODO SI ME PUDE CONECTAR AL FILESYSTEM ENTONCES CREAR EL ARCHIVO DE DATOS Y EL TMP
-	tamanioArchivoDatos = size_of(archivo_bin);
+
+//tamanioArchivoDatos = size_of(archivo_bin);
 	//TODO ENGLOBAR LO DE ARRIBA EN UNA VARIABLE
 	//TODO QUEDAR A LA ESPERA DEL FILESYSTEM, NODOS, O JOBS PARA REALIZAR DISTINTAS TAREAS
-
-
 }
 
-void escucharJobs(){
-	/*fd_set read_fds;
+/*void escucharJobs(){
+	fd_set read_fds;
 	fd_set master;
 	int fdmax;
 	int i;
@@ -154,15 +143,13 @@ void escucharJobs(){
 				}
 			}
 		}
-		log_destroy(logger);*/
+		log_destroy(logger);
 		return;
-}
+}*/
 
-void escucharNodos(){
+/*void escucharNodos(){}*/
 
-}
-
-int escuchar()
+/*int escuchar()
 {
 	//llega a hacer el listen
 	int sock_escucha;
@@ -199,9 +186,9 @@ int escuchar()
 	}
 
 	return sock_escucha;
-}
+}*/
 
-int escuchar_puerto(int sock_escucha)
+/*int escuchar_puerto(int sock_escucha)
 {
 	socklen_t sin_size;
 	struct sockaddr_in my_addr;
@@ -254,13 +241,16 @@ int escuchar_puerto(int sock_escucha)
 		return -1;
 	}
 	return new_socket;
-}
+}*/
 
 int conectarFileSystem(){
 	int descriptorFileSystem ;
+	int handshakea;
 	descriptorFileSystem =  socket_connect(ip_fs,puerto_fs);
+	handshakea = socket_handshake_to_server(descriptorFileSystem,HANDSHAKE_NODO,HANDSHAKE_FILESYSTEM);
+	printf("derror %d", handshakea);
 	return descriptorFileSystem;
-	/*
+    /*
 	fileSystem.sin_family = AF_INET;
 	fileSystem.sin_port = htons(puerto_fs);
 	fileSystem.sin_addr.s_addr = inet_addr(ip_fs);
@@ -306,19 +296,13 @@ int conectarFileSystem(){
 	return sockfd;*/
 }
 
-int size_of(int fd){
-	struct stat buf;
-	fstat(fd, &buf);
-	return buf.st_size;
-}
-
 char* getBloque(int nroBloque){
 			int mapper;
 			char* mapeo;
 			int size;
 			int pagesize;
 			const sizemapper;
-			char* file_name = "/home/utnso/Sachida/tp-2015-1c-sachida/Ejemplos/Mmap/src/archivo_mmap.txt"; //Aca tiene que abrir el archivo que crea en el createNodo
+			char* file_name = "./archivo_mmap.txt"; //Aca tiene que abrir el archivo que crea en el createNodo
 			//Se abre el archivo para solo lectura
 			mapper = open (file_name, O_RDONLY);
 			pagesize = getpagesize();
@@ -340,18 +324,17 @@ char* getBloque(int nroBloque){
 			return mapeo;
 		}
 
+//void setBloque(int nroBloque){}
+//Grabara los datos enviados
 
-void setBloque(int nroBloque){}
-/*Grabara los datos enviados*/
+/*void getFileContent(){
+Devolverá   el   contenido   del   archivo   de   Espacio   Temporal solicitado.
+  Se usara en el return de las funciones para devolver los archivos almencenadaso en memoria temporal
+  getFileContent probablemente no sea tan "útil" como usuario, pero sí la usan los Nodos para pasarse datos para el Reduce, y, ya que está, exponérsela al FS ayuda a que,
+  por ejemplo, mientras desarrollan puedan chequear de manera "fácil" que los temporales se estén generando bien. Poder inspeccionar lo que está pasando en el sistema siempre
+   es bueno, y si encima viene casi gratis en cuanto a esfuerzo de desarrollo, mejor.
 
-void getFileContent(){
-/*Devolverá   el   contenido   del   archivo   de   Espacio   Temporal solicitado.
- * Se usara en el return de las funciones para devolver los archivos almencenadaso en memoria temporal
- * getFileContent probablemente no sea tan "útil" como usuario, pero sí la usan los Nodos para pasarse datos para el Reduce, y, ya que está, exponérsela al FS ayuda a que,
- * por ejemplo, mientras desarrollan puedan chequear de manera "fácil" que los temporales se estén generando bien. Poder inspeccionar lo que está pasando en el sistema siempre
- *  es bueno, y si encima viene casi gratis en cuanto a esfuerzo de desarrollo, mejor.
- * */
-}
+}*/
 
 /*int nodeMap (rutinaMap, int nroBloque){
 	 El Nodo4 guarda el contenido de map.py en un archivo en el filesystem local. Le da permisos de ejecución.
@@ -364,32 +347,26 @@ void getFileContent(){
 	return lugarDeAlmacenamiento;
 }*/
 
-
 /*void nodeReduce (array[string nameNode, int nroBloque], rutinaReduce, char nombreDondeGuarda){
 	//el reduce recibe un nodo y un nombre de archivo (el FS se encargara de rearmar ese archivo y pasarlo)
-	 /* El hilo reduce, indica aplicar la rutina sobre varios archvos del espacio temporal, de los cuales uno debe ser siempre local al nodo
+	  El hilo reduce, indica aplicar la rutina sobre varios archvos del espacio temporal, de los cuales uno debe ser siempre local al nodo
 	 * El reduce le manda el nombre de los bloques y los nodos donde se encuentran, el codigo de la rutina de reduce y el nombre del
 	 * archivo donde se alamcenara. Al finalizar se debe informar al JOB que termino
 	return 0;
 }*/
 
-
-
 void getInfoConf(char* conf)
 {
 	t_config* config; //creamos la variable que va a ser el archivo de config
-
 	config = config_create(conf); //creamos el "objeto" archivo de config
-
 	strcpy(ip_fs,config_get_string_value(config,"IP_FS"));
 	puerto_fs = config_get_int_value(config,"PUERTO_FS");
-	strcpy(ip_nodo,config_get_string_value(config, "IP_NODO"));
+	//strcpy(ip_nodo,config_get_string_value(config, "IP_NODO"));
 	puerto_nodo = config_get_int_value(config, "PUERTO_NODO");
 	strcpy(archivo_bin,config_get_string_value(config,"ARCHIVO_BIN"));
-	strcpy(dir_tmp,config_get_string_value(config,"DIR_TMP"));
-	strcpy(nodo_nuevo,config_get_string_value(config,"NODO_NUEVO"));
-
-	puts("Extraccion correcta del archivo de configuracion");
+	//strcpy(dir_tmp,config_get_string_value(config,"DIR_TMP"));
+	//strcpy(nodo_nuevo,config_get_string_value(config,"NODO_NUEVO"));
+	printf("Extraccion correcta del archivo de configuracion");
 
 	config_destroy(config); //destruimos el "objeto" archivo de config
 }
@@ -400,4 +377,10 @@ void getInfoConf(char* conf)
  * 			 El archivo de configuracion se pasa por parametro cuando se realiza la
  * 			 ejecucion: ./Nodo.c "rutaArchivoConfig"
  */
+
+int size_of(int fd){
+	struct stat buf;
+	fstat(fd, &buf);
+	return buf.st_size;
+}
 
