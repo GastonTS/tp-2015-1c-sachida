@@ -63,6 +63,10 @@ t_log* logger;
 //METODOS
 void getInfoConf(char* conf);
 
+char* getBloque(int nroBloque);
+
+void setBloque(int nroBloque,char** string);
+
 #endif /* NODO_H_ */
 
 

@@ -1,19 +1,18 @@
 #include "Nodo.h"
+#include "../../utils/socket.h"
 
 void createNode();
-char* getBloque(int nroBloque);
-//void setBloque(int nroBloque);
 //void getFileContent();
 //void nodeMap(rutinaMap, int nroBloque);
 //void nodeReduce(int[string nameNode, int nroBloque], rutinaReduce, char nombreDondeGuarda);
 int size_of(int fd);
 int fileSize;
 int conectarFileSystem();
+int socket_fileSystem;
 
 //Le agregue los argumentos para que se pueda pasar el archivo de conf como parametro del main
 int main(int argc, char *argv[]) {
 	getBloque(5);
-	int socket_fileSystem;
 	//pthread_t conexionesJob;
 	//pthread_t conexionesNodo;
 	if(argc != 2)
@@ -31,14 +30,38 @@ int main(int argc, char *argv[]) {
 	logger = log_create("Log.txt", "Node",1, log_level_from_string("DEBUG"));
 	socket_fileSystem =	conectarFileSystem();
 	//todo Ver bien si es necesaria esta funcion
-	createNode();
+	createNode(); //creo que no es necesario el createNodo.
+
+	/*[8/6/2015, 14:29] Santo: char *buffer;
+			socket_recv_string(socket, &buffer);
+			//Copias el buffer en el .bin haciendo 20MB*nrobloque
+			[8/6/2015, 14:30] Santo: despues rellenas si tenes que rellenar con/0 o eso
+
+			[8/6/2015, 14:31] Santo: char *buffer;
+			socket_recv_string(socket, &buffer);
+			setBloque(nroBloque, buffer);
+			[8/6/2015, 14:31] Santo: y setBloque lo que hace en realidad es copiar el buffer en el archivo
+			*/
+
+	/*socket_recv_paquete(socket, &paquete);
+			int comando = copiarPrimeros4Bytes(paquete)
+			switch(comando){
+ 	 	 	case 1:
+      	  		int numBlock= copiarSegundos4Bytes(paquete)
+      	  		int ssize = copiarTerceros4Bytes(paquete)
+      	  	char * buffer = copiarlossiguientes<ssize>(paquete)
+      	    setBloque(numBlock, buffer);
+			break;
+			case 2:
+     	 		//alguna otra ordenq ue te pueda pedir el fs (supongo que get bloque por ej)
+			default: error mensaje desconocido;*/
 
 	//TODO ACA DEBERIAMOS HACER EL WHILE INFINITO ESPERANDO CONEXIONES Y PETICIONES
 	/*TODO QUILOMBO ....
 		   HAY QUE ABRIR UN THREAD PARA ESCUCHAR JOBS Y UNO PARA ESCUCHAR NODOS
 		   PORQUE?
 		   PORQUE DICE QUE TIENEN QUE PUEDEN CORRER EN PARALELO :)
-	*/
+
 
 	//ptrhead_create(&conexionesJob,NULL,(void*)escucharJobs,NULL);
 	//pthread_create(&conexionesNodo,NULL,(void*)escucharNodos,NULL);
@@ -301,10 +324,10 @@ char* getBloque(int nroBloque){
 			char* mapeo;
 			int size;
 			int pagesize;
-			const sizemapper;
 			char* file_name = "./archivo_mmap.txt"; //Aca tiene que abrir el archivo que crea en el createNodo
 			//Se abre el archivo para solo lectura
-			mapper = open (file_name, O_RDONLY);
+
+			mapper = fopen (file_name, O_RDONLY);
 			pagesize = getpagesize();
 			size = size_of(mapper);
 			//size = 20;
@@ -324,8 +347,13 @@ char* getBloque(int nroBloque){
 			return mapeo;
 		}
 
-//void setBloque(int nroBloque){}
-//Grabara los datos enviados
+void setBloque(int nroBloque,char** string){
+	char* lugarpaguardar;
+	socket_recv_string(socket_fileSystem, &lugarpaguardar);
+	//socket_recv_packet(int socket, void** packet, size_t* size);
+	/*Recibe un buffer de datos,despues con el puntero que me devuelve el mmap modifico el archivo mapeado, primero busco puntero[ j ]=\0 y lo saco,
+	 * relleno los espacios que falten hasta el nuevo bloque y remplazo el puntero[ j ]=datos[a] ,agrego el \0 y cierro el mmap.*/
+}
 
 /*void getFileContent(){
 Devolverá   el   contenido   del   archivo   de   Espacio   Temporal solicitado.
