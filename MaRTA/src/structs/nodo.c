@@ -4,15 +4,15 @@
 #include "nodo.h"
 #include <stdlib.h>
 
-bool esNodo(t_nodo *nodo, char nombre[25]) {
-	return string_equals_ignore_case(nodo->nombreNodo, nombre);
+bool nodeByName(t_node *nodo, char nombre[25]) {
+	return string_equals_ignore_case(nodo->name, nombre);
 }
 
-int cargaDeTrabajo(t_list *maps, t_list *reduces) {
+int workLoad(t_list *maps, t_list *reduces) {
 	return list_size(maps) + list_size(reduces);
 }
 
-void freeNodo(t_nodo *nodo){
+void freeNode(t_node *nodo) {
 	list_destroy(nodo->maps);
 	list_destroy(nodo->reduces);
 	free(nodo);

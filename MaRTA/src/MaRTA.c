@@ -8,16 +8,16 @@
 #include "MaRTA.h"
 
 typedef struct {
-	int puerto_listen;
-	char *ip_fs;
-	int puerto_fs;
+	int listenPort;
+	char *fsIP;
+	int fsPort;
 } t_configMaRTA;
 
 t_configMaRTA *cfgMaRTA;
 t_log *logger;
-t_list *nodos;
+t_list *nodes;
 
-int initConfig(char* archivoConfig);
+int initConfig(char* configFile);
 void freeMaRTA();
 void acceptJobs();
 
@@ -26,25 +26,27 @@ int main(int argc, char *argv[]) {
 	logger = log_create("MaRTA.log", "MaRTA", 1, log_level_from_string("TRACE"));
 
 	if (argc != 2) {
-		log_error(logger, "Falta archivo de configuracion en la invocacion");
+		log_error(logger, "Missing config file");
 		freeMaRTA();
 		return EXIT_FAILURE;
 	}
-
 	if (!initConfig(argv[1])) {
-		log_error(logger, "Fallo configuracion");
+		log_error(logger, "Config failed");
 		freeMaRTA();
 		return EXIT_FAILURE;
 	}
-	nodos = list_create();
 
-	mapPlanningtest();
+	nodes = list_create();
+
+	setup();
+	jobMapTest();
+	freeSetup();
 
 	freeMaRTA();
 	return EXIT_SUCCESS;
 }
 
-int initConfig(char* archivoConfig) {
+int initConfig(char* configFile) {
 
 	t_config* _config;
 	int failure = 0;
@@ -69,24 +71,23 @@ int initConfig(char* archivoConfig) {
 		return "";
 	}
 
-	_config = config_create(archivoConfig);
+	_config = config_create(configFile);
 
 	cfgMaRTA = malloc(sizeof(t_configMaRTA));
 
-	log_info(logger, "Iniciando configuracion...");
+	log_info(logger, "Loading config...");
 
-	cfgMaRTA->puerto_listen = getConfigInt("PUERTO_LISTEN");
-	cfgMaRTA->ip_fs = getCongifString("IP_FILE_SYSTEM");
-	cfgMaRTA->puerto_fs = getConfigInt("PUERTO_FILE_SYSTEM");
+	cfgMaRTA->listenPort = getConfigInt("PUERTO_LISTEN");
+	cfgMaRTA->fsIP = getCongifString("IP_FILE_SYSTEM");
+	cfgMaRTA->fsPort = getConfigInt("PUERTO_FILE_SYSTEM");
 
 	if (!failure) {
-		log_info(logger, "Port to listen: %d", cfgMaRTA->puerto_listen);
-		log_info(logger, "IP FileSystem: %s", cfgMaRTA->ip_fs);
-		log_info(logger, "FileSystem Port: %d", cfgMaRTA->puerto_fs);
+		log_info(logger, "Port to listen: %d", cfgMaRTA->listenPort);
+		log_info(logger, "FileSystem IP: %s", cfgMaRTA->fsIP);
+		log_info(logger, "FileSystem Port: %d", cfgMaRTA->fsPort);
 	}
 
 	config_destroy(_config);
-
 	return !failure;
 }
 
@@ -95,7 +96,7 @@ void freeMaRTA() {
 	log_destroy(logger);
 }
 
-void acceptJobs() {
+void acceptJobs() { //TODO: pasar a funciones de libreria socket
 
 	int sockMaRTAfd, sockJobfd;
 	struct sockaddr_in sockMaRTA;
@@ -108,7 +109,7 @@ void acceptJobs() {
 	}
 
 	sockMaRTA.sin_family = AF_INET;
-	sockMaRTA.sin_port = htons(cfgMaRTA->puerto_listen);
+	sockMaRTA.sin_port = htons(cfgMaRTA->listenPort);
 	sockMaRTA.sin_addr.s_addr = INADDR_ANY;
 	memset(&(sockMaRTA.sin_zero), 0, 8);
 

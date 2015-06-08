@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <commons/collections/list.h>
-#include "../structs/job.h"
 #include "../structs/nodo.h"
 #include "../MaRTA.h"
 #include "MapPlanning.h"
@@ -23,48 +22,62 @@ char* getTime() { //TODO:revisar si se puede ampliar a mili/microsegundos
 	return time;
 }
 
-map_t *mapPlanning(t_list *copias, t_list *nodos) {
-	t_nodo* nodoSeleccionado = NULL;
-	int nroBloque;
+void jobMap(t_job *job) {
+	log_trace(logger, "Planning Job %d...", job->id);
+	void fileMap(t_file *file) {
+		void mapPlanning(t_list *copies) {
+			t_node* selectedNode = NULL;
+			int numBlock;
 
-	void agregarNodoANodosAux(t_copia *copia) {
-		bool menorCarga(t_nodo *noTanCargado, t_nodo *cargado) {
-			if (noTanCargado && cargado)
-				return cargaDeTrabajo(noTanCargado->maps, noTanCargado->reduces) < cargaDeTrabajo(cargado->maps, cargado->reduces);
-			return 0;
+			void addNodeToAux(t_copy *copy) {
+				bool lessWorkLoad(t_node *lessBusy, t_node *busy) {
+					if (lessBusy && busy)
+						return workLoad(lessBusy->maps, lessBusy->reduces) < workLoad(busy->maps, busy->reduces);
+					return 0;
+				}
+
+				char* nodeName = copy->nodeName;
+
+				bool nodeWithName(t_node *node) {
+					return nodeByName(node, nodeName);
+				}
+
+				t_node *actualNode = (t_node*) list_find(nodes, (void*) nodeWithName);
+
+				if (selectedNode == NULL || lessWorkLoad(actualNode, selectedNode)) {
+					selectedNode = actualNode;
+					numBlock = copy->numBlock;
+				}
+			}
+
+			list_iterate(copies, (void*) addNodeToAux);
+			list_add(selectedNode->maps, (void *) numBlock);
+
+			t_map *mapPlanned = malloc(sizeof(t_map));
+			mapPlanned->id = list_size(job->maps);
+			mapPlanned->copies = copies;
+			mapPlanned->nodeIP = selectedNode->ip;
+			mapPlanned->nodePort = selectedNode->port;
+			mapPlanned->numBlock = numBlock;
+			char resultName[60] = "\"";
+			strcat(resultName, getTime());
+			strcat(resultName, "-Job(");
+			char idJob[4];
+			sprintf(idJob, "%i", job->id);
+			strcat(resultName, idJob);
+			strcat(resultName, ")-Map(");
+			char numMap[4];
+			sprintf(numMap, "%i", mapPlanned->id);
+			strcat(resultName, numMap);
+			strcat(resultName, ").txt\"");
+			strcpy(mapPlanned->tempResultName, resultName);
+
+			list_add(job->maps, mapPlanned);
+			log_trace(logger, "\nMap planned: \n\tNode: %s \n\tBlock: %d \n\tStored in: %s", selectedNode->name, mapPlanned->numBlock,
+					mapPlanned->tempResultName);
 		}
-
-		char* nombreNodo = copia->nombreNodo;
-
-		bool nodoConNombre(t_nodo *nodo) {
-			return esNodo(nodo, nombreNodo);
-		}
-
-		t_nodo *nodoActual = (t_nodo*) list_find(nodos, (void*) nodoConNombre);
-
-		if (nodoSeleccionado == NULL || menorCarga(nodoActual, nodoSeleccionado)) {
-			nodoSeleccionado = nodoActual;
-			nroBloque = copia->nroBloque;
-		}
-
+		list_iterate(file->blocks, (void *) mapPlanning);
 	}
-
-	list_iterate(copias, (void*) agregarNodoANodosAux);
-	list_add(nodoSeleccionado->maps, (void *) nroBloque);
-
-	char nombreResultado[43] = "\"";
-	strcat(nombreResultado, getTime());
-	strcat(nombreResultado, "-Map-Bloque");
-	char numBloque[4];
-	sprintf(numBloque, "%i", nroBloque);
-	strcat(nombreResultado, numBloque);
-	strcat(nombreResultado, ".txt\"");
-
-	map_t *mapPlanned = malloc(sizeof(map_t));
-	mapPlanned->ipNodo = nodoSeleccionado->ipNodo;
-	mapPlanned->puertoNodo = nodoSeleccionado->puertoNodo;
-	mapPlanned->nroBloque = nroBloque;
-	strcpy(mapPlanned->nombreResultado, nombreResultado);
-	log_debug(logger, "Se planifico la tarea de map en el nodo %s y se va a almacenar en %s", nodoSeleccionado->nombreNodo, nombreResultado);
-	return mapPlanned;
+	list_iterate(job->files, (void *) fileMap);
+	log_trace(logger, "Finished Job %d...", job->id);
 }

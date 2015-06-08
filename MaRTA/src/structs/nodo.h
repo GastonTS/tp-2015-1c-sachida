@@ -4,16 +4,16 @@
 #include <commons/collections/list.h>
 
 typedef struct {
-	char nombreNodo[25];
-	char *ipNodo;
-	int puertoNodo;
-	char *estado;
+	char name[25];
+	char *ip;
+	int port;
+	int active;
 	t_list *maps; //Los que esta llevando a cabo
 	t_list *reduces; //Los que esta llevando a cabo
-} t_nodo;
+} t_node;
 
-bool esNodo(t_nodo *nodo, char *nombre);
-int cargaDeTrabajo(t_list *maps, t_list *reduces);
-void freeNodo(t_nodo *nodo);
+bool nodeByName(t_node *nodo, char *nombre);
+int workLoad(t_list *maps, t_list *reduces);
+void freeNode(t_node *nodo);
 
 #endif

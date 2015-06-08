@@ -6,91 +6,159 @@
 #include "../src/structs/job.h"
 #include "../src/Planning/MapPlanning.h"
 
-void mapPlanningtest() {
-	t_nodo* nodo1 = malloc(sizeof(t_nodo));
-	strcpy(nodo1->nombreNodo, "Nodo1");
-	nodo1->maps = list_create();
-	list_add(nodo1->maps, (void *) 1);
-	list_add(nodo1->maps, (void *) 1);
-	list_add(nodo1->maps, (void *) 1);
-	list_add(nodo1->maps, (void *) 1);
-	nodo1->reduces = list_create();
-	list_add(nodo1->reduces, (void *) "datos.txt");
+t_node* node1;
+t_node* node2;
+t_node* node3;
+t_node* node4;
+t_node* node5;
+t_copy *copy1;
+t_copy *copy2;
+t_copy *copy3;
+t_list *copies1;
+t_copy *copy2_1;
+t_copy *copy2_2;
+t_copy *copy2_3;
+t_list *copies2;
+t_copy *copy3_1;
+t_copy *copy3_2;
+t_copy *copy3_3;
+t_copy *copy3_4;
+t_copy *copy3_5;
+t_list *copies3;
+t_file *file;
+t_file *file2;
+t_job *job;
 
-	t_nodo* nodo2 = malloc(sizeof(t_nodo));
-	strcpy(nodo2->nombreNodo, "Nodo2");
-	nodo2->maps = list_create();
-	list_add(nodo2->maps, (void *) 1);
-	nodo2->reduces = list_create();
-	list_add(nodo2->reduces, (void *) "datos.txt");
+void setup(){
+	node1 = malloc(sizeof(t_node));
+		strcpy(node1->name, "Node1");
+		node1->maps = list_create();
+		list_add(node1->maps, (void *) 1);
+		list_add(node1->maps, (void *) 1);
+		list_add(node1->maps, (void *) 1);
+		list_add(node1->maps, (void *) 1);
+		node1->reduces = list_create();
+		list_add(node1->reduces, (void *) "datos.txt");
 
-	t_nodo* nodo3 = malloc(sizeof(t_nodo));
-	strcpy(nodo3->nombreNodo, "Nodo3");
-	nodo3->maps = list_create();
-	list_add(nodo3->maps, (void *) 1);
-	nodo3->reduces = list_create();
-	list_add(nodo3->reduces, (void *) "datos.txt");
-	list_add(nodo3->reduces, (void *) "datos.txt");
-	list_add(nodo3->reduces, (void *) "datos.txt");
+	node2 = malloc(sizeof(t_node));
+		strcpy(node2->name, "Node2");
+		node2->maps = list_create();
+		list_add(node2->maps, (void *) 1);
+		node2->reduces = list_create();
+		list_add(node2->reduces, (void *) "datos.txt");
 
-	t_nodo* nodo4 = malloc(sizeof(t_nodo));
-	strcpy(nodo4->nombreNodo, "Nodo4");
-	nodo4->maps = list_create();
-	nodo4->reduces = list_create();
+	node3 = malloc(sizeof(t_node));
+	strcpy(node3->name, "Node3");
+	node3->maps = list_create();
+	list_add(node3->maps, (void *) 1);
+	node3->reduces = list_create();
+	list_add(node3->reduces, (void *) "datos.txt");
+	list_add(node3->reduces, (void *) "datos.txt");
+	list_add(node3->reduces, (void *) "datos.txt");
 
-	t_nodo* nodo5 = malloc(sizeof(t_nodo));
-	strcpy(nodo5->nombreNodo, "Nodo5");
-	nodo5->maps = list_create();
-	nodo5->reduces = list_create();
+	node4 = malloc(sizeof(t_node));
+	strcpy(node4->name, "Node4");
+	node4->maps = list_create();
+	node4->reduces = list_create();
 
-	list_add(nodos, nodo1);
-	list_add(nodos, nodo2);
-	list_add(nodos, nodo3);
-	list_add(nodos, nodo4);
-	list_add(nodos, nodo5);
+	node5 = malloc(sizeof(t_node));
+	strcpy(node5->name, "Node5");
+	node5->maps = list_create();
+	node5->reduces = list_create();
 
-	t_copia *copia1 = malloc(sizeof(t_copia));
-	strcpy(copia1->nombreNodo, "Nodo1");
-	copia1->nroBloque = 1;
+	list_add(nodes, node1);
+	list_add(nodes, node2);
+	list_add(nodes, node3);
+	list_add(nodes, node4);
+	list_add(nodes, node5);
 
-	t_copia *copia2 = malloc(sizeof(t_copia));
-	strcpy(copia2->nombreNodo, "Nodo2");
-	copia2->nroBloque = 1;
+	copy1 = malloc(sizeof(t_copy));
+	strcpy(copy1->nodeName, "Node1");
+	copy1->numBlock = 2;
 
-	t_copia *copia3 = malloc(sizeof(t_copia));
-	strcpy(copia3->nombreNodo, "Nodo5");
-	copia3->nroBloque = 17;
+	copy2 = malloc(sizeof(t_copy));
+	strcpy(copy2->nodeName, "Node2");
+	copy2->numBlock = 919;
 
-	t_list *copias = list_create();
-	list_add(copias, (void *) copia1);
-	list_add(copias, (void *) copia2);
-	list_add(copias, (void *) copia3);
+	copy3 = malloc(sizeof(t_copy));
+	strcpy(copy3->nodeName, "Node5");
+	copy3->numBlock = 227;
 
-	t_copia *copia2_1 = malloc(sizeof(t_copia));
-	strcpy(copia2_1->nombreNodo, "Nodo1");
-	copia2_1->nroBloque = 1;
+	copies1 = list_create();
+	list_add(copies1, (void *) copy1);
+	list_add(copies1, (void *) copy2);
+	list_add(copies1, (void *) copy3);
 
-	t_copia *copia2_2 = malloc(sizeof(t_copia));
-	strcpy(copia2_2->nombreNodo, "Nodo5");
-	copia2_2->nroBloque = 1;
+	copy2_1 = malloc(sizeof(t_copy));
+	strcpy(copy2_1->nodeName, "Node3");
+	copy2_1->numBlock = 7;
 
-	t_copia *copia2_3 = malloc(sizeof(t_copia));
-	strcpy(copia2_3->nombreNodo, "Nodo4");
-	copia2_3->nroBloque = 1;
+	copy2_2 = malloc(sizeof(t_copy));
+	strcpy(copy2_2->nodeName, "Node5");
+	copy2_2->numBlock = 307;
 
-	t_list *copias2 = list_create();
-	list_add(copias2, (void *) copia2_1);
-	list_add(copias2, (void *) copia2_2);
-	list_add(copias2, (void *) copia2_3);
+	copy2_3 = malloc(sizeof(t_copy));
+	strcpy(copy2_3->nodeName, "Node4");
+	copy2_3->numBlock = 13;
 
-	map_t *map1;
-	map_t *map2;
-	map1 = mapPlanning(copias, nodos);
-	map2 = mapPlanning(copias2, nodos);
-	free(map1);
-	free(map2);
+	copies2 = list_create();
+	list_add(copies2, (void *) copy2_1);
+	list_add(copies2, (void *) copy2_2);
+	list_add(copies2, (void *) copy2_3);
 
-	list_destroy_and_destroy_elements(nodos, (void *) freeNodo);
-	list_destroy_and_destroy_elements(copias, (void *) free);
-	list_destroy_and_destroy_elements(copias2, (void *) free);
+	copy3_1 = malloc(sizeof(t_copy));
+	strcpy(copy3_1->nodeName, "Node1");
+	copy3_1->numBlock = 17;
+
+	copy3_2 = malloc(sizeof(t_copy));
+	strcpy(copy3_2->nodeName, "Node3");
+	copy3_2->numBlock = 421;
+
+	copy3_3 = malloc(sizeof(t_copy));
+	strcpy(copy3_3->nodeName, "Node5");
+	copy3_3->numBlock = 23;
+
+	copy3_4 = malloc(sizeof(t_copy));
+	strcpy(copy3_4->nodeName, "Node2");
+	copy3_4->numBlock = 29;
+
+	copy3_5 = malloc(sizeof(t_copy));
+	strcpy(copy3_5->nodeName, "Node4");
+	copy3_5->numBlock = 821;
+
+	copies3 = list_create();
+	list_add(copies3, (void *) copy3_1);
+	list_add(copies3, (void *) copy3_2);
+	list_add(copies3, (void *) copy3_3);
+	list_add(copies3, (void *) copy3_4);
+	list_add(copies3, (void *) copy3_5);
+
+	file=malloc(sizeof(t_file));
+	file->path="sarasa.txt";
+	file->blocks=list_create();
+	list_add(file->blocks, copies1);
+	list_add(file->blocks, copies2);
+
+	file2=malloc(sizeof(t_file));
+	file2->path="sarasa.txt";
+	file2->blocks=list_create();
+	list_add(file->blocks, copies3);
+
+	job = malloc(sizeof(t_job));
+	job->id = 42;
+	job->files = list_create();
+	list_add(job->files, file);
+	list_add(job->files, file2);
+	job->maps = list_create();
+}
+
+void freeSetup(){
+	list_destroy_and_destroy_elements(nodes, (void *) freeNode);
+	freeJob(job);
+}
+
+void jobMapTest(){
+	printf("**************************jobMapTest****************************\n");
+	jobMap(job);
+	printf("****************************************************************\n");
 }

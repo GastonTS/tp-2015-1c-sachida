@@ -4,7 +4,7 @@
 #include <commons/collections/list.h>
 #include <commons/log.h>
 
-extern t_list *nodos;
+extern t_list *nodes;
 extern t_log *logger;
 
 #endif
