@@ -1,16 +1,18 @@
 #include "Nodo.h"
-#include "../../utils/socket.h"
 
-//void createNode();
-//char* getBloque(int nroBloque);
+void createNode();
+char* getBloque(int nroBloque);
 //void setBloque(int nroBloque);
 //void getFileContent();
 //void nodeMap(rutinaMap, int nroBloque);
 //void nodeReduce(int[string nameNode, int nroBloque], rutinaReduce, char nombreDondeGuarda);
+int size_of(int fd);
+int fileSize;
 int conectarFileSystem();
 
 //Le agregue los argumentos para que se pueda pasar el archivo de conf como parametro del main
 int main(int argc, char *argv[]) {
+	getBloque(5);
 	int socket_fileSystem;
 	//pthread_t conexionesJob;
 	//pthread_t conexionesNodo;
@@ -43,19 +45,16 @@ int main(int argc, char *argv[]) {
 
 
 	/*TODO TODAS LAS FUNCIONES GETBLOQUE Y ESAS VAN ADENTRO DE LOS TRHEADS */
-
-	//getBloque(5);
 	return EXIT_SUCCESS;
 }
 
 
 // Almacenar los datos del FS y hacer Map y Reduce segun lo requerido por los Jobs
-	void createNode() {
+ void createNode() {
 	//TODO DANI NO ENTIENDO QUE ES ESTE PARAMETRO
-	int fileBinSize;
-
-	 /*al crear el nodo con su respectivo bloque de datos, ponerle de nombre node_name
-	Funcion de la biblioteca lisen. para esperar al FS
+	fileSize = size_of(archivo_bin);
+	printf(fileSize);
+	 /*Funcion de la biblioteca lisen. para esperar al FS
 	 stat se consigue el tamaño de la rchivo
 	truncate -s 1G miarchivo.bin*/
 
@@ -297,20 +296,13 @@ int conectarFileSystem(){
 	return sockfd;*/
 }
 
-
-/*int size_of(int fd){
-	struct stat buf;
-	fstat(fd, &buf);
-	return buf.st_size;
-}*/
-
 char* getBloque(int nroBloque){
 			int mapper;
 			char* mapeo;
 			int size;
 			int pagesize;
 			const sizemapper;
-			char* file_name = "/home/utnso/Sachida/tp-2015-1c-sachida/Ejemplos/Mmap/src/archivo_mmap.txt"; //Aca tiene que abrir el archivo que crea en el createNodo
+			char* file_name = "./archivo_mmap.txt"; //Aca tiene que abrir el archivo que crea en el createNodo
 			//Se abre el archivo para solo lectura
 			mapper = open (file_name, O_RDONLY);
 			pagesize = getpagesize();
@@ -331,7 +323,6 @@ char* getBloque(int nroBloque){
 			close(mapper);
 			return mapeo;
 		}
-
 
 //void setBloque(int nroBloque){}
 //Grabara los datos enviados
@@ -356,7 +347,6 @@ Devolverá   el   contenido   del   archivo   de   Espacio   Temporal solicitado
 	return lugarDeAlmacenamiento;
 }*/
 
-
 /*void nodeReduce (array[string nameNode, int nroBloque], rutinaReduce, char nombreDondeGuarda){
 	//el reduce recibe un nodo y un nombre de archivo (el FS se encargara de rearmar ese archivo y pasarlo)
 	  El hilo reduce, indica aplicar la rutina sobre varios archvos del espacio temporal, de los cuales uno debe ser siempre local al nodo
@@ -364,8 +354,6 @@ Devolverá   el   contenido   del   archivo   de   Espacio   Temporal solicitado
 	 * archivo donde se alamcenara. Al finalizar se debe informar al JOB que termino
 	return 0;
 }*/
-
-
 
 void getInfoConf(char* conf)
 {
@@ -375,7 +363,7 @@ void getInfoConf(char* conf)
 	puerto_fs = config_get_int_value(config,"PUERTO_FS");
 	//strcpy(ip_nodo,config_get_string_value(config, "IP_NODO"));
 	puerto_nodo = config_get_int_value(config, "PUERTO_NODO");
-	//strcpy(archivo_bin,config_get_string_value(config,"ARCHIVO_BIN"));
+	strcpy(archivo_bin,config_get_string_value(config,"ARCHIVO_BIN"));
 	//strcpy(dir_tmp,config_get_string_value(config,"DIR_TMP"));
 	//strcpy(nodo_nuevo,config_get_string_value(config,"NODO_NUEVO"));
 	printf("Extraccion correcta del archivo de configuracion");
@@ -389,4 +377,10 @@ void getInfoConf(char* conf)
  * 			 El archivo de configuracion se pasa por parametro cuando se realiza la
  * 			 ejecucion: ./Nodo.c "rutaArchivoConfig"
  */
+
+int size_of(int fd){
+	struct stat buf;
+	fstat(fd, &buf);
+	return buf.st_size;
+}
 
