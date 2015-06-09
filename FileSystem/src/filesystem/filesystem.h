@@ -5,6 +5,8 @@
 #include "../mongo/mongo_file.h"
 #include "../mongo/mongo_node.h"
 
+#define FILESYSTEM_BLOCK_COPIES 3
+
 void filesystem_initialize();
 void filesystem_shutdown();
 

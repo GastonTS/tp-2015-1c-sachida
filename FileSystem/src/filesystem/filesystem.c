@@ -10,6 +10,7 @@ char* filesystem_md5(char *str);
 t_list* filesystem_getFSFileBlocks(char *route);
 char* filesystem_getMD5FromBlocks(t_list *blocks);
 void filesystem_distributeBlocksToNodes(t_list *blocks);
+void filesystem_sendBlockToNode(node_t *node, int blockIndex, char *block);
 
 t_log* filesystem_logger;
 
@@ -116,7 +117,7 @@ bool filesystem_copyFileFromFS(char *route, file_t *file) {
 	filesystem_distributeBlocksToNodes(blocks);
 	list_destroy_and_destroy_elements(blocks, free);
 
-	return 1; //!mongo_file_save(file);
+	return !mongo_file_save(file);
 }
 
 bool filesystem_addDir(dir_t *dir) {
@@ -254,23 +255,36 @@ void filesystem_distributeBlocksToNodes(t_list *blocks) {
 		return node_getBlocksFreeCount(node) > node_getBlocksFreeCount(node2);
 	}
 
-	void sendBlockToNode(char *block) {
+	void sendBlockToNodes(char *block) {
 		// Sort to get the node that has more free space.
 		list_sort(nodes, (void *) nodeComparator);
-		node_t *selectedNode = list_get(nodes, 0);
-		int firstBlockFree = node_getFirstFreeBlock(selectedNode);
+		int i;
 
-		// TESTING node_printBlocksStatus(selectedNode);
-		if (firstBlockFree == -1) {
-			// TODO, que se hace si no hay mas nodos disponibles??
-			log_error(filesystem_logger, "Couldn't find a free block to store the file");
-		} else {
-			log_info(filesystem_logger, "Le envio el block al nodo %s, en su bloque index %d\n", selectedNode->id, firstBlockFree);
-			node_setBlockUsed(selectedNode, firstBlockFree);
-			mongo_node_updateBlocks(selectedNode);
+		for (i = 0; i < FILESYSTEM_BLOCK_COPIES; i++) {
+			if (i < list_size(nodes)) {
+				node_t *selectedNode = list_get(nodes, i);
+				int firstBlockFree = node_getFirstFreeBlock(selectedNode);
+
+				// TESTING node_printBlocksStatus(selectedNode);
+				if (firstBlockFree == -1) {
+					// TODO, que se hace si no hay mas nodos disponibles??
+					log_error(filesystem_logger, "Couldn't find a free block to store the block");
+				} else {
+					filesystem_sendBlockToNode(selectedNode, firstBlockFree, block);
+					node_setBlockUsed(selectedNode, firstBlockFree);
+					mongo_node_updateBlocks(selectedNode);
+				}
+			} else {
+				//TODO Que pasa si no hay tanta cantidad de nodos disponibles como de copias necesarias?
+				log_error(filesystem_logger, "There are less nodes than copies to be done.");
+			}
 		}
 	}
 
-	list_iterate(blocks, (void *) sendBlockToNode);
+	list_iterate(blocks, (void *) sendBlockToNodes);
 	list_destroy_and_destroy_elements(nodes, (void *) node_free);
+}
+
+void filesystem_sendBlockToNode(node_t *node, int blockIndex, char *block) {
+	log_info(filesystem_logger, "Le envio el block al nodo %s, en su bloque index %d\n", node->id, blockIndex);
 }
