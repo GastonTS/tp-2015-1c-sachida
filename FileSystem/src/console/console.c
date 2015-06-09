@@ -28,13 +28,11 @@ void format();
 void deleteResource(char **parameters);
 void moveResource(char *resource, char *destination);
 
-void makeFile(char *fileName);
+void copyFile(char **parameters);
 void makeDir(char *dirName);
 void changeDir(char *dirName);
-
 void listResources();
 
-void copyFile(char **parameters);
 void printNodeStatus(char *nodeName);
 void md5sum(char *fileName);
 
@@ -45,7 +43,6 @@ void upNode(char *node);
 void deleteNode(char *node);
 void help();
 
-void readFile(char *route);
 
 char *currentDirPrompt;
 char *currentDirId;
@@ -67,6 +64,8 @@ void console_start() {
 	do {
 		printf("%s > ", currentDirPrompt);
 		readCommand(command);
+		string_trim(&command);
+		//strcpy(command, "cp -fromfs /home/utnso/a a"); // TODO REMOVE
 
 		// Ignore empty enter
 		if (command[0] != '\0') {
@@ -81,8 +80,6 @@ void console_start() {
 				moveResource(parameters[1], parameters[2]);
 			} else if (string_equals_ignore_case(parameters[0], "mkdir")) {
 				makeDir(parameters[1]);
-			} else if (string_equals_ignore_case(parameters[0], "touch")) {
-				makeFile(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "cd")) {
 				changeDir(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "ll")) {
@@ -131,9 +128,6 @@ void readCommand(char *input) {
 	strcpy(input, buffer);
 
 	input[strlen(input) - 1] = '\0'; // Removes the \n
-
-	// TODO: make this work !
-	// string_trim(&input);
 }
 
 void freeSplits(char **splits) {
@@ -282,22 +276,6 @@ void moveResource(char *resource, char *destination) {
 	}
 }
 
-void makeFile(char *fileName) {
-	if (!isNull(fileName)) {
-
-		file_t *file = file_create();
-		strcpy(file->name, fileName);
-		strcpy(file->parentId, currentDirId);
-		file->size = 0;
-
-		if (!filesystem_addFile(file)) {
-			printf("Cannot create file %s: Directory or file already exists with that name.\n", fileName);
-		}
-
-		file_free(file);
-	}
-}
-
 void makeDir(char *dirName) {
 	if (!isNull(dirName)) {
 
@@ -357,15 +335,25 @@ void copyFile(char **parameters) {
 	if (!isNull(option) && !isNull(source) && !isNull(dest)) {
 		// TODO
 		if (string_equals_ignore_case(option, "-fromfs")) {
-			char *file;
+			char *fileName;
 			char **dirNames = string_split(source, "/");
 			int i = 0;
 			while (dirNames[i]) {
-				file = dirNames[i];
+				fileName = dirNames[i];
 				i++;
 			}
-			printf("Copia el archivo %s al MDFS: %s\n", file, dest);
-			readFile(source);
+			printf("Copia el archivo %s al MDFS: %s\n", fileName, dest);
+
+			file_t *file = file_create();
+			strcpy(file->name, fileName);
+			strcpy(file->parentId, currentDirId);
+			file->size = 0;
+
+			if (!filesystem_copyFileFromFS(source, file)) {
+				printf("Cannot create file %s: Directory or file already exists with that name.\n", fileName);
+			}
+
+			file_free(file);
 			freeSplits(dirNames);
 		} else if (string_equals_ignore_case(option, "-tofs")) {
 			printf("Copia el archivo %s al FS: %s\n", source, dest);
@@ -435,74 +423,6 @@ void deleteNode(char *node) {
 		// TODO
 		printf("Borra el nodo %s\n", node);
 	}
-}
-
-t_list* getFileBlocks(char *route) {
-	int blockSize = 20 * 1024 * 1024; // 20 MB.
-
-	FILE *fp;
-	char *line = NULL;
-	ssize_t linesize;
-	size_t len = 0;
-
-	int bytesRead = 0;
-	char *buffer = malloc(sizeof(char) * blockSize);
-	t_list *blocks = list_create();
-	strcpy(buffer, "");
-
-	fp = fopen(route, "r");
-	if (fp == NULL) {
-		printf("Local file %s not found\n", route);
-		return NULL;
-	}
-
-	while ((linesize = getline(&line, &len, fp)) != -1) {
-		if (bytesRead + linesize > blockSize) {
-			printf("New block");
-			list_add(blocks, buffer);
-			// TODO, fill the rest with \0 .. and other stuff.input[strlen(input) - 1] = '\0';
-
-			// Reset all data for the next buffer.
-			buffer = malloc(sizeof(char) * blockSize);
-			strcpy(buffer, line);
-			bytesRead = linesize;
-		} else {
-			//printf("%d\%   \n", bytesRead * 100 / blockSize);
-			strcat(buffer, line);
-			bytesRead += linesize;
-		}
-	}
-	list_add(blocks, buffer);
-
-	//free's
-	fclose(fp);
-	if (line) {
-		free(line);
-	}
-
-	return blocks;
-}
-
-// TODO move:
-void readFile(char *route) {
-	t_list *blocks = getFileBlocks(route);
-
-	printf("List size: %d \n", list_size(blocks));
-	void printBlockSize(char *buffer) {
-		printf("Buffer size: %d \n", strlen(buffer));
-	}
-	list_iterate(blocks, (void *) printBlockSize);
-	printf("MD5:");
-
-	char *fileBuffer = strdup("");
-	void concatBuffers(char *buffer) {
-		fileBuffer = realloc(fileBuffer, sizeof(char) * (strlen(buffer) + strlen(fileBuffer) + 1));
-		strcat(fileBuffer, buffer);
-	}
-	list_iterate(blocks, (void *) concatBuffers);
-	md5(fileBuffer);
-
-	list_destroy_and_destroy_elements(blocks, free);
 }
 
 void help() {
