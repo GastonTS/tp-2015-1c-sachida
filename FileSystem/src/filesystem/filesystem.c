@@ -7,7 +7,7 @@
 
 bool filesystem_canCreateResource(char *resourceName, char *parentId);
 char* filesystem_md5(char *str);
-t_list* filesystem_getFSFileBlocks(char *route);
+t_list* filesystem_getFSFileBlocks(char *route, int* fileSize);
 char* filesystem_getMD5FromBlocks(t_list *blocks);
 void filesystem_distributeBlocksToNodes(t_list *blocks);
 void filesystem_sendBlockToNode(node_t *node, int blockIndex, char *block);
@@ -16,6 +16,9 @@ t_log* filesystem_logger;
 
 void filesystem_initialize() {
 	filesystem_logger = log_create("filesystem.log", "MDFS", 0, log_level_from_string("TRACE"));
+	mongo_dir_init();
+	mongo_file_init();
+	mongo_node_init();
 }
 
 void filesystem_shutdown() {
@@ -112,7 +115,11 @@ bool filesystem_copyFileFromFS(char *route, file_t *file) {
 		return 0;
 	}
 
-	t_list *blocks = filesystem_getFSFileBlocks(route);
+	int *fileSize = malloc(sizeof(int));
+
+	t_list *blocks = filesystem_getFSFileBlocks(route, fileSize);
+	file->size = *fileSize;
+
 	// TESTING ONLY printf("%s\n", filesystem_getMD5FromBlocks(blocks));
 	filesystem_distributeBlocksToNodes(blocks);
 	list_destroy_and_destroy_elements(blocks, free);
@@ -184,16 +191,15 @@ char* filesystem_md5(char *str) {
 	}
 }
 
-t_list* filesystem_getFSFileBlocks(char *route) {
-	int size;
+t_list* filesystem_getFSFileBlocks(char *route, int* fileSize) {
 	struct stat stat;
 	int fd = open(route, O_RDONLY);
 
 	//Get the size of the file.
 	fstat(fd, &stat);
-	size = stat.st_size;
+	*fileSize = stat.st_size;
 
-	char *fileStr = (char *) mmap(0, size, PROT_READ, MAP_PRIVATE, fd, 0);
+	char *fileStr = (char *) mmap(0, *fileSize, PROT_READ, MAP_PRIVATE, fd, 0);
 
 	char *buffer;
 	char *startBlock;
@@ -215,8 +221,8 @@ t_list* filesystem_getFSFileBlocks(char *route) {
 		startBlock = fileStr + i;
 
 		// It's the last block.
-		if (i + NODE_BLOCK_SIZE > size) {
-			addBlock(size - i);
+		if (i + NODE_BLOCK_SIZE > *fileSize) {
+			addBlock(*fileSize - i);
 			finished = 1;
 		} else {
 			for (j = i + NODE_BLOCK_SIZE - 1; j > i; j--) {

@@ -308,10 +308,11 @@ void changeDir(char *dirName) {
 }
 
 void listResources() {
+	printf("\n");
 
 	void printDir(dir_t *dir) {
-		// printf("\t" ANSI_COLOR_BLUE " %s/ " ANSI_COLOR_RESET "\n", dir->name);
-		printf("\t %s/ \n", dir->name);
+		printf("\t\t\t" ANSI_COLOR_BLUE " %s/ " ANSI_COLOR_RESET "\n", dir->name);
+		//printf("\t\t\t %s/ \n", dir->name);
 	}
 
 	t_list *dirs = filesystem_getDirsInDir(currentDirId);
@@ -319,7 +320,7 @@ void listResources() {
 	list_destroy_and_destroy_elements(dirs, (void*) dir_free);
 
 	void printFile(file_t *file) {
-		printf("\t %s \n", file->name);
+		printf("\t%-16d %s \n", file->size, file->name);
 	}
 
 	t_list *files = filesystem_getFilesInDir(currentDirId);
@@ -428,6 +429,7 @@ void deleteNode(char *node) {
 void help() {
 	printf("Valid commands:\n\n");
 	printf("\t format\t\t\t\t Formats MDFS\n");
+	printf("\t df\t\t\t\t Prints the MDFS free space\n");
 	printf("\t rm <file>\t\t\t Deletes the file <file> \n");
 	printf("\t rm -r <dir>\t\t\t Deletes the dir <dir>\n");
 	printf("\t mv <file> <dest>\t\t Moves the file named <file> to the dir named <dir>\n");
