@@ -17,3 +17,7 @@ void freeNode(t_node *nodo) {
 	list_destroy(nodo->reduces);
 	free(nodo);
 }
+
+bool isActive(t_node *nodo){
+	return nodo->active;
+}
