@@ -10,9 +10,22 @@ char* filesystem_md5(char *str);
 t_list* filesystem_getFSFileBlocks(char *route);
 char* filesystem_getMD5FromBlocks(t_list *blocks);
 
-t_log* logger;
+t_log* filesystem_logger;
+
+void filesystem_initialize() {
+	filesystem_logger = log_create("filesystem.log", "MDFS", 0, log_level_from_string("TRACE"));
+}
+
+void filesystem_shutdown() {
+	mongo_dir_shutdown();
+	mongo_file_shutdown();
+	mongo_node_shutdown();
+	mongo_shutdown();
+	log_destroy(filesystem_logger);
+}
 
 bool filesystem_format() {
+	log_info(filesystem_logger, "Format FS.");
 	return mongo_dir_deleteAll() && mongo_file_deleteAll();
 }
 

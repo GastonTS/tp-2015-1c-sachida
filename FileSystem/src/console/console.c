@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <commons/string.h>
-#include <commons/log.h>
 #include <string.h>
 
 #include "console.h"
@@ -43,17 +42,13 @@ void upNode(char *node);
 void deleteNode(char *node);
 void help();
 
-
 char *currentDirPrompt;
 char *currentDirId;
-t_log* logger;
 
 void console_start() {
 	char **parameters;
 	char *command = malloc(sizeof(char) * 512);
 	int exit = 0;
-
-	logger = log_create("filesystem.log", "MDFS", 0, log_level_from_string("TRACE"));
 
 	currentDirPrompt = malloc(sizeof(char) * 512);
 	currentDirId = malloc(sizeof(char) * 25);
@@ -69,7 +64,6 @@ void console_start() {
 
 		// Ignore empty enter
 		if (command[0] != '\0') {
-			log_info(logger, "Command: %s", command);
 			parameters = string_split(command, " ");
 
 			if (string_equals_ignore_case(parameters[0], "format")) {
@@ -117,7 +111,6 @@ void console_start() {
 	free(command);
 	free(currentDirId);
 	free(currentDirPrompt);
-	log_destroy(logger);
 }
 
 void readCommand(char *input) {

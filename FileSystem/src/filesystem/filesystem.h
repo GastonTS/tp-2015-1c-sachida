@@ -5,6 +5,9 @@
 #include "../mongo/mongo_file.h"
 #include "../mongo/mongo_node.h"
 
+void filesystem_initialize();
+void filesystem_shutdown();
+
 bool filesystem_format();
 
 dir_t* filesystem_getDirById(char *id);

@@ -5,6 +5,7 @@
 #include "mongo/mongo_file.h"
 #include "mongo/mongo_dir.h"
 #include "console/console.h"
+#include "filesystem/filesystem.h"
 
 // TODO DELETE
 //#include "mongo/mongo_node.h"
@@ -29,28 +30,30 @@ int main(void) {
 
 	//testNode();
 
+	filesystem_initialize();
 	console_start();
+	filesystem_shutdown();
 
 	config_free(fsConfig);
 	return EXIT_SUCCESS;
 }
 /*
-void testNode() {
+ void testNode() {
 
-	node_t* node = node_create(24);
+ node_t* node = node_create(24);
 
-	node->name = strdup("Node2");
-	node_setBlockUsed(node, 1);
-	node_setBlockUsed(node, 2);
-	node_setBlockUsed(node, 23);
-	mongo_node_save(node);
+ node->name = strdup("Node2");
+ node_setBlockUsed(node, 1);
+ node_setBlockUsed(node, 2);
+ node_setBlockUsed(node, 23);
+ mongo_node_save(node);
 
-	//node_t* node2 = mongo_node_getById("55662890508b963fc46ae5e1");
+ //node_t* node2 = mongo_node_getById("55662890508b963fc46ae5e1");
 
-	//node_printBlocksTest(node2);
+ //node_printBlocksTest(node2);
 
-}
-*/
+ }
+ */
 bool initConfig(fscfg_t *fsConfig) {
 	bool missing = 0;
 	t_config* config;
