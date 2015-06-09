@@ -37,10 +37,10 @@ int main(void) {
 }
 
 void testNode() {
-	if (1) {
+	if (0) {
 		node_t* node = node_create(50);
 
-		node->name = strdup("Node3");
+		node->name = strdup("Node1");
 		if (0) {
 			node_setBlockUsed(node, 1);
 			node_setBlockUsed(node, 2);
@@ -51,14 +51,18 @@ void testNode() {
 			node_setBlockUsed(node, 6);
 			node_setBlockUsed(node, 7);
 		}
+		node_printBlocksStatus(node);
 		mongo_node_save(node);
+		node_printBlocksStatus(node);
+		node_free(node);
 
-		if (0) {
-			node_t* node2 = mongo_node_getById("55773bb9508b9631cc542ab1");
+		if (1) {
+			node_t* node2 = mongo_node_getByName("Node1");
 
 			node_printBlocksStatus(node2);
-			node_setBlockUsed(node2, 3);
-			mongo_node_updateBlocks(node2);
+			//node_setBlockUsed(node2, 3);
+			//mongo_node_updateBlocks(node2);
+			node_free(node2);
 		}
 	}
 }

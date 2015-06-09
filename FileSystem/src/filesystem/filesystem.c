@@ -9,7 +9,7 @@ bool filesystem_canCreateResource(char *resourceName, char *parentId);
 char* filesystem_md5(char *str);
 t_list* filesystem_getFSFileBlocks(char *route, int* fileSize);
 char* filesystem_getMD5FromBlocks(t_list *blocks);
-void filesystem_distributeBlocksToNodes(t_list *blocks);
+void filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file);
 void filesystem_sendBlockToNode(node_t *node, int blockIndex, char *block);
 
 t_log* filesystem_logger;
@@ -121,7 +121,7 @@ bool filesystem_copyFileFromFS(char *route, file_t *file) {
 	file->size = *fileSize;
 
 	// TESTING ONLY printf("%s\n", filesystem_getMD5FromBlocks(blocks));
-	filesystem_distributeBlocksToNodes(blocks);
+	filesystem_distributeBlocksToNodes(blocks, file);
 	list_destroy_and_destroy_elements(blocks, free);
 
 	return !mongo_file_save(file);
@@ -254,7 +254,7 @@ char* filesystem_getMD5FromBlocks(t_list *blocks) {
 	return md5str;
 }
 
-void filesystem_distributeBlocksToNodes(t_list *blocks) {
+void filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 	t_list *nodes = mongo_node_getAll();
 
 	bool nodeComparator(node_t *node, node_t *node2) {
@@ -262,6 +262,9 @@ void filesystem_distributeBlocksToNodes(t_list *blocks) {
 	}
 
 	void sendBlockToNodes(char *block) {
+		t_list *blockCopies = list_create();
+		list_add(file->blocks, blockCopies);
+
 		// Sort to get the node that has more free space.
 		list_sort(nodes, (void *) nodeComparator);
 		int i;
@@ -269,16 +272,21 @@ void filesystem_distributeBlocksToNodes(t_list *blocks) {
 		for (i = 0; i < FILESYSTEM_BLOCK_COPIES; i++) {
 			if (i < list_size(nodes)) {
 				node_t *selectedNode = list_get(nodes, i);
-				int firstBlockFree = node_getFirstFreeBlock(selectedNode);
+				int firstBlockFreeIndex = node_getFirstFreeBlock(selectedNode);
 
 				// TESTING node_printBlocksStatus(selectedNode);
-				if (firstBlockFree == -1) {
+				if (firstBlockFreeIndex == -1) {
 					// TODO, que se hace si no hay mas nodos disponibles??
 					log_error(filesystem_logger, "Couldn't find a free block to store the block");
 				} else {
-					filesystem_sendBlockToNode(selectedNode, firstBlockFree, block);
-					node_setBlockUsed(selectedNode, firstBlockFree);
+					filesystem_sendBlockToNode(selectedNode, firstBlockFreeIndex, block);
+					node_setBlockUsed(selectedNode, firstBlockFreeIndex);
 					mongo_node_updateBlocks(selectedNode);
+
+					file_block_t *blockCopy = file_block_create();
+					strcpy(blockCopy->nodeId, selectedNode->id);
+					*blockCopy->blockIndex = firstBlockFreeIndex;
+					list_add(blockCopies, blockCopy);
 				}
 			} else {
 				//TODO Que pasa si no hay tanta cantidad de nodos disponibles como de copias necesarias?
