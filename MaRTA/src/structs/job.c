@@ -15,3 +15,7 @@ void freeJob(t_job *job) {
 	list_destroy_and_destroy_elements(job->maps, (void *) free);
 	free(job);
 }
+
+bool isMap(t_map *map, int idMap){
+	return map->id==idMap;
+}

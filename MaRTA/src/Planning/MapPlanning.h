@@ -4,5 +4,6 @@
 #include "../structs/job.h"
 
 void jobMap(t_job *job);
+void rePlanMap(t_job *job, int idMap);
 
 #endif

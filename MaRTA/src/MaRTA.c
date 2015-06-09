@@ -40,6 +40,7 @@ int main(int argc, char *argv[]) {
 
 	setup();
 	jobMapTest();
+	RePlanTest();
 	freeSetup();
 
 	freeMaRTA();

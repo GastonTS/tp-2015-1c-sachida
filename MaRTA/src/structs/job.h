@@ -42,5 +42,6 @@ typedef struct {
 } t_job;
 
 void freeJob(t_job *job);
+bool isMap(t_map *map, int idMap);
 
 #endif

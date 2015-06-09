@@ -22,62 +22,110 @@ char* getTime() { //TODO:revisar si se puede ampliar a mili/microsegundos
 	return time;
 }
 
+void selectNode(t_copy *copy, t_node **selectedNode, int *numBlock) {
+	bool lessWorkLoad(t_node *lessBusy, t_node *busy) {
+		if (lessBusy && busy)
+			return workLoad(lessBusy->maps, lessBusy->reduces) < workLoad(busy->maps, busy->reduces);
+		return 0;
+	}
+
+	char* nodeName = copy->nodeName;
+
+	bool nodeWithName(t_node *node) {
+		return nodeByName(node, nodeName);
+	}
+
+	t_node *actualNode = (t_node*) list_find(nodes, (void*) nodeWithName);
+
+	if ((*selectedNode == NULL || lessWorkLoad(actualNode, *selectedNode)) && isActive(actualNode)) {
+		*selectedNode = actualNode;
+		*numBlock = copy->numBlock;
+	}
+}
+
+void setTempName(t_map *map, t_job *job) {
+	char resultName[60] = "\"";
+	strcat(resultName, getTime());
+	strcat(resultName, "-Job(");
+	char idJob[4];
+	sprintf(idJob, "%i", job->id);
+	strcat(resultName, idJob);
+	strcat(resultName, ")-Map(");
+	char numMap[4];
+	sprintf(numMap, "%i", map->id);
+	strcat(resultName, numMap);
+	strcat(resultName, ").txt\"");
+	strcpy(map->tempResultName, resultName);
+}
+
+void notificarPlanificacion(t_map *map) {
+	log_trace(logger, "\nMap planned: \n\tIP Node: %s \n\tPort node: %d\n\tBlock: %d \n\tStored in: %s", map->nodeIP, map->nodePort, map->numBlock,
+			map->tempResultName);
+	//TODO: enviar map al proceso job.
+}
+
 void jobMap(t_job *job) {
 	log_trace(logger, "Planning Job %d...", job->id);
+	int filesAvailables = 1;
 	void fileMap(t_file *file) {
 		void mapPlanning(t_list *copies) {
 			t_node* selectedNode = NULL;
 			int numBlock;
 
-			void addNodeToAux(t_copy *copy) {
-				bool lessWorkLoad(t_node *lessBusy, t_node *busy) {
-					if (lessBusy && busy)
-						return workLoad(lessBusy->maps, lessBusy->reduces) < workLoad(busy->maps, busy->reduces);
-					return 0;
-				}
-
-				char* nodeName = copy->nodeName;
-
-				bool nodeWithName(t_node *node) {
-					return nodeByName(node, nodeName);
-				}
-
-				t_node *actualNode = (t_node*) list_find(nodes, (void*) nodeWithName);
-
-				if (selectedNode == NULL || lessWorkLoad(actualNode, selectedNode)) {
-					selectedNode = actualNode;
-					numBlock = copy->numBlock;
-				}
+			void selectNodeToMap(t_copy *copy) {
+				selectNode(copy, &selectedNode, &numBlock);
 			}
 
-			list_iterate(copies, (void*) addNodeToAux);
-			list_add(selectedNode->maps, (void *) numBlock);
+			if (filesAvailables) {
+				list_iterate(copies, (void*) selectNodeToMap);
+				if (selectedNode == NULL) {
+					log_info(logger, "File %s not available", file->path);
+					filesAvailables = 0;
+				} else {
+					list_add(selectedNode->maps, (void *) numBlock);
 
-			t_map *mapPlanned = malloc(sizeof(t_map));
-			mapPlanned->id = list_size(job->maps);
-			mapPlanned->copies = copies;
-			mapPlanned->nodeIP = selectedNode->ip;
-			mapPlanned->nodePort = selectedNode->port;
-			mapPlanned->numBlock = numBlock;
-			char resultName[60] = "\"";
-			strcat(resultName, getTime());
-			strcat(resultName, "-Job(");
-			char idJob[4];
-			sprintf(idJob, "%i", job->id);
-			strcat(resultName, idJob);
-			strcat(resultName, ")-Map(");
-			char numMap[4];
-			sprintf(numMap, "%i", mapPlanned->id);
-			strcat(resultName, numMap);
-			strcat(resultName, ").txt\"");
-			strcpy(mapPlanned->tempResultName, resultName);
-
-			list_add(job->maps, mapPlanned);
-			log_trace(logger, "\nMap planned: \n\tNode: %s \n\tBlock: %d \n\tStored in: %s", selectedNode->name, mapPlanned->numBlock,
-					mapPlanned->tempResultName);
+					t_map *mapPlanned = malloc(sizeof(t_map));
+					mapPlanned->id = list_size(job->maps);
+					mapPlanned->copies = copies;
+					mapPlanned->nodeIP = selectedNode->ip;
+					mapPlanned->nodePort = selectedNode->port;
+					mapPlanned->numBlock = numBlock;
+					setTempName(mapPlanned, job);
+					list_add(job->maps, mapPlanned);
+				}
+			}
 		}
-		list_iterate(file->blocks, (void *) mapPlanning);
+		if (filesAvailables)
+			list_iterate(file->blocks, (void *) mapPlanning);
 	}
 	list_iterate(job->files, (void *) fileMap);
-	log_trace(logger, "Finished Job %d...", job->id);
+
+	if (filesAvailables) {
+		list_iterate(job->maps, (void *) notificarPlanificacion);
+		log_trace(logger, "Finished Map Planning Job %d...", job->id);
+	} else
+		log_trace(logger, "Job %d Failed", job->id);
+
+}
+
+void rePlanMap(t_job *job, int idMap) {
+	bool findMap(t_map *map) {
+		return isMap(map, idMap);
+	}
+	t_map *map = list_find(job->maps, (void *) findMap);
+	t_node *selectedNode = NULL;
+	int numBlock;
+
+	void selectNodeToMap(t_copy *copy) {
+		selectNode(copy, &selectedNode, &numBlock);
+	}
+
+	list_iterate(map->copies, (void*) selectNodeToMap);
+
+	map->nodeIP = selectedNode->ip;
+	map->nodePort = selectedNode->port;
+	map->numBlock = numBlock;
+	setTempName(map, job);
+
+	notificarPlanificacion(map);
 }
