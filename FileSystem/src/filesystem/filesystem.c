@@ -34,7 +34,7 @@ bool filesystem_format() {
 	return mongo_dir_deleteAll() && mongo_file_deleteAll();
 }
 
-int filesystem_getFreeSpaceBytes() {
+unsigned long filesystem_getFreeSpaceBytes() {
 	int freeBlocks = 0;
 	t_list *nodes = mongo_node_getAll();
 

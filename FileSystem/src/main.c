@@ -37,10 +37,10 @@ int main(void) {
 }
 
 void testNode() {
-	if (0) {
-		node_t* node = node_create(24);
+	if (1) {
+		node_t* node = node_create(50);
 
-		node->name = strdup("Node1");
+		node->name = strdup("Node3");
 		if (0) {
 			node_setBlockUsed(node, 1);
 			node_setBlockUsed(node, 2);

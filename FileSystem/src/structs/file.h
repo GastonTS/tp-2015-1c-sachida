@@ -8,6 +8,7 @@ typedef struct {
 	char *name;
 	char *parentId;
 	int32_t size;
+	t_list *blocks;
 } file_t;
 
 bson_t* file_getBSON(file_t *file);

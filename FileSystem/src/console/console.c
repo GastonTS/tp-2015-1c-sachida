@@ -231,8 +231,8 @@ void format() {
 }
 
 void diskFree() {
-	int bytesFree = filesystem_getFreeSpaceBytes();
-	printf("MDFS\t\t%d b = %d kb = %d mb\n", bytesFree, bytesFree / 1024, bytesFree / 1024 / 1024);
+	unsigned long bytesFree = filesystem_getFreeSpaceBytes();
+	printf("MDFS\t\t%lu b = %lu kb = %lu mb\n", bytesFree, bytesFree / 1024, bytesFree / 1024 / 1024);
 }
 
 void deleteResource(char **parameters) {
