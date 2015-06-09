@@ -4,13 +4,14 @@
 #include <commons/bitarray.h>
 #include "../mongo/mongo.h"
 
+#define	NODE_BLOCK_SIZE	20 * 1024 * 1024
+
 typedef struct {
 	char id[25];
 	char *name;
 	t_bitarray *blocks;
 	int *blocksCount;
 } node_t;
-
 
 bson_t* node_getBSON(node_t *node);
 node_t* node_getNodeFromBSON(const bson_t *doc);

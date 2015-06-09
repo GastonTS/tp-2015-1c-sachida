@@ -2,12 +2,32 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/mman.h>
 #include <commons/log.h>
 
-bool canCreateResource(char *resourceName, char *parentId);
-char* md5(char *str);
+bool filesystem_canCreateResource(char *resourceName, char *parentId);
+char* filesystem_md5(char *str);
+t_list* filesystem_getFSFileBlocks(char *route);
+char* filesystem_getMD5FromBlocks(t_list *blocks);
 
-t_log* logger;
+t_log* filesystem_logger;
+
+void filesystem_initialize() {
+	filesystem_logger = log_create("filesystem.log", "MDFS", 0, log_level_from_string("TRACE"));
+}
+
+void filesystem_shutdown() {
+	mongo_dir_shutdown();
+	mongo_file_shutdown();
+	mongo_node_shutdown();
+	mongo_shutdown();
+	log_destroy(filesystem_logger);
+}
+
+bool filesystem_format() {
+	log_info(filesystem_logger, "Format FS.");
+	return mongo_dir_deleteAll() && mongo_file_deleteAll();
+}
 
 dir_t* filesystem_getDirById(char *id) {
 	return mongo_dir_getById(id);
@@ -21,8 +41,12 @@ file_t* filesystem_getFileByNameInDir(char *fileName, char *parentId) {
 	return mongo_file_getByNameInDir(fileName, parentId);
 }
 
-bool filesystem_format() {
-	return mongo_dir_deleteAll() && mongo_file_deleteAll();
+t_list* filesystem_getDirsInDir(char *parentId) {
+	return mongo_dir_getByParentId(parentId);
+}
+
+t_list* filesystem_getFilesInDir(char *parentId) {
+	return mongo_file_getByParentId(parentId);
 }
 
 bool filesystem_deleteDirByNameInDir(char *dirName, char *parentId) {
@@ -67,28 +91,24 @@ void filesystem_moveDir(dir_t *dir, char *destinationId) {
 	mongo_dir_updateParentId(dir->id, destinationId);
 }
 
-bool filesystem_addFile(file_t *file) {
-	if (!canCreateResource(file->name, file->parentId)) {
+bool filesystem_copyFileFromFS(char *route, file_t *file) {
+	if (!filesystem_canCreateResource(file->name, file->parentId)) {
 		return 0;
 	}
+
+	t_list *blocks = filesystem_getFSFileBlocks(route);
+	printf("%s\n", filesystem_getMD5FromBlocks(blocks)); // TODO remove.
+	list_destroy_and_destroy_elements(blocks, free);
 
 	return !mongo_file_save(file);
 }
 
 bool filesystem_addDir(dir_t *dir) {
-	if (!canCreateResource(dir->name, dir->parentId)) {
+	if (!filesystem_canCreateResource(dir->name, dir->parentId)) {
 		return 0;
 	}
 
 	return !mongo_dir_save(dir);
-}
-
-t_list* filesystem_getDirsInDir(char *parentId) {
-	return mongo_dir_getByParentId(parentId);
-}
-
-t_list* filesystem_getFilesInDir(char *parentId) {
-	return mongo_file_getByParentId(parentId);
 }
 
 node_t* filesystem_getNodeByName(char *nodeName) {
@@ -97,12 +117,12 @@ node_t* filesystem_getNodeByName(char *nodeName) {
 
 char* filesystem_md5sum(file_t* file) {
 	// TODO
-	return md5("asdasd");
+	return filesystem_md5("asdasd");
 }
 
 // PRIVATE
 
-bool canCreateResource(char *resourceName, char *parentId) {
+bool filesystem_canCreateResource(char *resourceName, char *parentId) {
 	dir_t *dir = filesystem_getDirByNameInDir(resourceName, parentId);
 	if (dir) {
 		dir_free(dir);
@@ -118,17 +138,24 @@ bool canCreateResource(char *resourceName, char *parentId) {
 	return 1;
 }
 
-char* md5(char *str) {
+char* filesystem_md5(char *str) {
+	char FILE_NAME[] = "/tmp/mdfs_md5tmp";
+
+	FILE *fp = fopen(FILE_NAME, "w");
+	fputs(str, fp);
+	fclose(fp);
+
 	FILE *md5pipe = NULL;
-	size_t size = 9 + strlen(str) + 10 + 1;
+	size_t size = 7 + strlen(FILE_NAME) + 1;
 	char *command = malloc(size);
-	snprintf(command, size, "echo -n \"%s\" | md5sum", str);
+	snprintf(command, size, "md5sum %s", FILE_NAME);
 
 	md5pipe = popen(command, "r");
 
 	if (md5pipe != NULL) {
 		char *buffer = malloc(sizeof(char) * 33);
 		fread(buffer, 1, 32, md5pipe);
+		buffer[32] = '\0';
 
 		pclose(md5pipe);
 		free(command);
@@ -138,4 +165,68 @@ char* md5(char *str) {
 		free(command);
 		return NULL;
 	}
+}
+
+t_list* filesystem_getFSFileBlocks(char *route) {
+	int size;
+	struct stat stat;
+	int fd = open(route, O_RDONLY);
+
+	//Get the size of the file.
+	fstat(fd, &stat);
+	size = stat.st_size;
+
+	char *fileStr = (char *) mmap(0, size, PROT_READ, MAP_PRIVATE, fd, 0);
+
+	char *buffer;
+	char *startBlock;
+	t_list *blocks = list_create();
+
+	int j;
+	int i = 0;
+	int finished = 0;
+
+	void addBlock(int blockLength) {
+		buffer = malloc(sizeof(char) * NODE_BLOCK_SIZE);
+		strncpy(buffer, startBlock, blockLength);
+		buffer[blockLength] = '\0';
+		list_add(blocks, buffer);
+		// TODO (es necesario??), fill the rest with \0 .. and other stuff.input[strlen(input) - 1] = '\0';
+	}
+
+	while (!finished) {
+		startBlock = fileStr + i;
+
+		// It's the last block.
+		if (i + NODE_BLOCK_SIZE > size) {
+			addBlock(size - i);
+			finished = 1;
+		} else {
+			for (j = i + NODE_BLOCK_SIZE - 1; j > i; j--) {
+				if (fileStr[j] == '\n') {
+					addBlock(j - i + 1);
+					i = j + 1;
+					break;
+				}
+			} // TODO, que pasa si la linea supera el maximo tamaño del buffer?
+		}
+	}
+
+	//free(fileStr);
+
+	return blocks;
+}
+
+char* filesystem_getMD5FromBlocks(t_list *blocks) {
+	char *fileBuffer = strdup("");
+	void concatBuffers(char *buffer) {
+		fileBuffer = realloc(fileBuffer, sizeof(char) * (strlen(fileBuffer) + strlen(buffer) + 1));
+		strcat(fileBuffer, buffer);
+	}
+	list_iterate(blocks, (void *) concatBuffers);
+
+	char *md5str = filesystem_md5(fileBuffer);
+
+	free(fileBuffer);
+	return md5str;
 }
