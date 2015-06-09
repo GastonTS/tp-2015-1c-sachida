@@ -43,7 +43,7 @@ dir_t* dir_getDirFromBSON(const bson_t *doc) {
 dir_t* dir_create() {
 	dir_t* dir = malloc(sizeof(dir_t));
 	dir->name = malloc(sizeof(char) * 512);
-	dir->parentId = malloc(sizeof(char) * 25);
+	dir->parentId = malloc(ID_SIZE);
 	return dir;
 }
 

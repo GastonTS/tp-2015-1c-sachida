@@ -11,7 +11,7 @@ void mongo_file_checkInit() {
 	}
 }
 
-bool mongo_file_init() {
+void mongo_file_init() {
 	mongoc_client_t *client = mongo_getClient();
 
 	fileCollection = mongoc_client_get_collection(client, "filesystem", "file");
@@ -20,8 +20,6 @@ bool mongo_file_init() {
 	const bson_t *indexKeys = BCON_NEW("name", BCON_INT32(1), "parentId", BCON_INT32(1));
 	mongo_createIndexIfAbsent(fileCollection, "name_1_parentId_1", indexKeys, 1);
 	bson_destroy((bson_t *) indexKeys);
-
-	return EXIT_SUCCESS;
 }
 
 void mongo_file_shutdown() {
@@ -37,7 +35,7 @@ bool mongo_file_save(file_t *file) {
 	return mongo_saveDoc(file_getBSON(file), fileCollection);
 }
 
-file_t* mongo_file_getById(char id[25]) {
+file_t* mongo_file_getById(char id[]) {
 	const bson_t *doc;
 
 	mongo_file_checkInit();

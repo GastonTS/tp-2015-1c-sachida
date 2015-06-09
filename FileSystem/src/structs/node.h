@@ -7,7 +7,7 @@
 #define	NODE_BLOCK_SIZE	20 * 1024 * 1024
 
 typedef struct {
-	char id[25];
+	char id[ID_SIZE];
 	char *name;
 	t_bitarray *blocks;
 	int *blocksCount;
@@ -19,6 +19,8 @@ node_t* node_getNodeFromBSON(const bson_t *doc);
 void node_setBlockUsed(node_t* node, int blockIndex);
 void node_setBlockFree(node_t* node, int blockIndex);
 bool node_isBlockUsed(node_t* node, int blockIndex);
+int node_getBlocksFreeCount(node_t *node);
+int node_getFirstFreeBlock(node_t *node);
 
 node_t* node_create(int blocksCount);
 void node_free(node_t* node);

@@ -11,7 +11,7 @@ void mongo_dir_checkInit() {
 	}
 }
 
-bool mongo_dir_init() {
+void mongo_dir_init() {
 	mongoc_client_t *client = mongo_getClient();
 
 	dirCollection = mongoc_client_get_collection(client, "filesystem", "dir");
@@ -20,8 +20,6 @@ bool mongo_dir_init() {
 	const bson_t *indexKeys = BCON_NEW("name", BCON_INT32(1), "parentId", BCON_INT32(1));
 	mongo_createIndexIfAbsent(dirCollection, "name_1_parentId_1", indexKeys, 1);
 	bson_destroy((bson_t *) indexKeys);
-
-	return EXIT_SUCCESS;
 }
 
 void mongo_dir_shutdown() {
@@ -37,7 +35,7 @@ bool mongo_dir_save(dir_t *dir) {
 	return mongo_saveDoc(dir_getBSON(dir), dirCollection);
 }
 
-dir_t* mongo_dir_getById(char id[25]) {
+dir_t* mongo_dir_getById(char id[]) {
 	const bson_t *doc;
 
 	mongo_dir_checkInit();

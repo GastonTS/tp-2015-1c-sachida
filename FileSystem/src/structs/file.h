@@ -4,7 +4,7 @@
 #include "../mongo/mongo.h"
 
 typedef struct {
-	char id[25];
+	char id[ID_SIZE];
 	char *name;
 	char *parentId;
 	int32_t size;

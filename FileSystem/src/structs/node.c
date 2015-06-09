@@ -10,7 +10,7 @@ bson_t* node_getBSON(node_t *node) {
 	bson_t *bson = bson_new();
 	BSON_APPEND_UTF8(bson, "_id", node->id);
 	BSON_APPEND_UTF8(bson, "name", node->name);
-	BSON_APPEND_BINARY(bson, "blocks", BSON_SUBTYPE_BINARY, (const uint8_t * )node->blocks->bitarray, node->blocks->size);
+	BSON_APPEND_BINARY(bson, "blocks", BSON_SUBTYPE_BINARY, (uint8_t * ) node->blocks->bitarray, node->blocks->size);
 	BSON_APPEND_INT32(bson, "blocksCount", *node->blocksCount);
 	return bson;
 }
@@ -62,6 +62,27 @@ bool node_isBlockUsed(node_t *node, int blockIndex) {
 	return 0;
 }
 
+int node_getBlocksFreeCount(node_t *node) {
+	int count = 0;
+	int i;
+	for (i = 0; i < *node->blocksCount; i++) {
+		if (!node_isBlockUsed(node, i)) {
+			count++;
+		}
+	}
+	return count;
+}
+
+int node_getFirstFreeBlock(node_t *node) {
+	int i;
+	for (i = 0; i < *node->blocksCount; i++) {
+		if (!node_isBlockUsed(node, i)) {
+			return i;
+		}
+	}
+	return -1;
+}
+
 node_t* node_create(int blocksCount) {
 	node_t* node = malloc(sizeof(node_t));
 	node->blocks = getByteArrayForBlocksCount(blocksCount);
@@ -95,7 +116,7 @@ bool node_blockIsValidIndex(node_t *node, int blockIndex) {
 
 void node_printBlocksStatus(node_t *node) {
 	int i;
-	printf("BLOCKS USAGE: (left is 0-index) \n");
+	printf("NODE %s BLOCKS USAGE: (left is 0-index) \n", node->id);
 	for (i = 0; i < *node->blocksCount; i++) {
 		printf("%d", bitarray_test_bit(node->blocks, i));
 		//printf("%d - %d \n", i, bitarray_test_bit(node->blocks, i));

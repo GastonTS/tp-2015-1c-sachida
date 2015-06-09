@@ -41,7 +41,7 @@ file_t* file_getFileFromBSON(const bson_t *doc) {
 file_t* file_create() {
 	file_t* file = malloc(sizeof(file_t));
 	file->name = malloc(sizeof(char) * 512);
-	file->parentId = malloc(sizeof(char) * 25);
+	file->parentId = malloc(ID_SIZE);
 	return file;
 }
 

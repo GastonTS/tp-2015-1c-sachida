@@ -19,7 +19,7 @@ mongoc_client_t* mongo_getClient() {
 	return client;
 }
 
-void mongo_generateId(char id[25]) {
+void mongo_generateId(char id[]) {
 	bson_oid_t oid;
 
 	bson_oid_init(&oid, NULL);
@@ -79,7 +79,7 @@ t_list* mongo_getByQuery(bson_t *query, void* (parser)(const bson_t*), mongoc_co
 	return items;
 }
 
-const bson_t* mongo_getDocById(char id[25], mongoc_collection_t *collection) {
+const bson_t* mongo_getDocById(char id[], mongoc_collection_t *collection) {
 	bson_t *query;
 
 	query = BCON_NEW("_id", BCON_UTF8(id));

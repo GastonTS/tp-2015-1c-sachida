@@ -6,7 +6,7 @@
 #define	ROOT_DIR_ID	"0"
 
 typedef struct {
-	char id[25];
+	char id[ID_SIZE];
 	char *name;
 	char *parentId;
 } dir_t;

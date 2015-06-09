@@ -7,10 +7,6 @@
 #include "console/console.h"
 #include "filesystem/filesystem.h"
 
-// TODO DELETE
-//#include "mongo/mongo_node.h"
-//void testNode();
-
 typedef struct {
 	int *port;
 	int *minNodesCount;
@@ -18,6 +14,8 @@ typedef struct {
 
 bool initConfig(fscfg_t *fsConfig);
 void config_free(fscfg_t *fsConfig);
+
+void testNode();
 
 int main(void) {
 	fscfg_t *fsConfig = malloc(sizeof(fscfg_t));
@@ -28,7 +26,7 @@ int main(void) {
 		return EXIT_FAILURE;
 	}
 
-	//testNode();
+	testNode();
 
 	filesystem_initialize();
 	console_start();
@@ -37,23 +35,34 @@ int main(void) {
 	config_free(fsConfig);
 	return EXIT_SUCCESS;
 }
-/*
- void testNode() {
 
- node_t* node = node_create(24);
+void testNode() {
+	if (0) {
+		node_t* node = node_create(24);
 
- node->name = strdup("Node2");
- node_setBlockUsed(node, 1);
- node_setBlockUsed(node, 2);
- node_setBlockUsed(node, 23);
- mongo_node_save(node);
+		node->name = strdup("Node1");
+		if (0) {
+			node_setBlockUsed(node, 1);
+			node_setBlockUsed(node, 2);
+			node_setBlockUsed(node, 23);
+			node_setBlockUsed(node, 10);
+			node_setBlockUsed(node, 15);
+			node_setBlockUsed(node, 18);
+			node_setBlockUsed(node, 6);
+			node_setBlockUsed(node, 7);
+		}
+		mongo_node_save(node);
 
- //node_t* node2 = mongo_node_getById("55662890508b963fc46ae5e1");
+		if (0) {
+			node_t* node2 = mongo_node_getById("55773bb9508b9631cc542ab1");
 
- //node_printBlocksTest(node2);
+			node_printBlocksStatus(node2);
+			node_setBlockUsed(node2, 3);
+			mongo_node_updateBlocks(node2);
+		}
+	}
+}
 
- }
- */
 bool initConfig(fscfg_t *fsConfig) {
 	bool missing = 0;
 	t_config* config;

@@ -23,6 +23,7 @@ bool resolveDir(char *dirPath, char *dirPrompt, char *dirId);
 int isNull(char *parameter);
 
 void format();
+void diskFree();
 
 void deleteResource(char **parameters);
 void moveResource(char *resource, char *destination);
@@ -51,7 +52,7 @@ void console_start() {
 	int exit = 0;
 
 	currentDirPrompt = malloc(sizeof(char) * 512);
-	currentDirId = malloc(sizeof(char) * 25);
+	currentDirId = malloc(ID_SIZE);
 
 	strcpy(currentDirPrompt, "/");
 	strcpy(currentDirId, ROOT_DIR_ID);
@@ -59,8 +60,7 @@ void console_start() {
 	do {
 		printf("%s > ", currentDirPrompt);
 		readCommand(command);
-		string_trim(&command);
-		//strcpy(command, "cp -fromfs /home/utnso/a a"); // TODO REMOVE
+		// TODO NO ANDA EL TRIM DE COMONS . string_trim(&command);
 
 		// Ignore empty enter
 		if (command[0] != '\0') {
@@ -68,6 +68,8 @@ void console_start() {
 
 			if (string_equals_ignore_case(parameters[0], "format")) {
 				format();
+			} else if (string_equals_ignore_case(parameters[0], "df")) {
+				diskFree();
 			} else if (string_equals_ignore_case(parameters[0], "rm")) {
 				deleteResource(parameters);
 			} else if (string_equals_ignore_case(parameters[0], "mv")) {
@@ -158,7 +160,7 @@ bool resolveDir(char *dirPath, char *dirPrompt, char *dirId) {
 	int i = 0;
 
 	char *newDirPrompt = malloc(sizeof(char) * 512);
-	char *newDirId = malloc(sizeof(char) * 25);
+	char *newDirId = malloc(ID_SIZE);
 
 	strcpy(newDirPrompt, currentDirPrompt);
 	strcpy(newDirId, currentDirId);
@@ -228,6 +230,11 @@ void format() {
 	}
 }
 
+void diskFree() {
+	int bytesFree = filesystem_getFreeSpaceBytes();
+	printf("MDFS\t\t%d b = %d kb = %d mb\n", bytesFree, bytesFree / 1024, bytesFree / 1024 / 1024);
+}
+
 void deleteResource(char **parameters) {
 	if (!isNull(parameters[1])) {
 		if (string_equals_ignore_case(parameters[1], "-r")) {
@@ -243,7 +250,7 @@ void deleteResource(char **parameters) {
 void moveResource(char *resource, char *destination) {
 	if (!isNull(resource) && !isNull(destination)) {
 
-		char *destinationId = malloc(sizeof(char) * 25);
+		char *destinationId = malloc(ID_SIZE);
 
 		dir_t *dirToMove = filesystem_getDirByNameInDir(resource, currentDirId);
 		if (dirToMove) {
@@ -288,7 +295,7 @@ void changeDir(char *dirName) {
 	if (!isNull(dirName)) {
 
 		char *newDirPrompt = malloc(sizeof(char) * 512);
-		char *newDirId = malloc(sizeof(char) * 25);
+		char *newDirId = malloc(ID_SIZE);
 
 		if (resolveDir(dirName, newDirPrompt, newDirId)) {
 			strcpy(currentDirId, newDirId);
@@ -338,7 +345,7 @@ void copyFile(char **parameters) {
 			printf("Copia el archivo %s al MDFS: %s\n", fileName, dest);
 
 			file_t *file = file_create();
-			strcpy(file->name, fileName);
+			strcpy(file->name, dest);
 			strcpy(file->parentId, currentDirId);
 			file->size = 0;
 

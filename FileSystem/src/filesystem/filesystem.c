@@ -9,6 +9,7 @@ bool filesystem_canCreateResource(char *resourceName, char *parentId);
 char* filesystem_md5(char *str);
 t_list* filesystem_getFSFileBlocks(char *route);
 char* filesystem_getMD5FromBlocks(t_list *blocks);
+void filesystem_distributeBlocksToNodes(t_list *blocks);
 
 t_log* filesystem_logger;
 
@@ -27,6 +28,20 @@ void filesystem_shutdown() {
 bool filesystem_format() {
 	log_info(filesystem_logger, "Format FS.");
 	return mongo_dir_deleteAll() && mongo_file_deleteAll();
+}
+
+int filesystem_getFreeSpaceBytes() {
+	int freeBlocks = 0;
+	t_list *nodes = mongo_node_getAll();
+
+	void sumBlocks(node_t *node) {
+		freeBlocks += node_getBlocksFreeCount(node);
+	}
+
+	list_iterate(nodes, (void *) sumBlocks);
+	list_destroy_and_destroy_elements(nodes, (void *) node_free);
+
+	return freeBlocks * NODE_BLOCK_SIZE;
 }
 
 dir_t* filesystem_getDirById(char *id) {
@@ -97,10 +112,11 @@ bool filesystem_copyFileFromFS(char *route, file_t *file) {
 	}
 
 	t_list *blocks = filesystem_getFSFileBlocks(route);
-	printf("%s\n", filesystem_getMD5FromBlocks(blocks)); // TODO remove.
+	// TESTING ONLY printf("%s\n", filesystem_getMD5FromBlocks(blocks));
+	filesystem_distributeBlocksToNodes(blocks);
 	list_destroy_and_destroy_elements(blocks, free);
 
-	return !mongo_file_save(file);
+	return 1; //!mongo_file_save(file);
 }
 
 bool filesystem_addDir(dir_t *dir) {
@@ -229,4 +245,32 @@ char* filesystem_getMD5FromBlocks(t_list *blocks) {
 
 	free(fileBuffer);
 	return md5str;
+}
+
+void filesystem_distributeBlocksToNodes(t_list *blocks) {
+	t_list *nodes = mongo_node_getAll();
+
+	bool nodeComparator(node_t *node, node_t *node2) {
+		return node_getBlocksFreeCount(node) > node_getBlocksFreeCount(node2);
+	}
+
+	void sendBlockToNode(char *block) {
+		// Sort to get the node that has more free space.
+		list_sort(nodes, (void *) nodeComparator);
+		node_t *selectedNode = list_get(nodes, 0);
+		int firstBlockFree = node_getFirstFreeBlock(selectedNode);
+
+		// TESTING node_printBlocksStatus(selectedNode);
+		if (firstBlockFree == -1) {
+			// TODO, que se hace si no hay mas nodos disponibles??
+			log_error(filesystem_logger, "Couldn't find a free block to store the file");
+		} else {
+			log_info(filesystem_logger, "Le envio el block al nodo %s, en su bloque index %d\n", selectedNode->id, firstBlockFree);
+			node_setBlockUsed(selectedNode, firstBlockFree);
+			mongo_node_updateBlocks(selectedNode);
+		}
+	}
+
+	list_iterate(blocks, (void *) sendBlockToNode);
+	list_destroy_and_destroy_elements(nodes, (void *) node_free);
 }
