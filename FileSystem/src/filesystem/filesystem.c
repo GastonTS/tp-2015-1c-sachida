@@ -120,6 +120,8 @@ bool filesystem_copyFileFromFS(char *route, file_t *file) {
 	t_list *blocks = filesystem_getFSFileBlocks(route, fileSize);
 	file->size = *fileSize;
 
+	free(fileSize);
+
 	// TESTING ONLY printf("%s\n", filesystem_getMD5FromBlocks(blocks));
 	filesystem_distributeBlocksToNodes(blocks, file);
 	list_destroy_and_destroy_elements(blocks, free);

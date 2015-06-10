@@ -29,17 +29,21 @@ bson_t* file_getBSON(file_t *file) {
 		int copyIndex = 0;
 		void listBlockCopy(file_block_t *blockCopy) {
 			sprintf(arrayKey, "%d", copyIndex);
-			BSON_APPEND_DOCUMENT(bson_block_copies, arrayKey, file_block_getBSON(blockCopy));
+			bson_t *bson_block_copy = file_block_getBSON(blockCopy);
+			BSON_APPEND_DOCUMENT(bson_block_copies, arrayKey, bson_block_copy);
+			bson_destroy(bson_block_copy);
 			copyIndex++;
 		}
 		list_iterate(blockCopies, (void *) listBlockCopy);
 
 		sprintf(arrayKey, "%d", blockIndex);
 		BSON_APPEND_ARRAY(bson_blocks, arrayKey, bson_block_copies);
+		bson_destroy(bson_block_copies);
 		blockIndex++;
 	}
 	list_iterate(file->blocks, (void *) listBlocks);
 	BSON_APPEND_ARRAY(bson, "blocks", bson_blocks);
+	bson_destroy(bson_blocks);
 	return bson;
 }
 
