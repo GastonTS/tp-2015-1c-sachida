@@ -29,13 +29,7 @@ void selectNode(t_copy *copy, t_node **selectedNode, int *numBlock) {
 		return 0;
 	}
 
-	char* nodeName = copy->nodeName;
-
-	bool nodeWithName(t_node *node) {
-		return nodeByName(node, nodeName);
-	}
-
-	t_node *actualNode = (t_node*) list_find(nodes, (void*) nodeWithName);
+	t_node *actualNode = findNode(nodes, copy->nodeName);
 
 	if ((*selectedNode == NULL || lessWorkLoad(actualNode, *selectedNode)) && isActive(actualNode)) {
 		*selectedNode = actualNode;
@@ -43,7 +37,7 @@ void selectNode(t_copy *copy, t_node **selectedNode, int *numBlock) {
 	}
 }
 
-void setTempName(t_map *map, t_job *job) {
+void setTempMapName(t_map *map, t_job *job) {
 	char resultName[60] = "\"";
 	strcat(resultName, getTime());
 	strcat(resultName, "-Job(");
@@ -58,9 +52,10 @@ void setTempName(t_map *map, t_job *job) {
 	strcpy(map->tempResultName, resultName);
 }
 
-void notificarPlanificacion(t_map *map) {
+void notificarMap(t_map *map) {
 	log_trace(logger, "\nMap planned: \n\tIP Node: %s \n\tPort node: %d\n\tBlock: %d \n\tStored in: %s", map->nodeIP, map->nodePort, map->numBlock,
 			map->tempResultName);
+	map->done = false;
 	//TODO: enviar map al proceso job.
 }
 
@@ -87,10 +82,11 @@ void jobMap(t_job *job) {
 					t_map *mapPlanned = malloc(sizeof(t_map));
 					mapPlanned->id = list_size(job->maps);
 					mapPlanned->copies = copies;
+					mapPlanned->nodeName = selectedNode->name;
 					mapPlanned->nodeIP = selectedNode->ip;
 					mapPlanned->nodePort = selectedNode->port;
 					mapPlanned->numBlock = numBlock;
-					setTempName(mapPlanned, job);
+					setTempMapName(mapPlanned, job);
 					list_add(job->maps, mapPlanned);
 				}
 			}
@@ -101,7 +97,7 @@ void jobMap(t_job *job) {
 	list_iterate(job->files, (void *) fileMap);
 
 	if (filesAvailables) {
-		list_iterate(job->maps, (void *) notificarPlanificacion);
+		list_iterate(job->maps, (void *) notificarMap);
 		log_trace(logger, "Finished Map Planning Job %d...", job->id);
 	} else
 		log_trace(logger, "Job %d Failed", job->id);
@@ -125,7 +121,7 @@ void rePlanMap(t_job *job, int idMap) {
 	map->nodeIP = selectedNode->ip;
 	map->nodePort = selectedNode->port;
 	map->numBlock = numBlock;
-	setTempName(map, job);
+	setTempMapName(map, job);
 
-	notificarPlanificacion(map);
+	notificarMap(map);
 }

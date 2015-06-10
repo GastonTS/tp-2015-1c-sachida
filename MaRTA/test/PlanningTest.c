@@ -5,6 +5,7 @@
 #include "../src/structs/nodo.h"
 #include "../src/structs/job.h"
 #include "../src/Planning/MapPlanning.h"
+#include "../src/Planning/ReducePlanning.h"
 
 t_node* node1;
 t_node* node2;
@@ -167,6 +168,7 @@ void setup() {
 
 	job = malloc(sizeof(t_job));
 	job->id = 42;
+	job->combiner = false;
 	job->files = list_create();
 	list_add(job->files, file2);
 	list_add(job->files, file);
@@ -206,8 +208,19 @@ void jobMapTest() {
 
 void RePlanTest() {
 	printf("**************************RePlanTest****************************\n");
+	printf("************************jobMapPlanning**************************\n");
+	jobMap(job);
 	node5->active = 0;
-	printf("**************************RePlanning****************************\n");
+	printf("************************RePlanningMap(1)*************************\n");
 	rePlanMap(job, 1);
+	printf("****************************************************************\n");
+}
+
+void ReducePlanTest() {
+	printf("************************ReducePlanTest**************************\n");
+	printf("************************jobMapPlanning**************************\n");
+	jobMap(job);
+	printf("*************************reducePlanning**************************\n");
+	reducePlanning(job);
 	printf("****************************************************************\n");
 }

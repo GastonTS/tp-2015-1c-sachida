@@ -5,5 +5,6 @@ void jobMapTest();
 void RePlanTest();
 void setup();
 void freeSetup();
+void ReducePlanTest();
 
 #endif

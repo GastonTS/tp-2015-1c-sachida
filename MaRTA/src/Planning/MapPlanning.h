@@ -5,5 +5,6 @@
 
 void jobMap(t_job *job);
 void rePlanMap(t_job *job, int idMap);
+char *getTime();
 
 #endif

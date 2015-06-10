@@ -21,3 +21,11 @@ void freeNode(t_node *nodo) {
 bool isActive(t_node *nodo){
 	return nodo->active;
 }
+
+t_node *findNode(t_list *nodes, char *nodeName){
+	bool nodeWithName(t_node *node) {
+		return nodeByName(node, nodeName);
+	}
+
+	return list_find(nodes, (void*) nodeWithName);
+}
