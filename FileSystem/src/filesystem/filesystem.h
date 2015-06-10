@@ -11,7 +11,7 @@ void filesystem_initialize();
 void filesystem_shutdown();
 
 bool filesystem_format();
-unsigned long filesystem_getFreeSpaceBytes();
+unsigned long filesystem_getFreeSpaceKiloBytes();
 
 dir_t* filesystem_getDirById(char *id);
 dir_t* filesystem_getDirByNameInDir(char *dirName, char *parentId);

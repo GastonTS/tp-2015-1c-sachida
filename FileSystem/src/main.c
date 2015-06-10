@@ -38,9 +38,9 @@ int main(void) {
 
 void testNode() {
 	if (0) {
-		node_t* node = node_create(50);
+		node_t* node = node_create(500);
 
-		node->name = strdup("Node1");
+		node->name = strdup("Node4");
 		if (0) {
 			node_setBlockUsed(node, 1);
 			node_setBlockUsed(node, 2);

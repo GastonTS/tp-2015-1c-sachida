@@ -34,7 +34,7 @@ bool filesystem_format() {
 	return mongo_dir_deleteAll() && mongo_file_deleteAll();
 }
 
-unsigned long filesystem_getFreeSpaceBytes() {
+unsigned long filesystem_getFreeSpaceKiloBytes() {
 	int freeBlocks = 0;
 	t_list *nodes = mongo_node_getAll();
 
@@ -45,7 +45,7 @@ unsigned long filesystem_getFreeSpaceBytes() {
 	list_iterate(nodes, (void *) sumBlocks);
 	list_destroy_and_destroy_elements(nodes, (void *) node_free);
 
-	return freeBlocks * NODE_BLOCK_SIZE;
+	return freeBlocks * (NODE_BLOCK_SIZE / 1024);
 }
 
 dir_t* filesystem_getDirById(char *id) {
@@ -237,7 +237,7 @@ t_list* filesystem_getFSFileBlocks(char *route, int* fileSize) {
 		}
 	}
 
-	//free(fileStr);
+	munmap(fileStr, *fileSize);
 
 	return blocks;
 }
@@ -302,5 +302,6 @@ void filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 }
 
 void filesystem_sendBlockToNode(node_t *node, int blockIndex, char *block) {
-	log_info(filesystem_logger, "Le envio el block al nodo %s, en su bloque index %d\n", node->id, blockIndex);
+	// TODO
+	log_info(filesystem_logger, "Sending block to node %s (%s), blockIndex %d\n", node->name, node->id, blockIndex);
 }
