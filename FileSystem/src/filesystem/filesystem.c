@@ -306,7 +306,7 @@ void filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 
 				// TESTING node_printBlocksStatus(selectedNode);
 				if (firstBlockFreeIndex == -1) {
-					// TODO, que se hace si no hay mas nodos disponibles??
+					// TODO ROLLBACK (or avoid), no hay mas nodos disponibles
 					log_error(filesystem_logger, "Couldn't find a free block to store the block");
 				} else {
 					filesystem_sendBlockToNode(selectedNode, firstBlockFreeIndex, block);
@@ -319,7 +319,7 @@ void filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 					list_add(blockCopies, blockCopy);
 				}
 			} else {
-				//TODO Que pasa si no hay tanta cantidad de nodos disponibles como de copias necesarias?
+				//TODO ROLLBACK (or avoid) no hay tanta cantidad de nodos disponibles como de copias necesarias.
 				log_error(filesystem_logger, "There are less nodes than copies to be done.");
 			}
 		}
