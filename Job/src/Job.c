@@ -26,7 +26,21 @@ Casi--> Notificar a MARTA de la ejecucion
 	VER COMO EXTRAER DEL ARCHIVO DE CONFIG LA LISTA DE ARCHIVOS
 */
 
-#include "Job.h"
+#include "structs/Job.h"
+#include "/home/utnso/tp-2015-1c-sachida/utils/socket.h"
+
+t_list* list_archivos;
+
+void leerArchivoConfig(char* conf);
+void convertirListaArch(char* cadena,t_list* lista);
+int conectarMarta();
+void atenderMarta(int socketMarta);
+void atenderMapper();
+void confirmarMap();
+void atenderReducer();
+void confirmarReduce();
+void freeJob();
+
 
 int main(int argc, char *argv[]){
 
@@ -34,6 +48,7 @@ int main(int argc, char *argv[]){
 
 	list_mappers = list_create();
 	list_reducers = list_create();
+	list_archivos = list_create();
 
 	if(argc != 2){
 		printf("ERROR -> La sintaxis es:  ./Job.c \"Ruta_archivo_config\" \n");
@@ -41,22 +56,32 @@ int main(int argc, char *argv[]){
 	}
 
 	leerArchivoConfig(argv[1]);
+	log_info(logger,"termine archivo");
+	/*
+	int i;
+	char* cadena;
+	for (i=0;i< list_size(list_archivos);i++){
+		//cadena = malloc(strlen(list_get(list_archivos,i)));
+		//memset(cadena,'\0',strlen(list_get(list_archivos,i)));
+		//memcpy(list_get(list_archivos,i),cadena,strlen(list_get(list_archivos,i)));
+		strcpy(cadena,list_get(list_archivos,i));
+		log_info(logger,"Posic: %d String: %s",i,cadena);
+	}*/
 
-	if((sock_marta = conectarMarta()) == -1){
-		log_error(logger,"Error al conectarme con MaRTA. Aborta la ejecucion");
-		return(-1);
-	};
+	sock_marta = conectarMarta();
 
 	atenderMarta(sock_marta);
 
-
+	freeJob();
 
 	return 1;
 }
 
+void freeJob(){
+	log_destroy(logger);
+}
 void leerArchivoConfig(char* conf){
 	t_config* config;
-
 	config = config_create(conf);
 
 	strcpy(IP_MARTA,config_get_string_value(config,"IP_MARTA"));
@@ -65,14 +90,16 @@ void leerArchivoConfig(char* conf){
 	//char* MAPPER = malloc(LISTA_ARCHIVOS);
 	//strcpy(MAPPER,config_get_string_value(config,"MAPPER"));
 	MAPPER = config_get_string_value(config,"MAPPER");
-	convertirListaArch(MAPPER);
-
 	REDUCER = config_get_string_value(config,"REDUCER");
 	ARCH_RESULTADO = config_get_string_value(config,"RESULTADO");
 	strcpy(COMBINER,config_get_string_value(config,"COMBINER"));
 
+	convertirListaArch(MAPPER,list_archivos);
+
 	log_info(logger,"Extraccion correcta del archivo de configuracion");
+
 	config_destroy(config);
+
 }
 
 
@@ -84,12 +111,14 @@ void convertirListaArch(char* cadena,t_list* list_archivos){
 	while((caracter = strchr(cadena, ' '))){
 		indice = (int)(caracter - cadena);
 		longCadena = strlen(cadena);
-
 		longCadenaNueva = longCadena-indice;
 		cadenaNueva = malloc(indice+1);
 		memset(cadenaNueva,'\0',indice+1);
 		memcpy(cadenaNueva,cadena,indice);
-		list_add(list_archivos,cadenaNueva);
+		if(cadenaNueva != '\0'){
+			log_info(logger,"cadenaNueva: %s",cadenaNueva);
+			list_add(list_archivos,cadenaNueva);
+		}
 		//log_info(logger,"CadenaNueva: %s", cadenaNueva);
 		//realloc(cadena,i+1);
 		//memset(cadena,'\0',indice+1);
@@ -99,11 +128,10 @@ void convertirListaArch(char* cadena,t_list* list_archivos){
 		//memcpy(cadenaNueva,cadena+indice,i);
 		//log_info(logger,"String : %s",cadena);
 	}
-
+	log_info(logger,"cadena %s",cadena);
 	list_add(list_archivos,cadena);
-
 	free(cadenaNueva);
-	free(cadena);
+	//free(cadena);
 	return;
 	/*
 	cadenaNueva = malloc(indice+1);
@@ -121,8 +149,7 @@ void convertirListaArch(char* cadena,t_list* list_archivos){
 
 
 int conectarMarta(){
-	int sockfd, numbytes;
-	struct sockaddr_in marta;
+	int numbytes,handshake;
 	char* buffer;
 	t_mensaje mensaje;
 
@@ -132,54 +159,18 @@ int conectarMarta(){
 		return(-1);
 	}
 
-	if((sockfd = socket(AF_INET,SOCK_STREAM,0))==-1){
-		printf("Error en crear el socket del MaRTA \n");
-		close(sockfd);
-		return(-1);
+	if((sock_marta = socket_connect(IP_MARTA,PUERTO_MARTA))<0){
+		log_error(logger,"Error al conectar con MaRTA %d", sock_marta);
+		freeJob();
 	}
 
-	marta.sin_family = AF_INET;
-	marta.sin_port = htons(PUERTO_MARTA);
-	marta.sin_addr.s_addr = inet_addr(IP_MARTA);
-	memset(&(marta.sin_zero),0,8);
+	log_info(logger,"Coneccion con MaRTA: %d", sock_marta);
 
-	if(connect(sockfd,(struct sockaddr *)&marta,sizeof(struct sockaddr))==-1){
-		printf("Error en el connect con MaRTA \n");
-		close(sockfd);
-		return(-1);
+	if((handshake = socket_handshake_to_server(sock_marta, HANDSHAKE_MARTA,HANDSHAKE_JOB))<=0){
+		log_error(logger,"Error en el handshake con MaRTA: %d", handshake);
 	}
 
-	memset(buffer,'\0',MAXDATASIZE);
-
-	mensaje.tipo = HANDSHAKE;
-	mensaje.id_proceso = JOB;
-	memcpy(buffer,&mensaje,SIZE_MSG);
-
-	if((numbytes=send(sockfd,buffer,SIZE_MSG,0))<=0)
-	{
-		printf("Error en el send handshake a MaRTA \n");
-		return(-1);
-	}
-
-	memset(buffer,'\0',MAXDATASIZE);
-
-	if((numbytes=recv(sockfd, buffer, SIZE_MSG,0))==-1){
-		printf("Error en el recv handshakeok de MaRTA \n");
-		return(-1);
-	}
-
-	//Copio el mensaje que recibi en el buffer
-	memcpy(&mensaje,buffer,SIZE_MSG);
-
-	if((mensaje.id_proceso  == MARTA)&&(mensaje.tipo=HANDSHAKEOK))
-	{
-		log_info(logger, "Conexion Lograda con MaRTA ");
-	}
-	else
-	{
-		printf("No recibi Handshake de MaRTA, no se pudo conectar \n");
-		return(-1);
-	}
+	log_info(logger,"Handshake MaRTA: %d",handshake);
 
 	memset(buffer,'\0',MAXDATASIZE);
 
@@ -189,7 +180,7 @@ int conectarMarta(){
 	//ADEMAS HAY QUE MANDARLE SI ES COMBINER O NO
 	memcpy(buffer,&mensaje,SIZE_MSG);
 
-	if((numbytes=send(sockfd,buffer,SIZE_MSG,0))<=0)
+	if((numbytes=send(sock_marta,buffer,SIZE_MSG,0))<=0)
 	{
 		printf("Error en el send archivos a MaRTA \n");
 		free(buffer);
@@ -197,7 +188,7 @@ int conectarMarta(){
 	}
 
 	free(buffer);
-	return sockfd;
+	return sock_marta;
 }
 
 
