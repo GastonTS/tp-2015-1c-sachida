@@ -29,6 +29,7 @@ bool filesystem_copyFileFromFS(char *route, file_t *file);
 bool filesystem_addDir(dir_t *dir);
 
 node_t* filesystem_getNodeByName(char *nodeName);
+void filesystem_nodeIsDown(char *nodeName);
 
 char* filesystem_md5sum(file_t* file);
 

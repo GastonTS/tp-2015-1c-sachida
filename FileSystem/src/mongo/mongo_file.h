@@ -8,8 +8,9 @@ void mongo_file_shutdown();
 
 bool mongo_file_save(file_t *file);
 
-t_list* mongo_file_getByParentId(char *parentId);
 file_t* mongo_file_getById(char id[]);
+t_list* mongo_file_getByParentId(char *parentId);
+t_list* mongo_file_getFilesThatHaveNode(char *nodeId);
 file_t* mongo_file_getByNameInDir(char *name, char *parentId);
 
 bool mongo_file_deleteFileByNameInDir(char *name, char *parentId);

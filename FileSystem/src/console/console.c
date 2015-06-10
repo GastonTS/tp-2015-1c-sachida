@@ -40,7 +40,7 @@ void seeBlock(char *block);
 void deleteBlock(char *block);
 void copyBlock(char* block);
 void upNode(char *node);
-void deleteNode(char *node);
+void deleteNode(char *nodeName);
 void help();
 
 char *currentDirPrompt;
@@ -94,7 +94,7 @@ void console_start() {
 				copyBlock(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "upNode")) {
 				upNode(parameters[1]);
-			} else if (string_equals_ignore_case(parameters[0], "deleteNode")) {
+			} else if (string_equals_ignore_case(parameters[0], "rmn")) {
 				deleteNode(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "help")) {
 				help();
@@ -419,10 +419,11 @@ void upNode(char *node) {
 	}
 }
 
-void deleteNode(char *node) {
-	if (!isNull(node)) {
+void deleteNode(char *nodeName) {
+	if (!isNull(nodeName)) {
 		// TODO
-		printf("Borra el nodo %s\n", node);
+		printf("Borra el nodo %s\n", nodeName);
+		filesystem_nodeIsDown(nodeName);
 	}
 }
 

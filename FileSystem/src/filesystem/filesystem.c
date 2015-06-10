@@ -31,7 +31,20 @@ void filesystem_shutdown() {
 
 bool filesystem_format() {
 	log_info(filesystem_logger, "Format FS.");
-	return mongo_dir_deleteAll() && mongo_file_deleteAll();
+	if (mongo_dir_deleteAll() && mongo_file_deleteAll()) {
+		t_list *nodes = mongo_node_getAll();
+
+		void formatNode(node_t *node) {
+			node_setAllBlocksFree(node);
+			mongo_node_updateBlocks(node);
+		}
+
+		list_iterate(nodes, (void *) formatNode);
+		list_destroy_and_destroy_elements(nodes, (void *) node_free);
+
+		return 1;
+	}
+	return 0;
 }
 
 unsigned long filesystem_getFreeSpaceKiloBytes() {
@@ -139,6 +152,21 @@ bool filesystem_addDir(dir_t *dir) {
 
 node_t* filesystem_getNodeByName(char *nodeName) {
 	return mongo_node_getByName(nodeName);
+}
+
+void filesystem_nodeIsDown(char *nodeName) {
+	node_t *node = filesystem_getNodeByName(nodeName);
+	if (node) {
+		t_list *files = mongo_file_getFilesThatHaveNode(node->id);
+		void listFile(file_t *file) {
+			// TODO..
+			printf("%s\n", file->name);
+		}
+		list_iterate(files, (void*) listFile);
+		list_destroy_and_destroy_elements(files, (void *) file_free);
+
+		node_free(node);
+	}
 }
 
 char* filesystem_md5sum(file_t* file) {

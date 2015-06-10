@@ -43,6 +43,11 @@ node_t* node_getNodeFromBSON(const bson_t *doc) {
 	return node;
 }
 
+void node_setAllBlocksFree(node_t *node) {
+	bitarray_destroy(node->blocks);
+	node->blocks = getByteArrayForBlocksCount(*node->blocksCount);
+}
+
 void node_setBlockUsed(node_t *node, int blockIndex) {
 	if (node_blockIsValidIndex(node, blockIndex)) {
 		bitarray_set_bit(node->blocks, blockIndex);
