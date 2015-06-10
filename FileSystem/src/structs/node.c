@@ -31,7 +31,7 @@ node_t* node_getNodeFromBSON(const bson_t *doc) {
 			} else if (strcmp(key, "name") == 0) {
 				node->name = strdup(value->value.v_utf8.str);
 			} else if (strcmp(key, "blocks") == 0) {
-				node->blocks = bitarray_create(value->value.v_utf8.str, sizeof(value->value.v_utf8.str));
+				node->blocks = bitarray_create((char *) value->value.v_binary.data, value->value.v_binary.data_len);
 			} else if (strcmp(key, "blocksCount") == 0) {
 				node->blocksCount = malloc(sizeof(int));
 				*node->blocksCount = value->value.v_int32;
@@ -107,7 +107,7 @@ t_bitarray* getByteArrayForBlocksCount(int count) {
 		data[i] = 0b00000000;
 	}
 
-	return bitarray_create(data, sizeof(data));
+	return bitarray_create(data, size);
 }
 
 bool node_blockIsValidIndex(node_t *node, int blockIndex) {

@@ -8,13 +8,20 @@ typedef struct {
 	char *name;
 	char *parentId;
 	int32_t size;
-	t_list *blocks;
+	t_list *blocks; // (list of blocks with the list of the copies)
 } file_t;
+
+typedef struct {
+	char nodeId[ID_SIZE];
+	int *blockIndex;
+} file_block_t;
 
 bson_t* file_getBSON(file_t *file);
 file_t* file_getFileFromBSON(const bson_t *doc);
 
 file_t* file_create();
 void file_free(file_t* file);
+
+file_block_t* file_block_create();
 
 #endif
