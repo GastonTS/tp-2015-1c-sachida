@@ -63,9 +63,9 @@ t_log* logger;
 //METODOS
 void getInfoConf(char* conf);
 
-char* getBloque(int nroBloque);
+char* getBloque(uint16_t nroBloque);
 
-void setBloque(int nroBloque,char** string);
+void setBloque(uint16_t nroBloque,char** string);
 
 #endif /* NODO_H_ */
 
