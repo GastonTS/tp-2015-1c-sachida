@@ -55,6 +55,17 @@ t_list* mongo_file_getByParentId(char *parentId) {
 	return mongo_getByQuery(query, (void*) file_getFileFromBSON, fileCollection);
 }
 
+t_list* mongo_file_getFilesThatHaveNode(char *nodeId) {
+	bson_t *query;
+
+	mongo_file_checkInit();
+
+	//db.file.find({blocks: {$elemMatch: { $elemMatch: { nodeId: "55776dea508b964de617a22" }   }   }})
+	query = BCON_NEW("blocks", "{", "$elemMatch", "{", "$elemMatch", "{", "nodeId", BCON_UTF8(nodeId), "}", "}", "}");
+
+	return mongo_getByQuery(query, (void*) file_getFileFromBSON, fileCollection);
+}
+
 file_t* mongo_file_getByNameInDir(char *name, char *parentId) {
 	bson_t *query;
 	const bson_t *doc;

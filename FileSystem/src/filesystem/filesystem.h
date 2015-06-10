@@ -11,7 +11,7 @@ void filesystem_initialize();
 void filesystem_shutdown();
 
 bool filesystem_format();
-unsigned long filesystem_getFreeSpaceBytes();
+unsigned long filesystem_getFreeSpaceKiloBytes();
 
 dir_t* filesystem_getDirById(char *id);
 dir_t* filesystem_getDirByNameInDir(char *dirName, char *parentId);
@@ -29,6 +29,7 @@ bool filesystem_copyFileFromFS(char *route, file_t *file);
 bool filesystem_addDir(dir_t *dir);
 
 node_t* filesystem_getNodeByName(char *nodeName);
+void filesystem_nodeIsDown(char *nodeName);
 
 char* filesystem_md5sum(file_t* file);
 

@@ -9,7 +9,7 @@ bool filesystem_canCreateResource(char *resourceName, char *parentId);
 char* filesystem_md5(char *str);
 t_list* filesystem_getFSFileBlocks(char *route, int* fileSize);
 char* filesystem_getMD5FromBlocks(t_list *blocks);
-void filesystem_distributeBlocksToNodes(t_list *blocks);
+void filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file);
 void filesystem_sendBlockToNode(node_t *node, int blockIndex, char *block);
 
 t_log* filesystem_logger;
@@ -31,10 +31,23 @@ void filesystem_shutdown() {
 
 bool filesystem_format() {
 	log_info(filesystem_logger, "Format FS.");
-	return mongo_dir_deleteAll() && mongo_file_deleteAll();
+	if (mongo_dir_deleteAll() && mongo_file_deleteAll()) {
+		t_list *nodes = mongo_node_getAll();
+
+		void formatNode(node_t *node) {
+			node_setAllBlocksFree(node);
+			mongo_node_updateBlocks(node);
+		}
+
+		list_iterate(nodes, (void *) formatNode);
+		list_destroy_and_destroy_elements(nodes, (void *) node_free);
+
+		return 1;
+	}
+	return 0;
 }
 
-unsigned long filesystem_getFreeSpaceBytes() {
+unsigned long filesystem_getFreeSpaceKiloBytes() {
 	int freeBlocks = 0;
 	t_list *nodes = mongo_node_getAll();
 
@@ -45,7 +58,7 @@ unsigned long filesystem_getFreeSpaceBytes() {
 	list_iterate(nodes, (void *) sumBlocks);
 	list_destroy_and_destroy_elements(nodes, (void *) node_free);
 
-	return freeBlocks * NODE_BLOCK_SIZE;
+	return freeBlocks * (NODE_BLOCK_SIZE / 1024);
 }
 
 dir_t* filesystem_getDirById(char *id) {
@@ -120,8 +133,10 @@ bool filesystem_copyFileFromFS(char *route, file_t *file) {
 	t_list *blocks = filesystem_getFSFileBlocks(route, fileSize);
 	file->size = *fileSize;
 
+	free(fileSize);
+
 	// TESTING ONLY printf("%s\n", filesystem_getMD5FromBlocks(blocks));
-	filesystem_distributeBlocksToNodes(blocks);
+	filesystem_distributeBlocksToNodes(blocks, file);
 	list_destroy_and_destroy_elements(blocks, free);
 
 	return !mongo_file_save(file);
@@ -137,6 +152,21 @@ bool filesystem_addDir(dir_t *dir) {
 
 node_t* filesystem_getNodeByName(char *nodeName) {
 	return mongo_node_getByName(nodeName);
+}
+
+void filesystem_nodeIsDown(char *nodeName) {
+	node_t *node = filesystem_getNodeByName(nodeName);
+	if (node) {
+		t_list *files = mongo_file_getFilesThatHaveNode(node->id);
+		void listFile(file_t *file) {
+			// TODO..
+			printf("%s\n", file->name);
+		}
+		list_iterate(files, (void*) listFile);
+		list_destroy_and_destroy_elements(files, (void *) file_free);
+
+		node_free(node);
+	}
 }
 
 char* filesystem_md5sum(file_t* file) {
@@ -235,7 +265,7 @@ t_list* filesystem_getFSFileBlocks(char *route, int* fileSize) {
 		}
 	}
 
-	//free(fileStr);
+	munmap(fileStr, *fileSize);
 
 	return blocks;
 }
@@ -254,7 +284,7 @@ char* filesystem_getMD5FromBlocks(t_list *blocks) {
 	return md5str;
 }
 
-void filesystem_distributeBlocksToNodes(t_list *blocks) {
+void filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 	t_list *nodes = mongo_node_getAll();
 
 	bool nodeComparator(node_t *node, node_t *node2) {
@@ -262,6 +292,9 @@ void filesystem_distributeBlocksToNodes(t_list *blocks) {
 	}
 
 	void sendBlockToNodes(char *block) {
+		t_list *blockCopies = list_create();
+		list_add(file->blocks, blockCopies);
+
 		// Sort to get the node that has more free space.
 		list_sort(nodes, (void *) nodeComparator);
 		int i;
@@ -269,19 +302,24 @@ void filesystem_distributeBlocksToNodes(t_list *blocks) {
 		for (i = 0; i < FILESYSTEM_BLOCK_COPIES; i++) {
 			if (i < list_size(nodes)) {
 				node_t *selectedNode = list_get(nodes, i);
-				int firstBlockFree = node_getFirstFreeBlock(selectedNode);
+				int firstBlockFreeIndex = node_getFirstFreeBlock(selectedNode);
 
 				// TESTING node_printBlocksStatus(selectedNode);
-				if (firstBlockFree == -1) {
-					// TODO, que se hace si no hay mas nodos disponibles??
+				if (firstBlockFreeIndex == -1) {
+					// TODO ROLLBACK (or avoid), no hay mas nodos disponibles
 					log_error(filesystem_logger, "Couldn't find a free block to store the block");
 				} else {
-					filesystem_sendBlockToNode(selectedNode, firstBlockFree, block);
-					node_setBlockUsed(selectedNode, firstBlockFree);
+					filesystem_sendBlockToNode(selectedNode, firstBlockFreeIndex, block);
+					node_setBlockUsed(selectedNode, firstBlockFreeIndex);
 					mongo_node_updateBlocks(selectedNode);
+
+					file_block_t *blockCopy = file_block_create();
+					strcpy(blockCopy->nodeId, selectedNode->id);
+					*blockCopy->blockIndex = firstBlockFreeIndex;
+					list_add(blockCopies, blockCopy);
 				}
 			} else {
-				//TODO Que pasa si no hay tanta cantidad de nodos disponibles como de copias necesarias?
+				//TODO ROLLBACK (or avoid) no hay tanta cantidad de nodos disponibles como de copias necesarias.
 				log_error(filesystem_logger, "There are less nodes than copies to be done.");
 			}
 		}
@@ -292,5 +330,6 @@ void filesystem_distributeBlocksToNodes(t_list *blocks) {
 }
 
 void filesystem_sendBlockToNode(node_t *node, int blockIndex, char *block) {
-	log_info(filesystem_logger, "Le envio el block al nodo %s, en su bloque index %d\n", node->id, blockIndex);
+	// TODO
+	log_info(filesystem_logger, "Sending block to node %s (%s), blockIndex %d\n", node->name, node->id, blockIndex);
 }

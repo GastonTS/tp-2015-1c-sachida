@@ -40,7 +40,7 @@ void seeBlock(char *block);
 void deleteBlock(char *block);
 void copyBlock(char* block);
 void upNode(char *node);
-void deleteNode(char *node);
+void deleteNode(char *nodeName);
 void help();
 
 char *currentDirPrompt;
@@ -94,7 +94,7 @@ void console_start() {
 				copyBlock(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "upNode")) {
 				upNode(parameters[1]);
-			} else if (string_equals_ignore_case(parameters[0], "deleteNode")) {
+			} else if (string_equals_ignore_case(parameters[0], "rmn")) {
 				deleteNode(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "help")) {
 				help();
@@ -159,8 +159,8 @@ bool resolveDir(char *dirPath, char *dirPrompt, char *dirId) {
 	char *dirName;
 	int i = 0;
 
-	char *newDirPrompt = malloc(sizeof(char) * 512);
-	char *newDirId = malloc(ID_SIZE);
+	char newDirPrompt[512];
+	char newDirId[ID_SIZE];
 
 	strcpy(newDirPrompt, currentDirPrompt);
 	strcpy(newDirId, currentDirId);
@@ -198,6 +198,7 @@ bool resolveDir(char *dirPath, char *dirPrompt, char *dirId) {
 					dir_free(dir);
 				} else {
 					printf("Directory %s not found.\n", dirName);
+					freeSplits(dirNames);
 					return 0;
 				}
 			}
@@ -212,8 +213,6 @@ bool resolveDir(char *dirPath, char *dirPrompt, char *dirId) {
 		strcpy(dirId, newDirId);
 	}
 
-	free(newDirPrompt);
-	free(newDirId);
 	freeSplits(dirNames);
 
 	return 1;
@@ -231,8 +230,8 @@ void format() {
 }
 
 void diskFree() {
-	unsigned long bytesFree = filesystem_getFreeSpaceBytes();
-	printf("MDFS\t\t%lu b = %lu kb = %lu mb\n", bytesFree, bytesFree / 1024, bytesFree / 1024 / 1024);
+	unsigned long kbFree = filesystem_getFreeSpaceKiloBytes();
+	printf("MDFS\t\t%lu kb = %lu mb\n", kbFree, kbFree / 1024);
 }
 
 void deleteResource(char **parameters) {
@@ -334,7 +333,7 @@ void copyFile(char **parameters) {
 	char *dest = parameters[3];
 
 	if (!isNull(option) && !isNull(source) && !isNull(dest)) {
-		// TODO
+
 		if (string_equals_ignore_case(option, "-fromfs")) {
 			char *fileName;
 			char **dirNames = string_split(source, "/");
@@ -343,7 +342,7 @@ void copyFile(char **parameters) {
 				fileName = dirNames[i];
 				i++;
 			}
-			printf("Copia el archivo %s al MDFS: %s\n", fileName, dest);
+			printf("Copying file %s to MDFS: %s\n", fileName, dest);
 
 			file_t *file = file_create();
 			strcpy(file->name, dest);
@@ -357,6 +356,7 @@ void copyFile(char **parameters) {
 			file_free(file);
 			freeSplits(dirNames);
 		} else if (string_equals_ignore_case(option, "-tofs")) {
+			// TODO
 			printf("Copia el archivo %s al FS: %s\n", source, dest);
 		} else {
 			printf("Invalid option %s \n", option);
@@ -419,10 +419,11 @@ void upNode(char *node) {
 	}
 }
 
-void deleteNode(char *node) {
-	if (!isNull(node)) {
+void deleteNode(char *nodeName) {
+	if (!isNull(nodeName)) {
 		// TODO
-		printf("Borra el nodo %s\n", node);
+		printf("Borra el nodo %s\n", nodeName);
+		filesystem_nodeIsDown(nodeName);
 	}
 }
 
