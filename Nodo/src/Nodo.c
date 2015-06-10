@@ -9,10 +9,11 @@ int size_of(int fd);
 int fileSize;
 int conectarFileSystem();
 int socket_fileSystem;
+int obtenerBytes(int comand, char* paquete);
+char* obtenerRestantes(char *paquete);
 
 //Le agregue los argumentos para que se pueda pasar el archivo de conf como parametro del main
 int main(int argc, char *argv[]) {
-	getBloque(5);
 	//pthread_t conexionesJob;
 	//pthread_t conexionesNodo;
 	if(argc != 2)
@@ -29,32 +30,26 @@ int main(int argc, char *argv[]) {
 
 	logger = log_create("Log.txt", "Node",1, log_level_from_string("DEBUG"));
 	socket_fileSystem =	conectarFileSystem();
+	char * paquete;
 	//todo Ver bien si es necesaria esta funcion
 	createNode(); //creo que no es necesario el createNodo.
-
-	/*[8/6/2015, 14:29] Santo: char *buffer;
-			socket_recv_string(socket, &buffer);
-			//Copias el buffer en el .bin haciendo 20MB*nrobloque
-			[8/6/2015, 14:30] Santo: despues rellenas si tenes que rellenar con/0 o eso
-
-			[8/6/2015, 14:31] Santo: char *buffer;
-			socket_recv_string(socket, &buffer);
-			setBloque(nroBloque, buffer);
-			[8/6/2015, 14:31] Santo: y setBloque lo que hace en realidad es copiar el buffer en el archivo
-			*/
-
-	/*socket_recv_paquete(socket, &paquete);
-			int comando = copiarPrimeros4Bytes(paquete)
+	socket_recv_packet(socket_fileSystem, &paquete,21);
+			int comando = obtenerBytes(1,paquete);
+			int numBlock;
+			int pack_size;
+			char * buffer ;
 			switch(comando){
- 	 	 	case 1:
-      	  		int numBlock= copiarSegundos4Bytes(paquete)
-      	  		int ssize = copiarTerceros4Bytes(paquete)
-      	  	char * buffer = copiarlossiguientes<ssize>(paquete)
+ 	 	 	case 1: //setBloque
+      	  		numBlock= obtenerBytes(2,paquete);
+      	  		pack_size = obtenerBytes(3,paquete);
+      	  		buffer = obtenerRestantes(paquete);
       	    setBloque(numBlock, buffer);
 			break;
-			case 2:
-     	 		//alguna otra ordenq ue te pueda pedir el fs (supongo que get bloque por ej)
-			default: error mensaje desconocido;*/
+			case 2: //getBloque
+				numBlock= obtenerBytes(2,paquete);
+				getBloque(numBlock);
+				break;
+			//default =  log_error("Log.txt", "Node",1,log_level_from_string("ERROR"));
 
 	//TODO ACA DEBERIAMOS HACER EL WHILE INFINITO ESPERANDO CONEXIONES Y PETICIONES
 	/*TODO QUILOMBO ....
@@ -69,6 +64,7 @@ int main(int argc, char *argv[]) {
 
 	/*TODO TODAS LAS FUNCIONES GETBLOQUE Y ESAS VAN ADENTRO DE LOS TRHEADS */
 	return EXIT_SUCCESS;
+}
 }
 
 
@@ -348,8 +344,6 @@ char* getBloque(int nroBloque){
 		}
 
 void setBloque(int nroBloque,char** string){
-	char* lugarpaguardar;
-	socket_recv_string(socket_fileSystem, &lugarpaguardar);
 	//socket_recv_packet(int socket, void** packet, size_t* size);
 	/*Recibe un buffer de datos,despues con el puntero que me devuelve el mmap modifico el archivo mapeado, primero busco puntero[ j ]=\0 y lo saco,
 	 * relleno los espacios que falten hasta el nuevo bloque y remplazo el puntero[ j ]=datos[a] ,agrego el \0 y cierro el mmap.*/
@@ -411,4 +405,14 @@ int size_of(int fd){
 	fstat(fd, &buf);
 	return buf.st_size;
 }
+
+int obtenerBytes(int comand,char *paquete){
+	return comand;
+}
+
+char* obtenerRestantes(char *paquete){
+	return paquete;
+}
+
+
 
