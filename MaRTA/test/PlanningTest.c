@@ -30,11 +30,17 @@ t_copy *copy3_4;
 t_copy *copy3_5;
 t_list *copies3;
 
+t_copy *copy4_1;
+t_copy *copy4_2;
+t_copy *copy4_3;
+t_list *copies4;
+
 t_copy *unavailableCopy;
 t_list *unavailableCopies;
 
 t_file *file;
 t_file *file2;
+t_file *file3;
 t_file *notAvailableFile;
 
 t_job *job;
@@ -177,12 +183,34 @@ void setup() {
 	list_add(job->files, file);
 	job->maps = list_create();
 
+	copy4_1 = malloc(sizeof(t_copy));
+	strcpy(copy4_1->nodeName, "Node3");
+	copy4_1->numBlock = 7;
+
+	copy4_2 = malloc(sizeof(t_copy));
+	strcpy(copy4_2->nodeName, "Node5");
+	copy4_2->numBlock = 307;
+
+	copy4_3 = malloc(sizeof(t_copy));
+	strcpy(copy4_3->nodeName, "Node4");
+	copy4_3->numBlock = 13;
+
+	copies4 = list_create();
+	list_add(copies4, (void *) copy4_1);
+	list_add(copies4, (void *) copy4_2);
+	list_add(copies4, (void *) copy4_3);
+
 	unavailableCopy = malloc(sizeof(t_copy));
 	strcpy(unavailableCopy->nodeName, "Node3");
 	unavailableCopy->numBlock = 821;
 
 	unavailableCopies = list_create();
 	list_add(unavailableCopies, (void *) unavailableCopy);
+
+	file3 = malloc(sizeof(t_file));
+	file3->path = "QuierePeroNoPuede.txt";
+	file3->blocks = list_create();
+	list_add(file3->blocks, copies4);
 
 	notAvailableFile = malloc(sizeof(t_file));
 	notAvailableFile->path = "Inexistente.txt";
@@ -195,6 +223,7 @@ void setup() {
 	job2->finalReduce = malloc(sizeof(t_reduce));
 	job2->finalReduce->temps = list_create();
 	job2->partialReduces = list_create();
+	list_add(job2->files, file3);
 	list_add(job2->files, notAvailableFile);
 	job2->maps = list_create();
 }
@@ -235,7 +264,23 @@ void combinerPartialsReducePlanTest() {
 	printf("************************ReducePlanTest**************************\n");
 	printf("************************jobMapPlanning**************************\n");
 	jobMap(job);
-	printf("*********************combinerReducePlanning*********************\n");
+	printf("******************combinerPartialsReducePlanning*****************\n");
 	combinerPartialsReducePlanning(job);
 	printf("****************************************************************\n");
+}
+
+void PlanTest() {
+	printf("************************ReducePlanTest**************************\n");
+	printf("************************jobMapPlanning**************************\n");
+	jobMap(job);
+	jobMap(job2);
+	printf("*********************combinerReducePlanning*********************\n");
+	combinerPartialsReducePlanning(job);
+	combinerFinalReducePlanning(job);
+	printf("****************************************************************\n");
+	printf("Maps Nodo1: %d(4) --Reduces Nodo1: %d(1)\n", list_size(node1->maps), list_size(node1->reduces));
+	printf("Maps Nodo2: %d(1) --Reduces Nodo2: %d(1)\n", list_size(node2->maps), list_size(node2->reduces));
+	printf("Maps Nodo3: %d(0) --Reduces Nodo3: %d(0)\n", list_size(node3->maps), list_size(node3->reduces));
+	printf("Maps Nodo4: %d(1) --Reduces Nodo4: %d(2)\n", list_size(node4->maps), list_size(node4->reduces));
+	printf("Maps Nodo5: %d(2) --Reduces Nodo5: %d(1)\n", list_size(node5->maps), list_size(node5->reduces));
 }

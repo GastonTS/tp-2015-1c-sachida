@@ -7,5 +7,5 @@ void setup();
 void freeSetup();
 void noCombinerReducePlanTest();
 void combinerPartialsReducePlanTest();
-
+void PlanTest();
 #endif

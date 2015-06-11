@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
 	nodes = list_create();
 
 	setup();
-	combinerPartialsReducePlanTest();
+	PlanTest();
 	freeSetup();
 
 	freeMaRTA();

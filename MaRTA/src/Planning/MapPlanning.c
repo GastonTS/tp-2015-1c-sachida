@@ -59,6 +59,14 @@ void notificarMap(t_map *map) {
 	//TODO: enviar map al proceso job.
 }
 
+void removeMapNode(t_map *map) {
+	t_node *selectedNode = findNode(nodes, map->nodeName);
+	bool isNumBlock(int numBlock) {
+		return numBlock == map->numBlock;
+	}
+	list_remove_by_condition(selectedNode->maps, (void *) isNumBlock);
+}
+
 void jobMap(t_job *job) {
 	log_trace(logger, "Planning Job %d...", job->id);
 	int filesAvailables = 1;
@@ -75,6 +83,7 @@ void jobMap(t_job *job) {
 				list_iterate(copies, (void*) selectNodeToMap);
 				if (selectedNode == NULL) {
 					log_info(logger, "File %s not available", file->path);
+					list_iterate(job->maps, (void *) removeMapNode);
 					filesAvailables = 0;
 				} else {
 					list_add(selectedNode->maps, (void *) numBlock);
