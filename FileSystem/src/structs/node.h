@@ -20,7 +20,7 @@ void node_setAllBlocksFree(node_t *node);
 void node_setBlockUsed(node_t* node, off_t blockIndex);
 void node_setBlockFree(node_t* node, off_t blockIndex);
 bool node_isBlockUsed(node_t* node, off_t blockIndex);
-off_t node_getBlocksFreeCount(node_t *node);
+int node_getBlocksFreeCount(node_t *node);
 off_t node_getFirstFreeBlock(node_t *node);
 
 node_t* node_create(size_t blocksCount);

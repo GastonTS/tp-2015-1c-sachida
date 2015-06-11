@@ -69,7 +69,7 @@ bool node_isBlockUsed(node_t *node, off_t blockIndex) {
 	return 0;
 }
 
-off_t node_getBlocksFreeCount(node_t *node) {
+int node_getBlocksFreeCount(node_t *node) {
 	int count = 0;
 	int i;
 	for (i = 0; i < node->blocksCount; i++) {
