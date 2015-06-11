@@ -35,18 +35,18 @@ bool mongo_node_save(node_t *node) {
 	return mongo_saveDoc(nodeCollection, node_getBSON(node));
 }
 
-t_list* mongo_node_getAll() {
-
-	mongo_node_checkInit();
-
-	return mongo_getByQuery(nodeCollection, bson_new(), (void*) node_getNodeFromBSON);
-}
-
 node_t* mongo_node_getById(char *id) {
 
 	mongo_node_checkInit();
 
 	return mongo_getDocById(nodeCollection, id, (void*) node_getNodeFromBSON);
+}
+
+t_list* mongo_node_getAll() {
+
+	mongo_node_checkInit();
+
+	return mongo_getByQuery(nodeCollection, bson_new(), (void*) node_getNodeFromBSON);
 }
 
 node_t* mongo_node_getByName(char *name) {

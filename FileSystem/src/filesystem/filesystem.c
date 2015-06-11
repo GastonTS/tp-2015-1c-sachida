@@ -82,37 +82,63 @@ t_list* filesystem_getFilesInDir(char *parentId) {
 }
 
 bool filesystem_deleteDirByNameInDir(char *dirName, char *parentId) {
-
-	void deleteChilds(char *parentId) {
-		void deleteFile(file_t *file) {
-			mongo_file_deleteById(file->id);
-		}
-		t_list *childFiles = filesystem_getFilesInDir(parentId);
-		list_iterate(childFiles, (void*) deleteFile);
-		list_destroy_and_destroy_elements(childFiles, (void*) file_free);
-
-		void deleteDir(dir_t *dir) {
-			deleteChilds(dir->id);
-			mongo_dir_deleteById(dir->id);
-		}
-		t_list *childDirs = filesystem_getDirsInDir(parentId);
-		list_iterate(childDirs, (void*) deleteDir);
-		list_destroy_and_destroy_elements(childDirs, (void*) dir_free);
-	}
-
 	dir_t *dir = filesystem_getDirByNameInDir(dirName, parentId);
 	if (dir) {
-		deleteChilds(dir->id);
-		bool r = mongo_dir_deleteById(dir->id);
+		bool r = filesystem_deleteDir(dir);
 		dir_free(dir);
 		return r;
-	} else {
-		return 0;
 	}
+	return 0;
+}
+
+bool filesystem_deleteDir(dir_t *dir) {
+	if (dir) {
+		void deleteChilds(char *parentId) {
+			t_list *childFiles = filesystem_getFilesInDir(parentId);
+			list_iterate(childFiles, (void*) filesystem_deleteFile);
+			list_destroy_and_destroy_elements(childFiles, (void*) file_free);
+
+			t_list *childDirs = filesystem_getDirsInDir(parentId);
+			list_iterate(childDirs, (void*) filesystem_deleteDir);
+			list_destroy_and_destroy_elements(childDirs, (void*) dir_free);
+		}
+
+		deleteChilds(dir->id);
+		mongo_dir_deleteById(dir->id);
+		return 1;
+	}
+	return 0;
 }
 
 bool filesystem_deleteFileByNameInDir(char *fileName, char *parentId) {
-	return mongo_file_deleteFileByNameInDir(fileName, parentId);
+	file_t *file = mongo_file_getByNameInDir(fileName, parentId);
+	if (file) {
+		bool r = filesystem_deleteFile(file);
+		file_free(file);
+		return r;
+	}
+	return 0;
+}
+
+bool filesystem_deleteFile(file_t *file) {
+	if (file) {
+		// Free nodes space
+
+		void listBlocks(t_list* blockCopies) {
+			void listBlockCopy(file_block_t *blockCopy) {
+				node_t *node = filesystem_getNodeById(blockCopy->nodeId);
+				node_setBlockFree(node, blockCopy->blockIndex);
+				mongo_node_updateBlocks(node);
+				node_free(node);
+			}
+			list_iterate(blockCopies, (void *) listBlockCopy);
+		}
+		list_iterate(file->blocks, (void *) listBlocks);
+
+		mongo_file_deleteById(file->id);
+		return 1;
+	}
+	return 0;
 }
 
 void filesystem_moveFile(file_t *file, char *destinationId) {
@@ -150,6 +176,10 @@ bool filesystem_addDir(dir_t *dir) {
 
 node_t* filesystem_getNodeByName(char *nodeName) {
 	return mongo_node_getByName(nodeName);
+}
+
+node_t* filesystem_getNodeById(char *nodeId) {
+	return mongo_node_getById(nodeId);
 }
 
 void filesystem_nodeIsDown(char *nodeName) {

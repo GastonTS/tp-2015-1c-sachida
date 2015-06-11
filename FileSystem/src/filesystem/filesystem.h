@@ -20,7 +20,9 @@ t_list* filesystem_getDirsInDir(char *parentId);
 t_list* filesystem_getFilesInDir(char *parentId);
 
 bool filesystem_deleteDirByNameInDir(char *dirName, char *parentId);
+bool filesystem_deleteDir(dir_t *dir);
 bool filesystem_deleteFileByNameInDir(char *fileName, char *parentId);
+bool filesystem_deleteFile(file_t *file);
 
 void filesystem_moveFile(file_t *file, char *destinationId);
 void filesystem_moveDir(dir_t *dir, char *destinationId);
@@ -29,6 +31,7 @@ bool filesystem_copyFileFromFS(char *route, file_t *file);
 bool filesystem_addDir(dir_t *dir);
 
 node_t* filesystem_getNodeByName(char *nodeName);
+node_t* filesystem_getNodeById(char *nodeId);
 void filesystem_nodeIsDown(char *nodeName);
 
 char* filesystem_md5sum(file_t* file);

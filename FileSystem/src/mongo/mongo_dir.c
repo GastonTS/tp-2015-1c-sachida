@@ -62,16 +62,6 @@ dir_t* mongo_dir_getByNameInDir(char *name, char *parentId) {
 	return mongo_getDocByQuery(dirCollection, query, (void*) dir_getDirFromBSON);
 }
 
-bool mongo_dir_deleteDirByNameInDir(char *name, char *parentId) {
-	bson_t *query;
-
-	mongo_dir_checkInit();
-
-	query = BCON_NEW("name", BCON_UTF8(name), "parentId", BCON_UTF8(parentId));
-
-	return mongo_deleteDocByQuery(dirCollection, query);
-}
-
 bool mongo_dir_deleteById(char *id) {
 	bson_t *query;
 

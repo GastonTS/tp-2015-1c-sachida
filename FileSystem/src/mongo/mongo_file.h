@@ -13,7 +13,6 @@ t_list* mongo_file_getByParentId(char *parentId);
 t_list* mongo_file_getFilesThatHaveNode(char *nodeId);
 file_t* mongo_file_getByNameInDir(char *name, char *parentId);
 
-bool mongo_file_deleteFileByNameInDir(char *name, char *parentId);
 bool mongo_file_deleteById(char *id);
 bool mongo_file_deleteAll();
 

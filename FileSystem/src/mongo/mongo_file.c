@@ -73,16 +73,6 @@ file_t* mongo_file_getByNameInDir(char *name, char *parentId) {
 	return mongo_getDocByQuery(fileCollection, query, (void*) file_getFileFromBSON);
 }
 
-bool mongo_file_deleteFileByNameInDir(char *name, char *parentId) {
-	bson_t *query;
-
-	mongo_file_checkInit();
-
-	query = BCON_NEW("name", BCON_UTF8(name), "parentId", BCON_UTF8(parentId));
-
-	return mongo_deleteDocByQuery(fileCollection, query);
-}
-
 bool mongo_file_deleteById(char *id) {
 	bson_t *query;
 
