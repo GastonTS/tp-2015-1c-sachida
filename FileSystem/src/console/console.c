@@ -51,7 +51,7 @@ void console_start() {
 	char *command = malloc(sizeof(char) * 512);
 	int exit = 0;
 
-	currentDirPrompt = malloc(sizeof(char) * 512);
+	currentDirPrompt = malloc(sizeof(char) * 512); // TODO.. change this.
 	currentDirId = malloc(ID_SIZE);
 
 	strcpy(currentDirPrompt, "/");
@@ -60,7 +60,7 @@ void console_start() {
 	do {
 		printf("%s > ", currentDirPrompt);
 		readCommand(command);
-		// TODO NO ANDA EL TRIM DE COMONS . string_trim(&command);
+		// TODO NO ANDA EL TRIM DE COMONS .string_trim(&command);
 
 		// Ignore empty enter
 		if (command[0] != '\0') {
@@ -391,7 +391,7 @@ void printNodeStatus(char *nodeName) {
 			node_printBlocksStatus(node);
 			node_free(node);
 		} else {
-			printf("No existe el nodo %s\n", nodeName);
+			printf("Node %s does not exist.\n", nodeName);
 		}
 	}
 }

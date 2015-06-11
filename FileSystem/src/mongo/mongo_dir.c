@@ -32,17 +32,14 @@ bool mongo_dir_save(dir_t *dir) {
 
 	mongo_generateId(dir->id);
 
-	return mongo_saveDoc(dir_getBSON(dir), dirCollection);
+	return mongo_saveDoc(dirCollection, dir_getBSON(dir));
 }
 
-dir_t* mongo_dir_getById(char id[]) {
-	const bson_t *doc;
+dir_t* mongo_dir_getById(char *id) {
 
 	mongo_dir_checkInit();
 
-	doc = mongo_getDocById(id, dirCollection);
-
-	return dir_getDirFromBSON(doc);
+	return mongo_getDocById(dirCollection, id, (void*) dir_getDirFromBSON);
 }
 
 t_list* mongo_dir_getByParentId(char *parentId) {
@@ -52,23 +49,17 @@ t_list* mongo_dir_getByParentId(char *parentId) {
 
 	query = BCON_NEW("parentId", BCON_UTF8(parentId));
 
-	return mongo_getByQuery(query, (void*) dir_getDirFromBSON, dirCollection);
+	return mongo_getByQuery(dirCollection, query, (void*) dir_getDirFromBSON);
 }
 
 dir_t* mongo_dir_getByNameInDir(char *name, char *parentId) {
 	bson_t *query;
-	const bson_t *doc;
 
 	mongo_dir_checkInit();
 
 	query = BCON_NEW("name", BCON_UTF8(name), "parentId", BCON_UTF8(parentId));
 
-	doc = mongo_getDocByQuery(query, dirCollection);
-	if (doc) {
-		return dir_getDirFromBSON(doc);
-	}
-
-	return NULL;
+	return mongo_getDocByQuery(dirCollection, query, (void*) dir_getDirFromBSON);
 }
 
 bool mongo_dir_deleteDirByNameInDir(char *name, char *parentId) {
@@ -78,7 +69,7 @@ bool mongo_dir_deleteDirByNameInDir(char *name, char *parentId) {
 
 	query = BCON_NEW("name", BCON_UTF8(name), "parentId", BCON_UTF8(parentId));
 
-	return mongo_deleteDocByQuery(query, dirCollection);
+	return mongo_deleteDocByQuery(dirCollection, query);
 }
 
 bool mongo_dir_deleteById(char *id) {
@@ -88,13 +79,13 @@ bool mongo_dir_deleteById(char *id) {
 
 	query = BCON_NEW("_id", BCON_UTF8(id));
 
-	return mongo_deleteDocByQuery(query, dirCollection);
+	return mongo_deleteDocByQuery(dirCollection, query);
 }
 
 bool mongo_dir_deleteAll() {
 	mongo_dir_checkInit();
 
-	return mongo_deleteDocByQuery(bson_new(), dirCollection);
+	return mongo_deleteDocByQuery(dirCollection, bson_new());
 }
 
 void mongo_dir_updateParentId(char *id, char *newParentId) {
@@ -106,5 +97,5 @@ void mongo_dir_updateParentId(char *id, char *newParentId) {
 	query = BCON_NEW("_id", BCON_UTF8(id));
 	update = BCON_NEW("$set", "{", "parentId", BCON_UTF8(newParentId), "}");
 
-	mongo_update(query, update, dirCollection);
+	mongo_update(dirCollection, query, update);
 }

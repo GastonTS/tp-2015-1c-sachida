@@ -102,7 +102,7 @@ void node_free_blocks(node_t *node) {
 		if (node->blocks->bitarray) {
 			free(node->blocks->bitarray);
 		}
-		bitarray_destroy(node->blocks); // TODO free char array?
+		bitarray_destroy(node->blocks);
 	}
 }
 
@@ -130,7 +130,7 @@ bool node_blockIsValidIndex(node_t *node, off_t blockIndex) {
 
 void node_printBlocksStatus(node_t *node) {
 	int i;
-	//printf("NODE %s BLOCKS USAGE: (left is 0-index) \n", node->id);
+	printf("NODE %s BLOCKS USAGE: (left is 0-index) \n", node->id);
 
 	for (i = 0; i < node->blocksCount; i++) {
 		printf("%d", bitarray_test_bit(node->blocks, i));

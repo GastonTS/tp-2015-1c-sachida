@@ -19,7 +19,7 @@ mongoc_client_t* mongo_getClient() {
 	return client;
 }
 
-void mongo_generateId(char id[]) {
+void mongo_generateId(char *id) {
 	bson_oid_t oid;
 
 	bson_oid_init(&oid, NULL);
@@ -46,7 +46,7 @@ void mongo_createIndexIfAbsent(mongoc_collection_t *collection, char *name, cons
 	free(opt);
 }
 
-int mongo_saveDoc(bson_t *doc, mongoc_collection_t *collection) {
+int mongo_saveDoc(mongoc_collection_t *collection, bson_t *doc) {
 	bson_error_t error;
 	bool r;
 
@@ -62,7 +62,7 @@ int mongo_saveDoc(bson_t *doc, mongoc_collection_t *collection) {
 	return EXIT_SUCCESS;
 }
 
-t_list* mongo_getByQuery(bson_t *query, void* (parser)(const bson_t*), mongoc_collection_t *collection) {
+t_list* mongo_getByQuery(mongoc_collection_t *collection, bson_t *query, void* (*parser)(const bson_t*)) {
 	mongoc_cursor_t *cursor;
 	const bson_t *item;
 	t_list *items;
@@ -72,7 +72,7 @@ t_list* mongo_getByQuery(bson_t *query, void* (parser)(const bson_t*), mongoc_co
 	cursor = mongoc_collection_find(collection, MONGOC_QUERY_NONE, 0, 0, 0, query, NULL, NULL);
 
 	while (mongoc_cursor_next(cursor, &item)) {
-		list_add(items, (parser)(item));
+		list_add(items, parser(item));
 	}
 
 	bson_destroy(query);
@@ -81,15 +81,15 @@ t_list* mongo_getByQuery(bson_t *query, void* (parser)(const bson_t*), mongoc_co
 	return items;
 }
 
-const bson_t* mongo_getDocById(char id[], mongoc_collection_t *collection) {
+void* mongo_getDocById(mongoc_collection_t *collection, char *id, void* (*parser)(const bson_t*)) {
 	bson_t *query;
 
 	query = BCON_NEW("_id", BCON_UTF8(id));
 
-	return mongo_getDocByQuery(query, collection);
+	return mongo_getDocByQuery(collection, query, parser);
 }
 
-const bson_t* mongo_getDocByQuery(bson_t *query, mongoc_collection_t *collection) {
+void* mongo_getDocByQuery(mongoc_collection_t *collection, bson_t *query, void* (*parser)(const bson_t*)) {
 	mongoc_cursor_t *cursor;
 	const bson_t *item;
 	bool r;
@@ -97,17 +97,18 @@ const bson_t* mongo_getDocByQuery(bson_t *query, mongoc_collection_t *collection
 	cursor = mongoc_collection_find(collection, MONGOC_QUERY_NONE, 0, 1, 0, query, NULL, NULL);
 	r = mongoc_cursor_next(cursor, &item);
 
+	void *parsedItem = NULL;
+	if (r) {
+		parsedItem = parser(item);
+	}
+
 	bson_destroy(query);
 	mongoc_cursor_destroy(cursor);
 
-	if (r) {
-		return item;
-	}
-
-	return NULL;
+	return parsedItem;
 }
 
-bool mongo_deleteDocByQuery(bson_t *query, mongoc_collection_t *collection) {
+bool mongo_deleteDocByQuery(mongoc_collection_t *collection, bson_t *query) {
 	bool r;
 
 	r = mongoc_collection_remove(collection, MONGOC_QUERY_NONE, query, NULL, NULL);
@@ -117,7 +118,7 @@ bool mongo_deleteDocByQuery(bson_t *query, mongoc_collection_t *collection) {
 	return r;
 }
 
-void mongo_update(bson_t *query, bson_t *update, mongoc_collection_t *collection) {
+void mongo_update(mongoc_collection_t *collection, bson_t *query, bson_t *update) {
 
 	mongoc_collection_update(collection, MONGOC_UPDATE_MULTI_UPDATE, query, update, NULL, NULL);
 
