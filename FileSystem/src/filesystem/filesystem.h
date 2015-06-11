@@ -6,6 +6,7 @@
 #include "../mongo/mongo_node.h"
 
 #define FILESYSTEM_BLOCK_COPIES 3
+#define	NODE_BLOCK_SIZE	20 * 1024 * 1024
 
 void filesystem_initialize();
 void filesystem_shutdown();

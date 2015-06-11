@@ -46,7 +46,7 @@ void mongo_createIndexIfAbsent(mongoc_collection_t *collection, char *name, cons
 	free(opt);
 }
 
-int mongo_saveDoc(mongoc_collection_t *collection, bson_t *doc) {
+bool mongo_saveDoc(mongoc_collection_t *collection, bson_t *doc) {
 	bson_error_t error;
 	bool r;
 
@@ -54,12 +54,11 @@ int mongo_saveDoc(mongoc_collection_t *collection, bson_t *doc) {
 
 	if (!r) {
 		fprintf(stderr, "%s\n", error.message);
-		bson_destroy(doc);
-		return EXIT_FAILURE;
 	}
 
 	bson_destroy(doc);
-	return EXIT_SUCCESS;
+
+	return r;
 }
 
 t_list* mongo_getByQuery(mongoc_collection_t *collection, bson_t *query, void* (*parser)(const bson_t*)) {

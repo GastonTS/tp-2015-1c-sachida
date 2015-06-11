@@ -4,8 +4,6 @@
 #include <commons/bitarray.h>
 #include "../mongo/mongo.h"
 
-#define	NODE_BLOCK_SIZE	20 * 1024 * 1024
-
 typedef struct {
 	char id[ID_SIZE];
 	char *name;

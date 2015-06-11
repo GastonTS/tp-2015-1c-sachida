@@ -9,7 +9,7 @@ bool filesystem_canCreateResource(char *resourceName, char *parentId);
 char* filesystem_md5(char *str);
 t_list* filesystem_getFSFileBlocks(char *route, size_t *fileSize);
 char* filesystem_getMD5FromBlocks(t_list *blocks);
-void filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file);
+bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file);
 void filesystem_sendBlockToNode(node_t *node, off_t blockIndex, char *block);
 
 t_log* filesystem_logger;
@@ -160,10 +160,19 @@ bool filesystem_copyFileFromFS(char *route, file_t *file) {
 	file->size = fileSize;
 
 	// TESTING ONLY printf("%s\n", filesystem_getMD5FromBlocks(blocks));
-	filesystem_distributeBlocksToNodes(blocks, file);
+	if (filesystem_distributeBlocksToNodes(blocks, file)) {
+		list_destroy_and_destroy_elements(blocks, free);
+		return 0;
+	}
 	list_destroy_and_destroy_elements(blocks, free);
 
-	return !mongo_file_save(file);
+	if (mongo_file_save(file)) {
+		// If for some reason, the file could not be saved in the db, then should destroy the blocks.
+		filesystem_deleteFile(file);
+		return 0;
+	}
+
+	return 1;
 }
 
 bool filesystem_addDir(dir_t *dir) {
@@ -268,11 +277,11 @@ t_list* filesystem_getFSFileBlocks(char *route, size_t *fileSize) {
 	int finished = 0;
 
 	void addBlock(int blockLength) {
-		buffer = malloc(sizeof(char) * NODE_BLOCK_SIZE);
+		buffer = malloc(sizeof(char) * NODE_BLOCK_SIZE); // TODO. poner blockLength (+1) tal vez? testear bien. con md5
 		strncpy(buffer, startBlock, blockLength);
 		buffer[blockLength] = '\0';
 		list_add(blocks, buffer);
-		// TODO (es necesario??), fill the rest with \0 .. and other stuff.input[strlen(input) - 1] = '\0';
+		// TODO (es necesario??), fill the rest with \0
 	}
 
 	while (!finished) {
@@ -312,7 +321,9 @@ char* filesystem_getMD5FromBlocks(t_list *blocks) {
 	return md5str;
 }
 
-void filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
+bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
+	bool success = 1;
+
 	t_list *nodes = mongo_node_getAll();
 
 	bool nodeComparator(node_t *node, node_t *node2) {
@@ -335,8 +346,21 @@ void filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 				// TESTING node_printBlocksStatus(selectedNode);
 				if (firstBlockFreeIndex == -1) {
 					// TODO ROLLBACK (or avoid), no hay mas nodos disponibles
+					success = 0;
 					log_error(filesystem_logger, "Couldn't find a free block to store the block");
 				} else {
+					/*
+					 * La idea seria la siguiente:
+					 * Mandar el "filesystem_sendBlockToNode" a un thread pero no empezarlo
+					 * Entonces una vez que se termina de ejectuar todo este ciclo,
+					 * si no hubo errores se ejecutan todos los threads en paralelo, es decir se le manda la data de verdad..
+					 * Si hubo errores, se cancelan los threads, y devolvemos error para que no guarde el archivo. !
+					 *
+					 * Otro tema a ver:
+					 * Cuando asigno el bloque como usado, hago el update en la siguiente linea?
+					 * Puede ser innecesario, y podria hacer el rollback al salir, en la funcion anterior.
+					 * Ver bien esto y testearlo !.
+					 * */
 					filesystem_sendBlockToNode(selectedNode, firstBlockFreeIndex, block);
 					node_setBlockUsed(selectedNode, firstBlockFreeIndex);
 					mongo_node_updateBlocks(selectedNode);
@@ -347,6 +371,7 @@ void filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 					list_add(blockCopies, blockCopy);
 				}
 			} else {
+				success = 0;
 				//TODO ROLLBACK (or avoid) no hay tanta cantidad de nodos disponibles como de copias necesarias.
 				log_error(filesystem_logger, "There are less nodes than copies to be done.");
 			}

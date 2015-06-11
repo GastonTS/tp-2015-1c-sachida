@@ -16,7 +16,7 @@ void mongo_shutdown();
 
 void mongo_createIndexIfAbsent(mongoc_collection_t *collection, char *name, const bson_t *keys, bool unique);
 
-int mongo_saveDoc(mongoc_collection_t *collection, bson_t *doc);
+bool mongo_saveDoc(mongoc_collection_t *collection, bson_t *doc);
 
 t_list* mongo_getByQuery(mongoc_collection_t *collection, bson_t *query, void* (*parser)(const bson_t*));
 void* mongo_getDocById(mongoc_collection_t *collection, char *id, void* (*parser)(const bson_t*));
