@@ -11,7 +11,6 @@ typedef struct {
 	char *parentId;
 } dir_t;
 
-
 bson_t* dir_getBSON(dir_t *dir);
 dir_t* dir_getDirFromBSON(const bson_t *doc);
 

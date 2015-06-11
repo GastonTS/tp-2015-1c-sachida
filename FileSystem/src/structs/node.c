@@ -34,7 +34,6 @@ node_t* node_getNodeFromBSON(const bson_t *doc) {
 			} else if (strcmp(key, "blocks") == 0) {
 				char *bitarray = malloc(value->value.v_binary.data_len);
 				memcpy(bitarray, value->value.v_binary.data, value->value.v_binary.data_len);
-				//node->blocks = bitarray_create((char *) value->value.v_binary.data, value->value.v_binary.data_len);
 				node->blocks = bitarray_create(bitarray, value->value.v_binary.data_len);
 			} else if (strcmp(key, "blocksCount") == 0) {
 				node->blocksCount = value->value.v_int32;

@@ -7,13 +7,13 @@ typedef struct {
 	char id[ID_SIZE];
 	char *name;
 	char *parentId;
-	int32_t size;
+	size_t size;
 	t_list *blocks; // (list of blocks with the list of the copies)
 } file_t;
 
 typedef struct {
 	char nodeId[ID_SIZE];
-	int *blockIndex;
+	off_t blockIndex;
 } file_block_t;
 
 bson_t* file_getBSON(file_t *file);

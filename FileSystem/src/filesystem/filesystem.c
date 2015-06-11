@@ -7,10 +7,10 @@
 
 bool filesystem_canCreateResource(char *resourceName, char *parentId);
 char* filesystem_md5(char *str);
-t_list* filesystem_getFSFileBlocks(char *route, int* fileSize);
+t_list* filesystem_getFSFileBlocks(char *route, size_t *fileSize);
 char* filesystem_getMD5FromBlocks(t_list *blocks);
 void filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file);
-void filesystem_sendBlockToNode(node_t *node, int blockIndex, char *block);
+void filesystem_sendBlockToNode(node_t *node, off_t blockIndex, char *block);
 
 t_log* filesystem_logger;
 
@@ -128,12 +128,10 @@ bool filesystem_copyFileFromFS(char *route, file_t *file) {
 		return 0;
 	}
 
-	int *fileSize = malloc(sizeof(int));
+	size_t fileSize;
 
-	t_list *blocks = filesystem_getFSFileBlocks(route, fileSize);
-	file->size = *fileSize;
-
-	free(fileSize);
+	t_list *blocks = filesystem_getFSFileBlocks(route, &fileSize);
+	file->size = fileSize;
 
 	// TESTING ONLY printf("%s\n", filesystem_getMD5FromBlocks(blocks));
 	filesystem_distributeBlocksToNodes(blocks, file);
@@ -221,7 +219,7 @@ char* filesystem_md5(char *str) {
 	}
 }
 
-t_list* filesystem_getFSFileBlocks(char *route, int* fileSize) {
+t_list* filesystem_getFSFileBlocks(char *route, size_t *fileSize) {
 	struct stat stat;
 	int fd = open(route, O_RDONLY);
 
@@ -302,7 +300,7 @@ void filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 		for (i = 0; i < FILESYSTEM_BLOCK_COPIES; i++) {
 			if (i < list_size(nodes)) {
 				node_t *selectedNode = list_get(nodes, i);
-				int firstBlockFreeIndex = node_getFirstFreeBlock(selectedNode);
+				off_t firstBlockFreeIndex = node_getFirstFreeBlock(selectedNode);
 
 				// TESTING node_printBlocksStatus(selectedNode);
 				if (firstBlockFreeIndex == -1) {
@@ -315,7 +313,7 @@ void filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 
 					file_block_t *blockCopy = file_block_create();
 					strcpy(blockCopy->nodeId, selectedNode->id);
-					*blockCopy->blockIndex = firstBlockFreeIndex;
+					blockCopy->blockIndex = firstBlockFreeIndex;
 					list_add(blockCopies, blockCopy);
 				}
 			} else {
@@ -329,7 +327,7 @@ void filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 	list_destroy_and_destroy_elements(nodes, (void *) node_free);
 }
 
-void filesystem_sendBlockToNode(node_t *node, int blockIndex, char *block) {
+void filesystem_sendBlockToNode(node_t *node, off_t blockIndex, char *block) {
 	// TODO
 	log_info(filesystem_logger, "Sending block to node %s (%s), blockIndex %d\n", node->name, node->id, blockIndex);
 }

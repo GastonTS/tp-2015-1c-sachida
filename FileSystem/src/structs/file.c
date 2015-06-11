@@ -9,7 +9,7 @@ file_block_t* file_block_getFileFromBSON(bson_t *doc);
 bson_t* file_block_getBSON(file_block_t *fileBlock) {
 	bson_t *bson = bson_new();
 	BSON_APPEND_UTF8(bson, "nodeId", fileBlock->nodeId);
-	BSON_APPEND_INT32(bson, "blockIndex", *fileBlock->blockIndex);
+	BSON_APPEND_INT32(bson, "blockIndex", fileBlock->blockIndex);
 	return bson;
 }
 
@@ -19,7 +19,7 @@ bson_t* file_getBSON(file_t *file) {
 	bson_t *bson = bson_new();
 	BSON_APPEND_UTF8(bson, "_id", file->id);
 	BSON_APPEND_UTF8(bson, "name", file->name);
-	BSON_APPEND_INT32(bson, "size", file->size);
+	BSON_APPEND_INT64(bson, "size", file->size);
 	BSON_APPEND_UTF8(bson, "parentId", file->parentId);
 
 	bson_t *bson_blocks = bson_new();
@@ -63,7 +63,7 @@ file_t* file_getFileFromBSON(const bson_t *doc) {
 			} else if (strcmp(key, "name") == 0) {
 				strcpy(file->name, value->value.v_utf8.str);
 			} else if (strcmp(key, "size") == 0) {
-				file->size = value->value.v_int32;
+				file->size = value->value.v_int64;
 			} else if (strcmp(key, "parentId") == 0) {
 				strcpy(file->parentId, value->value.v_utf8.str);
 			} else if (strcmp(key, "blocks") == 0) {
@@ -114,7 +114,7 @@ file_block_t* file_block_getFileFromBSON(bson_t *doc) {
 			if (strcmp(key, "nodeId") == 0) {
 				strcpy(fileBlock->nodeId, value->value.v_utf8.str);
 			} else if (strcmp(key, "blockIndex") == 0) {
-				*fileBlock->blockIndex = value->value.v_int32;
+				fileBlock->blockIndex = value->value.v_int32;
 			}
 		}
 	}
@@ -141,11 +141,9 @@ void file_free(file_t *file) {
 
 file_block_t* file_block_create() {
 	file_block_t* fileBlock = malloc(sizeof(file_block_t));
-	fileBlock->blockIndex = malloc(sizeof(int));
 	return fileBlock;
 }
 
 void file_block_free(file_block_t *fileBlock) {
-	free(fileBlock->blockIndex);
 	free(fileBlock);
 }
