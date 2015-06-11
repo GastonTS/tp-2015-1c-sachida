@@ -25,7 +25,7 @@ dir_t* dir_getDirFromBSON(const bson_t *doc) {
 			if (strcmp(key, "_id") == 0) {
 				strcpy(dir->id, value->value.v_utf8.str);
 			} else if (strcmp(key, "name") == 0) {
-				strcpy(dir->name, value->value.v_utf8.str);
+				dir->name = strdup(value->value.v_utf8.str);
 			} else if (strcmp(key, "parentId") == 0) {
 				strcpy(dir->parentId, value->value.v_utf8.str);
 
@@ -50,13 +50,12 @@ dir_t* dir_getDirFromBSON(const bson_t *doc) {
 
 dir_t* dir_create() {
 	dir_t* dir = malloc(sizeof(dir_t));
-	dir->name = malloc(sizeof(char) * 512); // TODO change this..
-	dir->parentId = malloc(ID_SIZE);
 	return dir;
 }
 
 void dir_free(dir_t* dir) {
-	free(dir->name);
-	free(dir->parentId);
+	if (dir->name) {
+		free(dir->name);
+	}
 	free(dir);
 }

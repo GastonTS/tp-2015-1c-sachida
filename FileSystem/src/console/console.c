@@ -279,7 +279,7 @@ void makeDir(char *dirName) {
 	if (!isNull(dirName)) {
 
 		dir_t *dir = dir_create();
-		strcpy(dir->name, dirName);
+		dir->name = strdup(dirName);
 		strcpy(dir->parentId, currentDirId);
 
 		if (!filesystem_addDir(dir)) {
@@ -345,7 +345,7 @@ void copyFile(char **parameters) {
 			printf("Copying file %s to MDFS: %s\n", fileName, dest);
 
 			file_t *file = file_create();
-			strcpy(file->name, dest);
+			file->name = strdup(dest);
 			strcpy(file->parentId, currentDirId);
 			file->size = 0;
 
@@ -370,7 +370,11 @@ void md5sum(char *fileName) {
 		if (file) {
 			// TODO armar bien esto..
 			printf("MD5 de %s\n", fileName);
-			printf("%s\n", filesystem_md5sum(file));
+			char *md5sum = filesystem_md5sum(file);
+			printf("%s\n", md5sum);
+			if (md5sum) {
+				free(md5sum);
+			}
 			file_free(file);
 		} else {
 			printf("File not found.\n");

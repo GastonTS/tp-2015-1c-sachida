@@ -36,9 +36,9 @@ void testCreateFile() {
 }
 
 void testCreateNode() {
-	node_t* node = node_create(100);
+	node_t* node = node_create(90);
 
-	node->name = strdup("Node1");
+	node->name = strdup("Node3");
 
 	node_printBlocksStatus(node);
 	/*

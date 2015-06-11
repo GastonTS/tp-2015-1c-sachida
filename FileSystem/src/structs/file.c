@@ -61,7 +61,7 @@ file_t* file_getFileFromBSON(const bson_t *doc) {
 			if (strcmp(key, "_id") == 0) {
 				strcpy(file->id, value->value.v_utf8.str);
 			} else if (strcmp(key, "name") == 0) {
-				strcpy(file->name, value->value.v_utf8.str);
+				file->name = strdup(value->value.v_utf8.str);
 			} else if (strcmp(key, "size") == 0) {
 				file->size = value->value.v_int64;
 			} else if (strcmp(key, "parentId") == 0) {
@@ -123,8 +123,6 @@ file_block_t* file_block_getFileFromBSON(bson_t *doc) {
 }
 file_t* file_create() {
 	file_t* file = malloc(sizeof(file_t));
-	file->name = malloc(sizeof(char) * 512);
-	file->parentId = malloc(ID_SIZE);
 	file->blocks = list_create();
 	return file;
 }
@@ -134,8 +132,9 @@ void file_free(file_t *file) {
 		list_destroy_and_destroy_elements(copies, (void *) file_block_free);
 	}
 	list_destroy_and_destroy_elements(file->blocks, (void *) freeBlocks);
-	free(file->name);
-	free(file->parentId);
+	if (file->name) {
+		free(file->name);
+	}
 	free(file);
 }
 

@@ -158,7 +158,7 @@ void filesystem_nodeIsDown(char *nodeName) {
 		t_list *files = mongo_file_getFilesThatHaveNode(node->id);
 		void listFile(file_t *file) {
 			// TODO..
-			printf("%s\n", file->name);
+			printf("TODO file used: %s\n", file->name);
 		}
 		list_iterate(files, (void*) listFile);
 		list_destroy_and_destroy_elements(files, (void *) file_free);

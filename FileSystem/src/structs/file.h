@@ -5,8 +5,8 @@
 
 typedef struct {
 	char id[ID_SIZE];
+	char parentId[ID_SIZE];
 	char *name;
-	char *parentId;
 	size_t size;
 	t_list *blocks; // (list of blocks with the list of the copies)
 } file_t;
