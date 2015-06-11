@@ -38,7 +38,7 @@ int main(void) {
 
 void testNode() {
 	if (0) {
-		node_t* node = node_create(500);
+		node_t* node = node_create(100);
 
 		node->name = strdup("Node4");
 		if (0) {
@@ -56,7 +56,7 @@ void testNode() {
 		node_printBlocksStatus(node);
 		node_free(node);
 
-		if (1) {
+		if (0) {
 			node_t* node2 = mongo_node_getByName("Node1");
 
 			node_printBlocksStatus(node2);

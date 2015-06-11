@@ -28,6 +28,7 @@ void mongo_generateId(char id[]) {
 
 void mongo_shutdown() {
 	mongoc_client_destroy(client);
+	mongoc_cleanup();
 }
 
 void mongo_createIndexIfAbsent(mongoc_collection_t *collection, char *name, const bson_t *keys, bool unique) {

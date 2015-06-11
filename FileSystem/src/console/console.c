@@ -116,7 +116,7 @@ void console_start() {
 }
 
 void readCommand(char *input) {
-	char buffer[4096];
+	char buffer[512];
 
 	fgets(buffer, sizeof(buffer), stdin);
 
