@@ -45,6 +45,7 @@ typedef struct {
 	bool combiner;
 	t_list *files;
 	t_list *maps;
+	t_list *partialReduces;
 	t_reduce *finalReduce;
 } t_job;
 

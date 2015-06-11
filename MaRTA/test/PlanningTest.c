@@ -221,6 +221,6 @@ void ReducePlanTest() {
 	printf("************************jobMapPlanning**************************\n");
 	jobMap(job);
 	printf("*************************reducePlanning**************************\n");
-	reducePlanning(job);
+	noCombinerReducePlanning(job);
 	printf("****************************************************************\n");
 }

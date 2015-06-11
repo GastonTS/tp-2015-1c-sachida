@@ -10,12 +10,19 @@ void freeFile(t_file *file) {
 	free(file);
 }
 
+void freeReduce(t_reduce *reduce) {
+	list_destroy_and_destroy_elements(reduce->temps, (void *) free);
+	free(reduce);
+}
+
 void freeJob(t_job *job) {
 	list_destroy_and_destroy_elements(job->files, (void *) freeFile);
 	list_destroy_and_destroy_elements(job->maps, (void *) free);
+	if (job->finalReduce != NULL)
+		freeReduce(job->finalReduce);
 	free(job);
 }
 
-bool isMap(t_map *map, int idMap){
-	return map->id==idMap;
+bool isMap(t_map *map, int idMap) {
+	return map->id == idMap;
 }
