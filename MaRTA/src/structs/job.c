@@ -18,8 +18,8 @@ void freeReduce(t_reduce *reduce) {
 void freeJob(t_job *job) {
 	list_destroy_and_destroy_elements(job->files, (void *) freeFile);
 	list_destroy_and_destroy_elements(job->maps, (void *) free);
-	if (job->finalReduce != NULL)
-		freeReduce(job->finalReduce);
+	list_destroy_and_destroy_elements(job->partialReduces, (void *) freeReduce);
+	freeReduce(job->finalReduce);
 	free(job);
 }
 

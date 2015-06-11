@@ -170,6 +170,9 @@ void setup() {
 	job->id = 42;
 	job->combiner = false;
 	job->files = list_create();
+	job->finalReduce = malloc(sizeof(t_reduce));
+	job->finalReduce->temps = list_create();
+	job->partialReduces = list_create();
 	list_add(job->files, file2);
 	list_add(job->files, file);
 	job->maps = list_create();
@@ -189,6 +192,9 @@ void setup() {
 	job2 = malloc(sizeof(t_job));
 	job2->id = 23;
 	job2->files = list_create();
+	job2->finalReduce = malloc(sizeof(t_reduce));
+	job2->finalReduce->temps = list_create();
+	job2->partialReduces = list_create();
 	list_add(job2->files, notAvailableFile);
 	job2->maps = list_create();
 }
@@ -216,11 +222,20 @@ void RePlanTest() {
 	printf("****************************************************************\n");
 }
 
-void ReducePlanTest() {
+void noCombinerReducePlanTest() {
 	printf("************************ReducePlanTest**************************\n");
 	printf("************************jobMapPlanning**************************\n");
 	jobMap(job);
-	printf("*************************reducePlanning**************************\n");
+	printf("********************noCombinerReducePlanning*********************\n");
 	noCombinerReducePlanning(job);
+	printf("****************************************************************\n");
+}
+
+void combinerPartialsReducePlanTest() {
+	printf("************************ReducePlanTest**************************\n");
+	printf("************************jobMapPlanning**************************\n");
+	jobMap(job);
+	printf("*********************combinerReducePlanning*********************\n");
+	combinerPartialsReducePlanning(job);
 	printf("****************************************************************\n");
 }
