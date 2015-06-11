@@ -1,5 +1,32 @@
 #include <stdlib.h>
+#include <string.h>
 #include "job.h"
+
+t_copy *CreateCopy(char *nodeName, int numBlock) {
+	t_copy *copy = malloc(sizeof(t_copy));
+	strcpy(copy->nodeName, nodeName);
+	copy->numBlock = numBlock;
+	return copy;
+}
+
+t_file *CreateFile(char *path) {
+	t_file *file = malloc(sizeof(t_file));
+	file->path = "sarasa.txt";
+	file->blocks = list_create();
+	return file;
+}
+
+t_job *CreateJob(int id, bool combiner) {
+	t_job *job = malloc(sizeof(t_job));
+	job->id = id;
+	job->combiner = combiner;
+	job->files = list_create();
+	job->finalReduce = malloc(sizeof(t_reduce));
+	job->finalReduce->temps = list_create();
+	job->partialReduces = list_create();
+	job->maps = list_create();
+	return job;
+}
 
 void freeCopies(t_list *copies) {
 	list_destroy_and_destroy_elements(copies, (void *) free);

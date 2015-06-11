@@ -58,7 +58,7 @@ void noCombinerReducePlanning(t_job *job) {
 			return !strcmp(count->nodeName, map->nodeName);
 		}
 		t_temporalCount *node = NULL;
-		node = list_find(counts, (void*) findNode);
+		node = list_find(counts, (void*) findNodeInMaps);
 		if (node == NULL) {
 			node = malloc(sizeof(t_temporalCount));
 			node->nodeName = map->nodeName;

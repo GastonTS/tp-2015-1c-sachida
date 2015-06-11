@@ -47,112 +47,54 @@ t_job *job;
 t_job *job2;
 
 void setup() {
-	node1 = malloc(sizeof(t_node));
-	node1->active = 1;
-	node1->ip = "IP Nodo1";
-	node1->port = 3001;
-	strcpy(node1->name, "Node1");
-	node1->maps = list_create();
+
+	//Creacion Nodos
+	node1 = CreateNode(1, "IP Nodo1", 3001, "Node1");
 	list_add(node1->maps, (void *) 1);
 	list_add(node1->maps, (void *) 1);
 	list_add(node1->maps, (void *) 1);
 	list_add(node1->maps, (void *) 1);
-	node1->reduces = list_create();
 	list_add(node1->reduces, (void *) "datos.txt");
 
-	node2 = malloc(sizeof(t_node));
-	node2->active = 1;
-	node2->ip = "IP Nodo2";
-	node2->port = 3002;
-	strcpy(node2->name, "Node2");
-	node2->maps = list_create();
+	node2 = CreateNode(1, "IP Nodo2", 3002, "Node2");
 	list_add(node2->maps, (void *) 1);
-	node2->reduces = list_create();
 	list_add(node2->reduces, (void *) "datos.txt");
 
-	node3 = malloc(sizeof(t_node));
-	node3->active = 0;
-	node3->ip = "IP Nodo3";
-	node3->port = 3003;
-	strcpy(node3->name, "Node3");
-	node3->maps = list_create();
-	node3->reduces = list_create();
-
-	node4 = malloc(sizeof(t_node));
-	node4->active = 1;
-	node4->ip = "IP Nodo4";
-	node4->port = 3004;
-	strcpy(node4->name, "Node4");
-	node4->maps = list_create();
-	node4->reduces = list_create();
-
-	node5 = malloc(sizeof(t_node));
-	node5->active = 1;
-	node5->ip = "IP Nodo5";
-	node5->port = 3005;
-	strcpy(node5->name, "Node5");
-	node5->maps = list_create();
-	node5->reduces = list_create();
+	node3 = CreateNode(0, "IP Nodo3", 3003, "Node3");
+	node4 = CreateNode(1, "IP Nodo4", 3004, "Node4");
+	node5 = CreateNode(1, "IP Nodo5", 3005, "Node5");
 
 	list_add(nodes, node1);
 	list_add(nodes, node2);
 	list_add(nodes, node3);
 	list_add(nodes, node4);
 	list_add(nodes, node5);
+	//Fin Nodos
 
-	copy1 = malloc(sizeof(t_copy));
-	strcpy(copy1->nodeName, "Node3");
-	copy1->numBlock = 2;
-
-	copy2 = malloc(sizeof(t_copy));
-	strcpy(copy2->nodeName, "Node2");
-	copy2->numBlock = 919;
-
-	copy3 = malloc(sizeof(t_copy));
-	strcpy(copy3->nodeName, "Node5");
-	copy3->numBlock = 227;
+	//Creacion Job 1
+	copy1 = CreateCopy("Node3", 2);
+	copy2 = CreateCopy("Node2", 919);
+	copy3 = CreateCopy("Node5", 227);
 
 	copies1 = list_create();
 	list_add(copies1, (void *) copy1);
 	list_add(copies1, (void *) copy2);
 	list_add(copies1, (void *) copy3);
 
-	copy2_1 = malloc(sizeof(t_copy));
-	strcpy(copy2_1->nodeName, "Node3");
-	copy2_1->numBlock = 7;
-
-	copy2_2 = malloc(sizeof(t_copy));
-	strcpy(copy2_2->nodeName, "Node5");
-	copy2_2->numBlock = 307;
-
-	copy2_3 = malloc(sizeof(t_copy));
-	strcpy(copy2_3->nodeName, "Node4");
-	copy2_3->numBlock = 13;
+	copy2_1 = CreateCopy("Node3", 7);
+	copy2_2 = CreateCopy("Node5", 307);
+	copy2_3 = CreateCopy("Node4", 13);
 
 	copies2 = list_create();
 	list_add(copies2, (void *) copy2_1);
 	list_add(copies2, (void *) copy2_2);
 	list_add(copies2, (void *) copy2_3);
 
-	copy3_1 = malloc(sizeof(t_copy));
-	strcpy(copy3_1->nodeName, "Node1");
-	copy3_1->numBlock = 17;
-
-	copy3_2 = malloc(sizeof(t_copy));
-	strcpy(copy3_2->nodeName, "Node3");
-	copy3_2->numBlock = 421;
-
-	copy3_3 = malloc(sizeof(t_copy));
-	strcpy(copy3_3->nodeName, "Node5");
-	copy3_3->numBlock = 23;
-
-	copy3_4 = malloc(sizeof(t_copy));
-	strcpy(copy3_4->nodeName, "Node2");
-	copy3_4->numBlock = 29;
-
-	copy3_5 = malloc(sizeof(t_copy));
-	strcpy(copy3_5->nodeName, "Node4");
-	copy3_5->numBlock = 821;
+	copy3_1 = CreateCopy("Node1", 17);
+	copy3_2 = CreateCopy("Node3", 421);
+	copy3_3 = CreateCopy("Node5", 23);
+	copy3_4 = CreateCopy("Node2", 29);
+	copy3_5 = CreateCopy("Node4", 821);
 
 	copies3 = list_create();
 	list_add(copies3, (void *) copy3_1);
@@ -161,74 +103,47 @@ void setup() {
 	list_add(copies3, (void *) copy3_4);
 	list_add(copies3, (void *) copy3_5);
 
-	file = malloc(sizeof(t_file));
-	file->path = "sarasa.txt";
-	file->blocks = list_create();
+	file = CreateFile("sarasa.txt");
 	list_add(file->blocks, copies1);
 	list_add(file->blocks, copies2);
 
-	file2 = malloc(sizeof(t_file));
-	file2->path = "pepe.txt";
-	file2->blocks = list_create();
+	file2 = CreateFile("pepe.txt");
 	list_add(file2->blocks, copies3);
 
-	job = malloc(sizeof(t_job));
-	job->id = 42;
-	job->combiner = false;
-	job->files = list_create();
-	job->finalReduce = malloc(sizeof(t_reduce));
-	job->finalReduce->temps = list_create();
-	job->partialReduces = list_create();
+	job = CreateJob(42, false);
 	list_add(job->files, file2);
 	list_add(job->files, file);
-	job->maps = list_create();
+	//Fin Job 1
 
-	copy4_1 = malloc(sizeof(t_copy));
-	strcpy(copy4_1->nodeName, "Node3");
-	copy4_1->numBlock = 7;
-
-	copy4_2 = malloc(sizeof(t_copy));
-	strcpy(copy4_2->nodeName, "Node5");
-	copy4_2->numBlock = 307;
-
-	copy4_3 = malloc(sizeof(t_copy));
-	strcpy(copy4_3->nodeName, "Node4");
-	copy4_3->numBlock = 13;
+	//Creacion Job 2
+	copy4_1 = CreateCopy("Node3", 7);
+	copy4_2 = CreateCopy("Node5", 307);
+	copy4_3 = CreateCopy("Node4", 13);
 
 	copies4 = list_create();
 	list_add(copies4, (void *) copy4_1);
 	list_add(copies4, (void *) copy4_2);
 	list_add(copies4, (void *) copy4_3);
 
-	unavailableCopy = malloc(sizeof(t_copy));
-	strcpy(unavailableCopy->nodeName, "Node3");
-	unavailableCopy->numBlock = 821;
+	unavailableCopy = CreateCopy("Node3", 821);
 
 	unavailableCopies = list_create();
 	list_add(unavailableCopies, (void *) unavailableCopy);
 
-	file3 = malloc(sizeof(t_file));
-	file3->path = "QuierePeroNoPuede.txt";
-	file3->blocks = list_create();
+	file3 = CreateFile("QuierePeroNoPuede.txt");
 	list_add(file3->blocks, copies4);
 
-	notAvailableFile = malloc(sizeof(t_file));
-	notAvailableFile->path = "Inexistente.txt";
-	notAvailableFile->blocks = list_create();
+	notAvailableFile = CreateFile("Inexistente.txt");
 	list_add(notAvailableFile->blocks, unavailableCopies);
 
-	job2 = malloc(sizeof(t_job));
-	job2->id = 23;
-	job2->files = list_create();
-	job2->finalReduce = malloc(sizeof(t_reduce));
-	job2->finalReduce->temps = list_create();
-	job2->partialReduces = list_create();
+	job2 = CreateJob(23, false);
 	list_add(job2->files, file3);
 	list_add(job2->files, notAvailableFile);
-	job2->maps = list_create();
+	//Fin Job 2
 }
 
 void freeSetup() {
+	list_iterate(nodes, (void *) showTasks);
 	list_destroy_and_destroy_elements(nodes, (void *) freeNode);
 	freeJob(job);
 	freeJob(job2);
@@ -251,13 +166,15 @@ void RePlanTest() {
 	printf("****************************************************************\n");
 }
 
-void noCombinerReducePlanTest() {
+void noCombinerPlanTest() {
 	printf("************************ReducePlanTest**************************\n");
 	printf("************************jobMapPlanning**************************\n");
 	jobMap(job);
+	jobMap(job2);
 	printf("********************noCombinerReducePlanning*********************\n");
 	noCombinerReducePlanning(job);
 	printf("****************************************************************\n");
+	printf("Esperados: (4-1) (1-1) (0-0) (1-0) (2-1)\n");
 }
 
 void combinerPartialsReducePlanTest() {
@@ -269,7 +186,7 @@ void combinerPartialsReducePlanTest() {
 	printf("****************************************************************\n");
 }
 
-void PlanTest() {
+void combinerPlanTest() {
 	printf("************************ReducePlanTest**************************\n");
 	printf("************************jobMapPlanning**************************\n");
 	jobMap(job);
@@ -278,9 +195,5 @@ void PlanTest() {
 	combinerPartialsReducePlanning(job);
 	combinerFinalReducePlanning(job);
 	printf("****************************************************************\n");
-	printf("Maps Nodo1: %d(4) --Reduces Nodo1: %d(1)\n", list_size(node1->maps), list_size(node1->reduces));
-	printf("Maps Nodo2: %d(1) --Reduces Nodo2: %d(1)\n", list_size(node2->maps), list_size(node2->reduces));
-	printf("Maps Nodo3: %d(0) --Reduces Nodo3: %d(0)\n", list_size(node3->maps), list_size(node3->reduces));
-	printf("Maps Nodo4: %d(1) --Reduces Nodo4: %d(2)\n", list_size(node4->maps), list_size(node4->reduces));
-	printf("Maps Nodo5: %d(2) --Reduces Nodo5: %d(1)\n", list_size(node5->maps), list_size(node5->reduces));
+	printf("Esperados: (4-1) (1-1) (0-0) (1-2) (2-1)\n");
 }

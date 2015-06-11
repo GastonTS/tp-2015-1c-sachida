@@ -49,6 +49,9 @@ typedef struct {
 	t_reduce *finalReduce;
 } t_job;
 
+t_copy *CreateCopy(char *nodeName, int numBlock);
+t_file *CreateFile(char *path);
+t_job *CreateJob(int id, bool combiner);
 void freeJob(t_job *job);
 bool isMap(t_map *map, int idMap);
 

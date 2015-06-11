@@ -5,7 +5,7 @@ void jobMapTest();
 void RePlanTest();
 void setup();
 void freeSetup();
-void noCombinerReducePlanTest();
+void noCombinerPlanTest();
 void combinerPartialsReducePlanTest();
-void PlanTest();
+void combinerPlanTest();
 #endif
