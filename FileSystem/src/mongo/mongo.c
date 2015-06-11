@@ -54,6 +54,7 @@ int mongo_saveDoc(bson_t *doc, mongoc_collection_t *collection) {
 
 	if (!r) {
 		fprintf(stderr, "%s\n", error.message);
+		bson_destroy(doc);
 		return EXIT_FAILURE;
 	}
 

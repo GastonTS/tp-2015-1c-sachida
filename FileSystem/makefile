@@ -5,7 +5,7 @@ CC=gcc -g
 MV=mv -f
 RM=rm -rf
 GO=./$(NAME).o
-SRCS=$(shell find ./ -iname "*.c")
+SRCS=$(shell find ./ -iname "*.c" ! -path "./tests/*")
 UTILS=$(shell find ../utils/ -iname *.c)
 
 all: clean dependents build
