@@ -23,6 +23,7 @@
 #include <errno.h>
 #include <commons/config.h> // para el archivo de config
 #include <commons/log.h> // log_create, log_info, log_error
+#include <commons/string.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
