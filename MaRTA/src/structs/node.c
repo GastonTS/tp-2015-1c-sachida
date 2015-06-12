@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <commons/string.h>
-#include "nodo.h"
 #include <stdlib.h>
+#include "node.h"
 
 t_node *CreateNode(int active, char *IP, int port, char name[25]) {
 	t_node *node = malloc(sizeof(t_node));
@@ -16,22 +16,22 @@ t_node *CreateNode(int active, char *IP, int port, char name[25]) {
 	return node;
 }
 
-bool nodeByName(t_node *nodo, char nombre[25]) {
-	return string_equals_ignore_case(nodo->name, nombre);
+bool nodeByName(t_node *node, char nombre[25]) {
+	return string_equals_ignore_case(node->name, nombre);
 }
 
 int workLoad(t_list *maps, t_list *reduces) {
 	return list_size(maps) + list_size(reduces);
 }
 
-void freeNode(t_node *nodo) {
-	list_destroy(nodo->maps);
-	list_destroy(nodo->reduces);
-	free(nodo);
+void freeNode(t_node *node) {
+	list_destroy(node->maps);
+	list_destroy(node->reduces);
+	free(node);
 }
 
-bool isActive(t_node *nodo) {
-	return nodo->active;
+bool isActive(t_node *node) {
+	return node->active;
 }
 
 t_node *findNode(t_list *nodes, char *nodeName) {

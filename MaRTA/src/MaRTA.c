@@ -4,8 +4,10 @@
 #include <arpa/inet.h>
 #include <commons/config.h>
 #include <commons/collections/list.h>
+#include "structs/node.h"
 #include "../test/PlanningTest.h"
 #include "MaRTA.h"
+#include "../../utils/socket.h"
 
 typedef struct {
 	int listenPort;
@@ -17,14 +19,17 @@ t_configMaRTA *cfgMaRTA;
 t_log *logger;
 t_list *nodes;
 
+int fdListener;
+int fdAccepted;
+bool exitMaRTA;
+
 int initConfig(char* configFile);
 void freeMaRTA();
-void acceptJobs();
 
 int main(int argc, char *argv[]) {
 
 	logger = log_create("MaRTA.log", "MaRTA", 1, log_level_from_string("TRACE"));
-
+	exitMaRTA = false;
 	if (argc != 2) {
 		log_error(logger, "Missing config file");
 		freeMaRTA();
@@ -38,10 +43,23 @@ int main(int argc, char *argv[]) {
 
 	nodes = list_create();
 
-	setup();
-	combinerPlanTest();
-	freeSetup();
+	fdListener = socket_listen(cfgMaRTA->listenPort);
+	while (!exitMaRTA) {
+		printf("Waiting conecttion...");
+		fflush(stdout);
+		fdAccepted = socket_accept(fdListener);
+		switch (socket_handshake_to_client(fdAccepted, HANDSHAKE_MARTA, HANDSHAKE_FILESYSTEM | HANDSHAKE_JOB)) {
+		case HANDSHAKE_FILESYSTEM:
+			printf("\nEl FileSystem!\n");
+			break;
+		case HANDSHAKE_JOB:
+			printf("\nUn Job!\n");
+			break;
+		}
+	}
+	fflush(stdout);
 
+	list_destroy_and_destroy_elements(nodes, (void *) freeNode);
 	freeMaRTA();
 	return EXIT_SUCCESS;
 }
@@ -94,44 +112,4 @@ int initConfig(char* configFile) {
 void freeMaRTA() {
 	free(cfgMaRTA);
 	log_destroy(logger);
-}
-
-void acceptJobs() { //TODO: pasar a funciones de libreria socket
-
-	int sockMaRTAfd, sockJobfd;
-	struct sockaddr_in sockMaRTA;
-	struct sockaddr_in sockJob;
-	socklen_t sin_size;
-
-	if ((sockMaRTAfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-		log_error(logger, "Cant create listen socket");
-		exit(-1);
-	}
-
-	sockMaRTA.sin_family = AF_INET;
-	sockMaRTA.sin_port = htons(cfgMaRTA->listenPort);
-	sockMaRTA.sin_addr.s_addr = INADDR_ANY;
-	memset(&(sockMaRTA.sin_zero), 0, 8);
-
-	if (bind(sockMaRTAfd, (struct sockaddr*) &sockMaRTA, sizeof(struct sockaddr)) == -1) {
-		log_error(logger, "Cant brind listen socket");
-		exit(-1);
-	}
-
-	if (listen(sockMaRTAfd, 5) == -1) {
-		log_error(logger, "Cant listen");
-		exit(-1);
-	}
-
-	while (1) {
-		sin_size = sizeof(struct sockaddr_in);
-
-		if ((sockJobfd = accept(sockMaRTAfd, (struct sockaddr *) &sockJob, &sin_size)) == -1) {
-			log_error(logger, "Accept failed");
-			exit(-1);
-
-			//TODO: Crear nuevo hilo y funcion atenderJob()
-		}
-		log_info(logger, "Connected Job: %s", inet_ntoa(sockJob.sin_addr));
-	}
 }

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <commons/collections/list.h>
 #include "../src/MaRTA.h"
-#include "../src/structs/nodo.h"
+#include "../src/structs/node.h"
 #include "../src/structs/job.h"
 #include "../src/Planning/MapPlanning.h"
 #include "../src/Planning/ReducePlanning.h"
@@ -46,7 +46,7 @@ t_file *notAvailableFile;
 t_job *job;
 t_job *job2;
 
-void setup() {
+void planningTestSetup() {
 
 	//Creacion Nodos
 	node1 = CreateNode(1, "IP Nodo1", 3001, "Node1");
@@ -142,9 +142,8 @@ void setup() {
 	//Fin Job 2
 }
 
-void freeSetup() {
+void planningTestFree() {
 	list_iterate(nodes, (void *) showTasks);
-	list_destroy_and_destroy_elements(nodes, (void *) freeNode);
 	freeJob(job);
 	freeJob(job2);
 }

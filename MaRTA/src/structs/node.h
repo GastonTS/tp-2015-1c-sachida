@@ -1,5 +1,5 @@
-#ifndef SRC_STRUCTS_NODO_H_
-#define SRC_STRUCTS_NODO_H_
+#ifndef SRC_STRUCTS_NODE_H_
+#define SRC_STRUCTS_NODE_H_
 
 #include <commons/collections/list.h>
 

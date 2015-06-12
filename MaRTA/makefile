@@ -1,7 +1,7 @@
 NAME=MaRTA
 LIBS= -lcommons
 MODS=-Wall -MMD -MP
-CC=gcc
+CC=gcc -g
 MV=mv -f
 RM=rm -rf
 GO=./$(NAME).o config.cfg

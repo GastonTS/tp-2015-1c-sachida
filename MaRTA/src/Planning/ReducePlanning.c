@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <commons/collections/list.h>
-#include "../structs/nodo.h"
+#include "../structs/node.h"
 #include "../MaRTA.h"
 #include "MapPlanning.h"
 #include <time.h>

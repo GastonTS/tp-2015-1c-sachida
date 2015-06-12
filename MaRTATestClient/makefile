@@ -1,10 +1,10 @@
-NAME=Nodo
-LIBS= -lcommons -lpthread
+NAME=MaRTATestClient
+LIBS= -lcommons
 MODS=-Wall -MMD -MP
-CC=gcc -g
+CC=gcc
 MV=mv -f
 RM=rm -rf
-GO=./$(NAME).o config.cfg
+GO=./$(NAME).o
 SRCS=$(shell find ./ -iname *.c)
 UTILS=$(shell find ../utils/ -iname *.c)
 
