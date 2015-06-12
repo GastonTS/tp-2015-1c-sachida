@@ -9,34 +9,17 @@ int size_of(int fd);
 int fileSize;
 int conectarFileSystem();
 int socket_fileSystem;
-char obtenerComando(int comand, char* paquete);
-uint16_t obtenerNumBlock(int comand, char* paquete);
-uint32_t obtenerSize(int comand, char* paquete);
-char* obtenerRestantes(char *paquete);
+char obtenerComando(char* paquete);
+uint16_t obtenerNumBlock(char* paquete);
+uint32_t obtenerSize(char* paquete);
+char* obtenerRestantes(char* paquete);
 
 //Le agregue los argumentos para que se pueda pasar el archivo de conf como parametro del main
 int main(int argc, char *argv[]) {
-	int mapper;
-	char* mapeo;
-	int size;
-	char* file_name = "/home/utnso/Sachida/tp-2015-1c-sachida/Nodo/src/archivo_mmap.txt";
-	//Se abre el archivo para lectura y escritura
-	mapper = fopen (file_name, O_RDONLY);
-	size = size_of(mapper);
-	if( (mapeo = mmap( NULL, size, PROT_READ, MAP_SHARED, mapper, 0 )) == MAP_FAILED){
-		//Si no se pudo ejecutar el MMAP, imprimir el error y abortar;
-		log_error(logger, "Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size",archivo_bin,size);
-		//fprintf(stderr, "Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size", file_name, size, strerror(errno));
-		abort();
-	}
-	setBloque(2,mapeo);
-	//Se unmapea , y se cierrra el archivo
-	munmap( mapeo, size );
-	close(mapper);
-
-
 	//pthread_t conexionesJob;
 	//pthread_t conexionesNodo;
+	size_t* packet_size;
+	char* paquete;
 	if(argc != 2)
 		{
 			printf("ERROR, la sintaxis del servidor es: ./Nodo.c archivo_configuracion \n");
@@ -51,23 +34,22 @@ int main(int argc, char *argv[]) {
 
 	logger = log_create("Log.txt", "Node",1, log_level_from_string("DEBUG"));
 	socket_fileSystem =	conectarFileSystem();
-	char * paquete;
 	//todo Ver bien si es necesaria esta funcion
 	createNode(); //creo que no es necesario el createNodo.
-	socket_recv_packet(socket_fileSystem, &paquete,21);
-			char comando = obtenerComando(1,paquete);
+	socket_recv_packet(socket_fileSystem, &paquete, &packet_size);
+			char comando = obtenerComando(paquete);
 			uint16_t numBlock;
 			uint32_t pack_size;
 			char * buffer ;
 			switch(comando){
  	 	 	case 1: //setBloque
-      	  		numBlock= obtenerNumBlock(2,paquete);
-      	  		pack_size = obtenerSize(3,paquete);
+      	  		numBlock= obtenerNumBlock(paquete);
+      	  		pack_size = obtenerSize(paquete);
       	  		buffer = obtenerRestantes(paquete);
-      	    setBloque(numBlock, buffer);
+      	    setBloque(numBlock, &buffer);
 			break;
 			case 2: //getBloque
-				numBlock= obtenerNumBlock(2,paquete);
+				numBlock= obtenerNumBlock(paquete);
 				getBloque(numBlock);
 				break;
 			//default =  log_error("Log.txt", "Node",1,log_level_from_string("ERROR"));
@@ -448,23 +430,28 @@ int size_of(int fd){
 	return buf.st_size;
 }
 
-char obtenerComando(int comand, char* paquete){
-	char comando;
-	return comando;
+char obtenerComando(char* paquete){
+	char* comando;
+	memcpy(paquete,&comando,sizeof(char));
+	return *comando;
 }
 
-uint16_t obtenerNumBlock(int comand, char* paquete){
-	uint16_t numBlock;
-	return numBlock;
+uint16_t obtenerNumBlock(char* paquete){
+	uint16_t* numBlock;
+	memcpy(paquete+sizeof(char),&numBlock,sizeof(uint16_t));
+	return *numBlock;
 }
 
-uint32_t obtenerSize(int comand, char* paquete){
-	uint32_t size;
-	return size;
+uint32_t obtenerSize(char* paquete){
+	uint32_t* size;
+	memcpy(paquete+sizeof(char)+sizeof(uint16_t),&size,sizeof(uint32_t));
+	return *size;
 }
 
-char* obtenerRestantes(char *paquete){
-	return paquete;
+char* obtenerRestantes(char* paquete){
+	char** packet;
+	memcpy(paquete+sizeof(char)+sizeof(uint16_t)+sizeof(uint32_t),&packet,sizeof(uint32_t));
+	return *packet;
 }
 
 
