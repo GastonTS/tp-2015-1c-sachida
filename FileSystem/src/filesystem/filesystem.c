@@ -4,13 +4,17 @@
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <commons/log.h>
+#include <pthread.h>
+// #include <semaphore.h>
 
 bool filesystem_canCreateResource(char *resourceName, char *parentId);
 char* filesystem_md5(char *str);
 t_list* filesystem_getFSFileBlocks(char *route, size_t *fileSize);
 char* filesystem_getMD5FromBlocks(t_list *blocks);
 bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file);
-void filesystem_sendBlockToNode(node_t *node, off_t blockIndex, char *block);
+void *filesystem_sendBlockToNode(void *param);
+nodeBlockSendOperation_t* filesystem_nodeBlockSendOperation_create(node_t *node, off_t blockIndex, char *block);
+void filesystem_nodeBlockSendOperation_free(nodeBlockSendOperation_t* nodeSendBlockOperation);
 
 t_log* filesystem_logger;
 
@@ -337,72 +341,122 @@ bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 	bool success = 1;
 
 	t_list *nodes = mongo_node_getAll();
+	t_list *sendOperations = list_create();
 
 	bool nodeComparator(node_t *node, node_t *node2) {
 		return node_getBlocksFreeCount(node) > node_getBlocksFreeCount(node2);
 	}
 
-	void sendBlockToNodes(char *block) {
+	void createSendOperations(char *block) {
+		if (!success) {
+			return;
+		}
 		t_list *blockCopies = list_create();
 		list_add(file->blocks, blockCopies);
 
 		// Sort to get the node that has more free space.
 		list_sort(nodes, (void *) nodeComparator);
-		int i;
 
+		int i;
 		for (i = 0; i < FILESYSTEM_BLOCK_COPIES; i++) {
 			if (i < list_size(nodes)) {
 				node_t *selectedNode = list_get(nodes, i);
 				off_t firstBlockFreeIndex = node_getFirstFreeBlock(selectedNode);
 
-				// TESTING node_printBlocksStatus(selectedNode);
-				if (firstBlockFreeIndex == -1) {
-					// TODO ROLLBACK (or avoid), no hay mas nodos disponibles
-					success = 0;
-					log_error(filesystem_logger, "Couldn't find a free block to store the block");
-				} else {
-					/*
-					 * La idea seria la siguiente:
-					 * Mandar el "filesystem_sendBlockToNode" a un thread pero no empezarlo
-					 * Entonces una vez que se termina de ejectuar todo este ciclo,
-					 * si no hubo errores se ejecutan todos los threads en paralelo, es decir se le manda la data de verdad..
-					 * Si hubo errores, se cancelan los threads, y devolvemos error para que no guarde el archivo. !
-					 *
-					 * Otro tema a ver:
-					 * Cuando asigno el bloque como usado, hago el update en la siguiente linea?
-					 * Puede ser innecesario, y podria hacer el rollback al salir, en la funcion anterior.
-					 * Ver bien esto y testearlo !.
-					 *
-					 * Definicion final:
-					 * Modifico la lista de nodos pero no la guardo nunca.
-					 * Podria guardar a parte la lista de nodos a guardar y despues iterarla.
-					 * Guardo la lista de threads o algo asi ?..
-					 *
-					 * */
-					filesystem_sendBlockToNode(selectedNode, firstBlockFreeIndex, block);
+				if (firstBlockFreeIndex != -1) {
+					// El bloque del nodo se setea como usado para seguir la planificacion pero NO se guarda. Solo se va a guardar si te iteran las operaciones.
 					node_setBlockUsed(selectedNode, firstBlockFreeIndex);
-					mongo_node_updateBlocks(selectedNode);
+					list_add(sendOperations, filesystem_nodeBlockSendOperation_create(selectedNode, firstBlockFreeIndex, block));
 
 					file_block_t *blockCopy = file_block_create();
 					blockCopy->nodeId = strdup(selectedNode->id);
 					blockCopy->blockIndex = firstBlockFreeIndex;
 					list_add(blockCopies, blockCopy);
+				} else {
+					success = 0;
+					log_error(filesystem_logger, "Couldn't find a free block to store the block");
+					return;
 				}
 			} else {
 				success = 0;
-				//TODO ROLLBACK (or avoid) no hay tanta cantidad de nodos disponibles como de copias necesarias.
-				log_error(filesystem_logger, "There are less nodes than copies to be done.");
+				log_error(filesystem_logger, "There are less free nodes than copies to be done.");
+				return;
 			}
 		}
 	}
 
-	list_iterate(blocks, (void *) sendBlockToNodes);
+	list_iterate(blocks, (void *) createSendOperations);
+
+	if (success) {
+		pthread_t threads[list_size(sendOperations)];
+		int count = 0;
+
+		void runOperations(nodeBlockSendOperation_t *sendOperation) {
+			// Aca es donde actualizo el bloque usado porque realmente se lo voy a mandar, sino no se actualiza y se destruye sin guardar.
+			mongo_node_updateBlocks(sendOperation->node);
+			// Create threads and do join later.
+			if (pthread_create(&(threads[count]), NULL, (void *) filesystem_sendBlockToNode, (void*) sendOperation)) {
+				return; // -1; // TODO error
+			}
+			count++;
+		}
+
+		list_iterate(sendOperations, (void *) runOperations);
+
+		int i;
+		for (i = 0; i < count; i++) {
+			// TODO Por ahora solo esta hecho porque sino pierdo referencias en el medio.. una cagada.
+			pthread_join(threads[i], NULL);
+		}
+	}
+
+	// destoy operations and nodes..
+	list_destroy(sendOperations); // The items are destroyed after usage.
 	list_destroy_and_destroy_elements(nodes, (void *) node_free);
 
-	return success; // TODO.
+	return success;
 }
 
-void filesystem_sendBlockToNode(node_t *node, off_t blockIndex, char *block) {
-	// TODO
-	log_info(filesystem_logger, "Sending block to node %s , blockIndex %d\n", node->id, blockIndex);
+void *filesystem_sendBlockToNode(void *param) {
+
+	nodeBlockSendOperation_t* sendOperation = (nodeBlockSendOperation_t*) param;
+
+	log_info(filesystem_logger, "Sending block to node %s , blockIndex %d", sendOperation->node->id, sendOperation->blockIndex);
+
+	filesystem_nodeBlockSendOperation_free(sendOperation);
+
+	return NULL;
 }
+
+nodeBlockSendOperation_t* filesystem_nodeBlockSendOperation_create(node_t *node, off_t blockIndex, char *block) {
+	nodeBlockSendOperation_t* nodeSendBlockOperation = malloc(sizeof(nodeBlockSendOperation_t));
+	nodeSendBlockOperation->node = node;
+	nodeSendBlockOperation->blockIndex = blockIndex;
+	nodeSendBlockOperation->block = block;
+	return nodeSendBlockOperation;
+}
+
+void filesystem_nodeBlockSendOperation_free(nodeBlockSendOperation_t* nodeSendBlockOperation) {
+	// Point it to null because they are free'd by others.
+	nodeSendBlockOperation->node = NULL;
+	nodeSendBlockOperation->block = NULL;
+	free(nodeSendBlockOperation);
+}
+/*
+ * MUTEX EXAMPLE
+ * pthread_mutex_t lock;
+ void a() {
+ if (pthread_mutex_init(&lock, NULL) != 0) {
+ // TODO error.
+ return;
+ }
+
+ pthread_mutex_lock(&lock);
+
+ // REGION CRITICA.
+
+ pthread_mutex_unlock(&lock);
+
+ pthread_mutex_destroy(&lock);
+ }
+ */
