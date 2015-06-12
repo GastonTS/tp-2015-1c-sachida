@@ -18,7 +18,7 @@ char* obtenerRestantes(char* paquete);
 int main(int argc, char *argv[]) {
 	//pthread_t conexionesJob;
 	//pthread_t conexionesNodo;
-	size_t* packet_size;
+	size_t packet_size;
 	char* paquete;
 	if(argc != 2)
 		{
@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
 	socket_fileSystem =	conectarFileSystem();
 	//todo Ver bien si es necesaria esta funcion
 	createNode(); //creo que no es necesario el createNodo.
-	socket_recv_packet(socket_fileSystem, &paquete, &packet_size);
+	socket_recv_packet(socket_fileSystem, (void**)paquete, &packet_size);
 			char comando = obtenerComando(paquete);
 			uint16_t numBlock;
 			uint32_t pack_size;
@@ -325,7 +325,7 @@ char* getBloque(uint16_t nroBloque){
 			int pagesize;
 			//Se abre el archivo para solo lectura
 
-			mapper = fopen (archivo_bin, O_RDONLY);
+			mapper = open (archivo_bin, O_RDONLY);
 			pagesize = getpagesize();
 			size = size_of(mapper);
 			//size = 20;
@@ -352,7 +352,7 @@ void setBloque(uint16_t nroBloque,char** string){
 	int pagesize;
 	//Se abre el archivo para lectura y escritura
 
-	mapper = fopen (archivo_bin, O_WRONLY);
+	mapper = open (archivo_bin, O_WRONLY);
 	pagesize = getpagesize();
 	//Size debe llegar a 20mb asi los bloques son de 20mb
 	size = size_of(mapper);
