@@ -4,17 +4,27 @@ sudo apt-get install -y --force-yes gcc automake autoconf libtool
 
 
 # Get the driver
-wget https://github.com/mongodb/mongo-c-driver/releases/download/1.1.5/mongo-c-driver-1.1.5.tar.gz
-tar xzf mongo-c-driver-1.1.5.tar.gz
-cd mongo-c-driver-1.1.5
+#wget https://github.com/mongodb/mongo-c-driver/releases/download/1.1.5/mongo-c-driver-1.1.5.tar.gz
+#tar xzf mongo-c-driver-1.1.5.tar.gz
+#cd mongo-c-driver-1.1.5
+
+wget https://github.com/mongodb/mongo-c-driver/releases/download/1.1.7/mongo-c-driver-1.1.7.tar.gz
+tar xzf mongo-c-driver-1.1.7.tar.gz
+cd mongo-c-driver-1.1.7
 ./configure
 make
 sudo make install
 
+# Delete the driver
+cd ..
+rm -rf mongo-c-driver-1.1.7
+rm mongo-c-driver-1.1.7.tar.gz
 
 # Add the library 
 echo "include /usr/local/lib" | sudo tee -a /etc/ld.so.conf
 sudo ldconfig
+
+
 
 
 # TO INSTALL THE LATEST VERSION:

@@ -51,7 +51,7 @@ void console_start() {
 	char *command = malloc(sizeof(char) * 512);
 	int exit = 0;
 
-	currentDirPrompt = malloc(sizeof(char) * 512);
+	currentDirPrompt = malloc(sizeof(char) * 512); // TODO.. change this.
 	currentDirId = malloc(ID_SIZE);
 
 	strcpy(currentDirPrompt, "/");
@@ -60,7 +60,7 @@ void console_start() {
 	do {
 		printf("%s > ", currentDirPrompt);
 		readCommand(command);
-		// TODO NO ANDA EL TRIM DE COMONS . string_trim(&command);
+		// TODO NO ANDA EL TRIM DE COMONS .string_trim(&command);
 
 		// Ignore empty enter
 		if (command[0] != '\0') {
@@ -116,7 +116,7 @@ void console_start() {
 }
 
 void readCommand(char *input) {
-	char buffer[4096];
+	char buffer[512];
 
 	fgets(buffer, sizeof(buffer), stdin);
 
@@ -197,7 +197,7 @@ bool resolveDir(char *dirPath, char *dirPrompt, char *dirId) {
 
 					dir_free(dir);
 				} else {
-					printf("Directory %s not found.\n", dirName);
+					printf("Directory '%s' not found.\n", dirName);
 					freeSplits(dirNames);
 					return 0;
 				}
@@ -238,10 +238,14 @@ void deleteResource(char **parameters) {
 	if (!isNull(parameters[1])) {
 		if (string_equals_ignore_case(parameters[1], "-r")) {
 			if (!isNull(parameters[2])) {
-				filesystem_deleteDirByNameInDir(parameters[2], currentDirId);
+				if (!filesystem_deleteDirByNameInDir(parameters[2], currentDirId)) {
+					printf("Cannot remove '%s': No such directory.\n", parameters[2]);
+				}
 			}
 		} else {
-			filesystem_deleteFileByNameInDir(parameters[1], currentDirId);
+			if (!filesystem_deleteFileByNameInDir(parameters[1], currentDirId)) {
+				printf("Cannot remove '%s': No such file.\n", parameters[1]);
+			}
 		}
 	}
 }
@@ -267,7 +271,7 @@ void moveResource(char *resource, char *destination) {
 				}
 				file_free(fileToMove);
 			} else {
-				printf("Directory or file %s not found.\n", resource);
+				printf("Cannot move '%s': No such file or directory.\n", resource);
 			}
 		}
 
@@ -279,11 +283,11 @@ void makeDir(char *dirName) {
 	if (!isNull(dirName)) {
 
 		dir_t *dir = dir_create();
-		strcpy(dir->name, dirName);
+		dir->name = strdup(dirName);
 		strcpy(dir->parentId, currentDirId);
 
 		if (!filesystem_addDir(dir)) {
-			printf("Cannot create directory %s: Directory or file already exists with that name.\n", dirName);
+			printf("Cannot create directory '%s': Directory or file already exists with that name.\n", dirName);
 		}
 
 		dir_free(dir);
@@ -342,24 +346,24 @@ void copyFile(char **parameters) {
 				fileName = dirNames[i];
 				i++;
 			}
-			printf("Copying file %s to MDFS: %s\n", fileName, dest);
+			printf("Copying file '%s' to MDFS as '%s'\n", fileName, dest);
 
 			file_t *file = file_create();
-			strcpy(file->name, dest);
+			file->name = strdup(dest);
 			strcpy(file->parentId, currentDirId);
 			file->size = 0;
 
 			if (!filesystem_copyFileFromFS(source, file)) {
-				printf("Cannot create file %s: Directory or file already exists with that name.\n", fileName);
+				printf("Cannot create file '%s': Directory or file already exists with that name.\n", dest);
 			}
 
 			file_free(file);
 			freeSplits(dirNames);
 		} else if (string_equals_ignore_case(option, "-tofs")) {
 			// TODO
-			printf("Copia el archivo %s al FS: %s\n", source, dest);
+			printf("Copia el archivo '%s' al FS: %s\n", source, dest);
 		} else {
-			printf("Invalid option %s \n", option);
+			printf("Invalid option '%s' \n", option);
 		}
 	}
 }
@@ -369,11 +373,15 @@ void md5sum(char *fileName) {
 		file_t *file = filesystem_getFileByNameInDir(fileName, currentDirId);
 		if (file) {
 			// TODO armar bien esto..
-			printf("MD5 de %s\n", fileName);
-			printf("%s\n", filesystem_md5sum(file));
+			printf("MD5 de '%s'\n", fileName);
+			char *md5sum = filesystem_md5sum(file);
+			printf("%s\n", md5sum);
+			if (md5sum) {
+				free(md5sum);
+			}
 			file_free(file);
 		} else {
-			printf("File not found.\n");
+			printf("File '%s' not found.\n", fileName);
 		}
 
 	}
@@ -381,13 +389,13 @@ void md5sum(char *fileName) {
 
 void printNodeStatus(char *nodeName) {
 	if (!isNull(nodeName)) {
-		node_t *node = filesystem_getNodeByName(nodeName);
+		node_t *node = filesystem_getNodeById(nodeName);
 
 		if (node) {
 			node_printBlocksStatus(node);
 			node_free(node);
 		} else {
-			printf("No existe el nodo %s\n", nodeName);
+			printf("Node '%s' does not exist.\n", nodeName);
 		}
 	}
 }
@@ -395,34 +403,34 @@ void printNodeStatus(char *nodeName) {
 void seeBlock(char *block) {
 	if (!isNull(block)) {
 		// TODO
-		printf("Vee el Bloque nro %s\n", block);
+		printf("Vee el Bloque nro '%s'\n", block);
 	}
 }
 
 void deleteBlock(char *block) {
 	if (!isNull(block)) {
-		printf("Borra el Bloque nro %s\n", block);
+		printf("Borra el Bloque nro '%s'\n", block);
 	}
 }
 
 void copyBlock(char *block) {
 	if (!isNull(block)) {
 		// TODO
-		printf("Copia el Bloque nro %s\n", block);
+		printf("Copia el Bloque nro '%s'\n", block);
 	}
 }
 
 void upNode(char *node) {
 	if (!isNull(node)) {
 		// TODO
-		printf("Agrega el nodo %s\n", node);
+		printf("Agrega el nodo '%s'\n", node);
 	}
 }
 
 void deleteNode(char *nodeName) {
 	if (!isNull(nodeName)) {
 		// TODO
-		printf("Borra el nodo %s\n", nodeName);
+		printf("Borra el nodo '%s'\n", nodeName);
 		filesystem_nodeIsDown(nodeName);
 	}
 }

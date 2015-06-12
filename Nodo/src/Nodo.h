@@ -23,6 +23,7 @@
 #include <errno.h>
 #include <commons/config.h> // para el archivo de config
 #include <commons/log.h> // log_create, log_info, log_error
+#include <commons/string.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -63,9 +64,9 @@ t_log* logger;
 //METODOS
 void getInfoConf(char* conf);
 
-char* getBloque(int nroBloque);
+char* getBloque(uint16_t nroBloque);
 
-void setBloque(int nroBloque,char** string);
+void setBloque(uint16_t nroBloque,char** string);
 
 #endif /* NODO_H_ */
 

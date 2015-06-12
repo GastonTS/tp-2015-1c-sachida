@@ -11,22 +11,28 @@ typedef struct {
 typedef struct {
 	int id;
 	t_list *copies;
+	char *nodeName;
 	char *nodeIP;
 	int nodePort;
 	int numBlock;
 	char tempResultName[60];
+	bool done;
 } t_map;
 
 typedef struct {
-	char *nodeName;
+	int originMap;
+	char *nodeIP;
+	int nodePort;
 	char *tempName;
 } t_temp;
 
 typedef struct {
-	int originMap;
 	t_list *temps;
 	char *finalNode;
-	char *tempResultName;
+	char *nodeIP;
+	int nodePort;
+	char tempResultName[60];
+	bool done;
 } t_reduce;
 
 typedef struct {
@@ -36,11 +42,16 @@ typedef struct {
 
 typedef struct {
 	int id;
+	bool combiner;
 	t_list *files;
 	t_list *maps;
-	t_list *reduces;
+	t_list *partialReduces;
+	t_reduce *finalReduce;
 } t_job;
 
+t_copy *CreateCopy(char *nodeName, int numBlock);
+t_file *CreateFile(char *path);
+t_job *CreateJob(int id, bool combiner);
 void freeJob(t_job *job);
 bool isMap(t_map *map, int idMap);
 

@@ -4,13 +4,17 @@
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <commons/log.h>
+#include <pthread.h>
+// #include <semaphore.h>
 
 bool filesystem_canCreateResource(char *resourceName, char *parentId);
 char* filesystem_md5(char *str);
-t_list* filesystem_getFSFileBlocks(char *route, int* fileSize);
+t_list* filesystem_getFSFileBlocks(char *route, size_t *fileSize);
 char* filesystem_getMD5FromBlocks(t_list *blocks);
-void filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file);
-void filesystem_sendBlockToNode(node_t *node, int blockIndex, char *block);
+bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file);
+void *filesystem_sendBlockToNode(void *param);
+nodeBlockSendOperation_t* filesystem_nodeBlockSendOperation_create(node_t *node, off_t blockIndex, char *block);
+void filesystem_nodeBlockSendOperation_free(nodeBlockSendOperation_t* nodeSendBlockOperation);
 
 t_log* filesystem_logger;
 
@@ -82,37 +86,63 @@ t_list* filesystem_getFilesInDir(char *parentId) {
 }
 
 bool filesystem_deleteDirByNameInDir(char *dirName, char *parentId) {
-
-	void deleteChilds(char *parentId) {
-		void deleteFile(file_t *file) {
-			mongo_file_deleteById(file->id);
-		}
-		t_list *childFiles = filesystem_getFilesInDir(parentId);
-		list_iterate(childFiles, (void*) deleteFile);
-		list_destroy_and_destroy_elements(childFiles, (void*) file_free);
-
-		void deleteDir(dir_t *dir) {
-			deleteChilds(dir->id);
-			mongo_dir_deleteById(dir->id);
-		}
-		t_list *childDirs = filesystem_getDirsInDir(parentId);
-		list_iterate(childDirs, (void*) deleteDir);
-		list_destroy_and_destroy_elements(childDirs, (void*) dir_free);
-	}
-
 	dir_t *dir = filesystem_getDirByNameInDir(dirName, parentId);
 	if (dir) {
-		deleteChilds(dir->id);
-		bool r = mongo_dir_deleteById(dir->id);
+		bool r = filesystem_deleteDir(dir);
 		dir_free(dir);
 		return r;
-	} else {
-		return 0;
 	}
+	return 0;
+}
+
+bool filesystem_deleteDir(dir_t *dir) {
+	if (dir) {
+		void deleteChilds(char *parentId) {
+			t_list *childFiles = filesystem_getFilesInDir(parentId);
+			list_iterate(childFiles, (void*) filesystem_deleteFile);
+			list_destroy_and_destroy_elements(childFiles, (void*) file_free);
+
+			t_list *childDirs = filesystem_getDirsInDir(parentId);
+			list_iterate(childDirs, (void*) filesystem_deleteDir);
+			list_destroy_and_destroy_elements(childDirs, (void*) dir_free);
+		}
+
+		deleteChilds(dir->id);
+		mongo_dir_deleteById(dir->id);
+		return 1;
+	}
+	return 0;
 }
 
 bool filesystem_deleteFileByNameInDir(char *fileName, char *parentId) {
-	return mongo_file_deleteFileByNameInDir(fileName, parentId);
+	file_t *file = mongo_file_getByNameInDir(fileName, parentId);
+	if (file) {
+		bool r = filesystem_deleteFile(file);
+		file_free(file);
+		return r;
+	}
+	return 0;
+}
+
+bool filesystem_deleteFile(file_t *file) {
+	if (file) {
+		// Free nodes space
+
+		void listBlocks(t_list* blockCopies) {
+			void listBlockCopy(file_block_t *blockCopy) {
+				node_t *node = filesystem_getNodeById(blockCopy->nodeId);
+				node_setBlockFree(node, blockCopy->blockIndex);
+				mongo_node_updateBlocks(node);
+				node_free(node);
+			}
+			list_iterate(blockCopies, (void *) listBlockCopy);
+		}
+		list_iterate(file->blocks, (void *) listBlocks);
+
+		mongo_file_deleteById(file->id);
+		return 1;
+	}
+	return 0;
 }
 
 void filesystem_moveFile(file_t *file, char *destinationId) {
@@ -128,18 +158,25 @@ bool filesystem_copyFileFromFS(char *route, file_t *file) {
 		return 0;
 	}
 
-	int *fileSize = malloc(sizeof(int));
+	size_t fileSize;
 
-	t_list *blocks = filesystem_getFSFileBlocks(route, fileSize);
-	file->size = *fileSize;
-
-	free(fileSize);
+	t_list *blocks = filesystem_getFSFileBlocks(route, &fileSize);
+	file->size = fileSize;
 
 	// TESTING ONLY printf("%s\n", filesystem_getMD5FromBlocks(blocks));
-	filesystem_distributeBlocksToNodes(blocks, file);
+	if (!filesystem_distributeBlocksToNodes(blocks, file)) { // TODO
+		list_destroy_and_destroy_elements(blocks, free);
+		return 0;
+	}
 	list_destroy_and_destroy_elements(blocks, free);
 
-	return !mongo_file_save(file);
+	if (!mongo_file_save(file)) {
+		// If for some reason, the file could not be saved in the db, then should destroy the blocks that were used for that file.
+		filesystem_deleteFile(file);
+		return 0;
+	}
+
+	return 1;
 }
 
 bool filesystem_addDir(dir_t *dir) {
@@ -147,26 +184,42 @@ bool filesystem_addDir(dir_t *dir) {
 		return 0;
 	}
 
-	return !mongo_dir_save(dir);
+	return mongo_dir_save(dir);
 }
 
-node_t* filesystem_getNodeByName(char *nodeName) {
-	return mongo_node_getByName(nodeName);
+node_t* filesystem_getNodeById(char *nodeId) {
+	return mongo_node_getById(nodeId);
 }
 
-void filesystem_nodeIsDown(char *nodeName) {
-	node_t *node = filesystem_getNodeByName(nodeName);
+void filesystem_nodeIsDown(char *nodeId) {
+	node_t *node = filesystem_getNodeById(nodeId);
 	if (node) {
 		t_list *files = mongo_file_getFilesThatHaveNode(node->id);
 		void listFile(file_t *file) {
 			// TODO..
-			printf("%s\n", file->name);
+			printf("TODO file used: %s\n", file->name);
 		}
 		list_iterate(files, (void*) listFile);
 		list_destroy_and_destroy_elements(files, (void *) file_free);
 
 		node_free(node);
 	}
+}
+
+node_t* filesystem_addNode(char *nodeId, size_t blocksCount) {
+	node_t *node = filesystem_getNodeById(nodeId);
+	if (node) {
+		t_list *files = mongo_file_getFilesThatHaveNode(node->id);
+		// TODO: marcar los bloques del archivo como disponibles o que?.
+		list_destroy_and_destroy_elements(files, (void *) file_free);
+	} else {
+		// Nuevo nodo
+		// TODO
+		node = node_create(blocksCount);
+		node->id = strdup(nodeId);
+		mongo_node_save(node);
+	}
+	return node;
 }
 
 char* filesystem_md5sum(file_t* file) {
@@ -221,7 +274,7 @@ char* filesystem_md5(char *str) {
 	}
 }
 
-t_list* filesystem_getFSFileBlocks(char *route, int* fileSize) {
+t_list* filesystem_getFSFileBlocks(char *route, size_t *fileSize) {
 	struct stat stat;
 	int fd = open(route, O_RDONLY);
 
@@ -240,11 +293,11 @@ t_list* filesystem_getFSFileBlocks(char *route, int* fileSize) {
 	int finished = 0;
 
 	void addBlock(int blockLength) {
-		buffer = malloc(sizeof(char) * NODE_BLOCK_SIZE);
+		buffer = malloc(sizeof(char) * NODE_BLOCK_SIZE); // TODO. poner blockLength (+1) tal vez? testear bien. con md5
 		strncpy(buffer, startBlock, blockLength);
 		buffer[blockLength] = '\0';
 		list_add(blocks, buffer);
-		// TODO (es necesario??), fill the rest with \0 .. and other stuff.input[strlen(input) - 1] = '\0';
+		// TODO (es necesario??), fill the rest with \0
 	}
 
 	while (!finished) {
@@ -284,52 +337,126 @@ char* filesystem_getMD5FromBlocks(t_list *blocks) {
 	return md5str;
 }
 
-void filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
+bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
+	bool success = 1;
+
 	t_list *nodes = mongo_node_getAll();
+	t_list *sendOperations = list_create();
 
 	bool nodeComparator(node_t *node, node_t *node2) {
 		return node_getBlocksFreeCount(node) > node_getBlocksFreeCount(node2);
 	}
 
-	void sendBlockToNodes(char *block) {
+	void createSendOperations(char *block) {
+		if (!success) {
+			return;
+		}
 		t_list *blockCopies = list_create();
 		list_add(file->blocks, blockCopies);
 
 		// Sort to get the node that has more free space.
 		list_sort(nodes, (void *) nodeComparator);
-		int i;
 
+		int i;
 		for (i = 0; i < FILESYSTEM_BLOCK_COPIES; i++) {
 			if (i < list_size(nodes)) {
 				node_t *selectedNode = list_get(nodes, i);
-				int firstBlockFreeIndex = node_getFirstFreeBlock(selectedNode);
+				off_t firstBlockFreeIndex = node_getFirstFreeBlock(selectedNode);
 
-				// TESTING node_printBlocksStatus(selectedNode);
-				if (firstBlockFreeIndex == -1) {
-					// TODO ROLLBACK (or avoid), no hay mas nodos disponibles
-					log_error(filesystem_logger, "Couldn't find a free block to store the block");
-				} else {
-					filesystem_sendBlockToNode(selectedNode, firstBlockFreeIndex, block);
+				if (firstBlockFreeIndex != -1) {
+					// El bloque del nodo se setea como usado para seguir la planificacion pero NO se guarda. Solo se va a guardar si te iteran las operaciones.
 					node_setBlockUsed(selectedNode, firstBlockFreeIndex);
-					mongo_node_updateBlocks(selectedNode);
+					list_add(sendOperations, filesystem_nodeBlockSendOperation_create(selectedNode, firstBlockFreeIndex, block));
 
 					file_block_t *blockCopy = file_block_create();
-					strcpy(blockCopy->nodeId, selectedNode->id);
-					*blockCopy->blockIndex = firstBlockFreeIndex;
+					blockCopy->nodeId = strdup(selectedNode->id);
+					blockCopy->blockIndex = firstBlockFreeIndex;
 					list_add(blockCopies, blockCopy);
+				} else {
+					success = 0;
+					log_error(filesystem_logger, "Couldn't find a free block to store the block");
+					return;
 				}
 			} else {
-				//TODO ROLLBACK (or avoid) no hay tanta cantidad de nodos disponibles como de copias necesarias.
-				log_error(filesystem_logger, "There are less nodes than copies to be done.");
+				success = 0;
+				log_error(filesystem_logger, "There are less free nodes than copies to be done.");
+				return;
 			}
 		}
 	}
 
-	list_iterate(blocks, (void *) sendBlockToNodes);
+	list_iterate(blocks, (void *) createSendOperations);
+
+	if (success) {
+		pthread_t threads[list_size(sendOperations)];
+		int count = 0;
+
+		void runOperations(nodeBlockSendOperation_t *sendOperation) {
+			// Aca es donde actualizo el bloque usado porque realmente se lo voy a mandar, sino no se actualiza y se destruye sin guardar.
+			mongo_node_updateBlocks(sendOperation->node);
+			// Create threads and do join later.
+			if (pthread_create(&(threads[count]), NULL, (void *) filesystem_sendBlockToNode, (void*) sendOperation)) {
+				return; // -1; // TODO error
+			}
+			count++;
+		}
+
+		list_iterate(sendOperations, (void *) runOperations);
+
+		int i;
+		for (i = 0; i < count; i++) {
+			// TODO Por ahora solo esta hecho porque sino pierdo referencias en el medio.. una cagada.
+			pthread_join(threads[i], NULL);
+		}
+	}
+
+	// destoy operations and nodes..
+	list_destroy(sendOperations); // The items are destroyed after usage.
 	list_destroy_and_destroy_elements(nodes, (void *) node_free);
+
+	return success;
 }
 
-void filesystem_sendBlockToNode(node_t *node, int blockIndex, char *block) {
-	// TODO
-	log_info(filesystem_logger, "Sending block to node %s (%s), blockIndex %d\n", node->name, node->id, blockIndex);
+void *filesystem_sendBlockToNode(void *param) {
+
+	nodeBlockSendOperation_t* sendOperation = (nodeBlockSendOperation_t*) param;
+
+	log_info(filesystem_logger, "Sending block to node %s , blockIndex %d", sendOperation->node->id, sendOperation->blockIndex);
+
+	filesystem_nodeBlockSendOperation_free(sendOperation);
+
+	return NULL;
 }
+
+nodeBlockSendOperation_t* filesystem_nodeBlockSendOperation_create(node_t *node, off_t blockIndex, char *block) {
+	nodeBlockSendOperation_t* nodeSendBlockOperation = malloc(sizeof(nodeBlockSendOperation_t));
+	nodeSendBlockOperation->node = node;
+	nodeSendBlockOperation->blockIndex = blockIndex;
+	nodeSendBlockOperation->block = block;
+	return nodeSendBlockOperation;
+}
+
+void filesystem_nodeBlockSendOperation_free(nodeBlockSendOperation_t* nodeSendBlockOperation) {
+	// Point it to null because they are free'd by others.
+	nodeSendBlockOperation->node = NULL;
+	nodeSendBlockOperation->block = NULL;
+	free(nodeSendBlockOperation);
+}
+/*
+ * MUTEX EXAMPLE
+ * pthread_mutex_t lock;
+ void a() {
+ if (pthread_mutex_init(&lock, NULL) != 0) {
+ // TODO error.
+ return;
+ }
+
+ pthread_mutex_lock(&lock);
+
+ // REGION CRITICA.
+
+ pthread_mutex_unlock(&lock);
+
+ pthread_mutex_destroy(&lock);
+ }
+ */

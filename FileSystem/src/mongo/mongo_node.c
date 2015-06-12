@@ -17,9 +17,11 @@ void mongo_node_init() {
 	nodeCollection = mongoc_client_get_collection(client, "filesystem", "node");
 
 	// Create index to avoid duplicate nodes.
+	/*
 	const bson_t *indexKeys = BCON_NEW("name", BCON_INT32(1));
 	mongo_createIndexIfAbsent(nodeCollection, "name_1", indexKeys, 1);
 	bson_destroy((bson_t *) indexKeys);
+	*/
 }
 
 void mongo_node_shutdown() {
@@ -30,50 +32,29 @@ bool mongo_node_save(node_t *node) {
 
 	mongo_node_checkInit();
 
-	mongo_generateId(node->id);
+	// TODO ? mongo_generateId(node->id);
 
-	return mongo_saveDoc(node_getBSON(node), nodeCollection);
+	return mongo_saveDoc(nodeCollection, node_getBSON(node));
+}
+
+node_t* mongo_node_getById(char *id) {
+
+	mongo_node_checkInit();
+
+	return mongo_getDocById(nodeCollection, id, (void*) node_getNodeFromBSON);
 }
 
 t_list* mongo_node_getAll() {
 
 	mongo_node_checkInit();
 
-	return mongo_getByQuery(bson_new(), (void*) node_getNodeFromBSON, nodeCollection);
-}
-
-node_t* mongo_node_getById(char id[]) {
-	const bson_t *doc;
-
-	mongo_node_checkInit();
-
-	doc = mongo_getDocById(id, nodeCollection);
-
-	return node_getNodeFromBSON(doc);
-}
-
-node_t* mongo_node_getByName(char *name) {
-	bson_t *query;
-	const bson_t *doc;
-
-	mongo_node_checkInit();
-
-	query = BCON_NEW("name", BCON_UTF8(name));
-
-	doc = mongo_getDocByQuery(query, nodeCollection);
-
-	if (doc) {
-		return node_getNodeFromBSON(doc);
-	}
-
-	return NULL;
-
+	return mongo_getByQuery(nodeCollection, bson_new(), (void*) node_getNodeFromBSON);
 }
 
 bool mongo_node_deleteAll() {
 	mongo_node_checkInit();
 
-	return mongo_deleteDocByQuery(bson_new(), nodeCollection);
+	return mongo_deleteDocByQuery(nodeCollection, bson_new());
 }
 
 void mongo_node_updateBlocks(node_t *node) {
@@ -85,5 +66,5 @@ void mongo_node_updateBlocks(node_t *node) {
 	query = BCON_NEW("_id", BCON_UTF8(node->id));
 	update = BCON_NEW("$set", "{", "blocks", BCON_BIN(BSON_SUBTYPE_BINARY, (const uint8_t * ) node->blocks->bitarray, node->blocks->size), "}");
 
-	mongo_update(query, update, nodeCollection);
+	mongo_update(nodeCollection, query, update);
 }

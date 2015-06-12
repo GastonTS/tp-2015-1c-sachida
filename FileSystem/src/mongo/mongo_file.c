@@ -32,17 +32,14 @@ bool mongo_file_save(file_t *file) {
 
 	mongo_generateId(file->id);
 
-	return mongo_saveDoc(file_getBSON(file), fileCollection);
+	return mongo_saveDoc(fileCollection, file_getBSON(file));
 }
 
-file_t* mongo_file_getById(char id[]) {
-	const bson_t *doc;
+file_t* mongo_file_getById(char *id) {
 
 	mongo_file_checkInit();
 
-	doc = mongo_getDocById(id, fileCollection);
-
-	return file_getFileFromBSON(doc);
+	return mongo_getDocById(fileCollection, id, (void*) file_getFileFromBSON);
 }
 
 t_list* mongo_file_getByParentId(char *parentId) {
@@ -52,7 +49,7 @@ t_list* mongo_file_getByParentId(char *parentId) {
 
 	query = BCON_NEW("parentId", BCON_UTF8(parentId));
 
-	return mongo_getByQuery(query, (void*) file_getFileFromBSON, fileCollection);
+	return mongo_getByQuery(fileCollection, query, (void*) file_getFileFromBSON);
 }
 
 t_list* mongo_file_getFilesThatHaveNode(char *nodeId) {
@@ -63,33 +60,17 @@ t_list* mongo_file_getFilesThatHaveNode(char *nodeId) {
 	//db.file.find({blocks: {$elemMatch: { $elemMatch: { nodeId: "55776dea508b964de617a22" }   }   }})
 	query = BCON_NEW("blocks", "{", "$elemMatch", "{", "$elemMatch", "{", "nodeId", BCON_UTF8(nodeId), "}", "}", "}");
 
-	return mongo_getByQuery(query, (void*) file_getFileFromBSON, fileCollection);
+	return mongo_getByQuery(fileCollection, query, (void*) file_getFileFromBSON);
 }
 
 file_t* mongo_file_getByNameInDir(char *name, char *parentId) {
 	bson_t *query;
-	const bson_t *doc;
 
 	mongo_file_checkInit();
 
 	query = BCON_NEW("name", BCON_UTF8(name), "parentId", BCON_UTF8(parentId));
 
-	doc = mongo_getDocByQuery(query, fileCollection);
-	if (doc) {
-		return file_getFileFromBSON(doc);
-	}
-
-	return NULL;
-}
-
-bool mongo_file_deleteFileByNameInDir(char *name, char *parentId) {
-	bson_t *query;
-
-	mongo_file_checkInit();
-
-	query = BCON_NEW("name", BCON_UTF8(name), "parentId", BCON_UTF8(parentId));
-
-	return mongo_deleteDocByQuery(query, fileCollection);
+	return mongo_getDocByQuery(fileCollection, query, (void*) file_getFileFromBSON);
 }
 
 bool mongo_file_deleteById(char *id) {
@@ -99,13 +80,13 @@ bool mongo_file_deleteById(char *id) {
 
 	query = BCON_NEW("_id", BCON_UTF8(id));
 
-	return mongo_deleteDocByQuery(query, fileCollection);
+	return mongo_deleteDocByQuery(fileCollection, query);
 }
 
 bool mongo_file_deleteAll() {
 	mongo_file_checkInit();
 
-	return mongo_deleteDocByQuery(bson_new(), fileCollection);
+	return mongo_deleteDocByQuery(fileCollection, bson_new());
 }
 
 void mongo_file_updateParentId(char *id, char *newParentId) {
@@ -117,6 +98,6 @@ void mongo_file_updateParentId(char *id, char *newParentId) {
 	query = BCON_NEW("_id", BCON_UTF8(id));
 	update = BCON_NEW("$set", "{", "parentId", BCON_UTF8(newParentId), "}");
 
-	mongo_update(query, update, fileCollection);
+	mongo_update(fileCollection, query, update);
 }
 

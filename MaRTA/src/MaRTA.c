@@ -39,8 +39,7 @@ int main(int argc, char *argv[]) {
 	nodes = list_create();
 
 	setup();
-	jobMapTest();
-	RePlanTest();
+	combinerPlanTest();
 	freeSetup();
 
 	freeMaRTA();

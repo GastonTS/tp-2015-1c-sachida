@@ -9,13 +9,17 @@ int size_of(int fd);
 int fileSize;
 int conectarFileSystem();
 int socket_fileSystem;
-int obtenerBytes(int comand, char* paquete);
-char* obtenerRestantes(char *paquete);
+char obtenerComando(char* paquete);
+uint16_t obtenerNumBlock(char* paquete);
+uint32_t obtenerSize(char* paquete);
+char* obtenerRestantes(char* paquete);
 
 //Le agregue los argumentos para que se pueda pasar el archivo de conf como parametro del main
 int main(int argc, char *argv[]) {
 	//pthread_t conexionesJob;
 	//pthread_t conexionesNodo;
+	size_t packet_size;
+	char* paquete;
 	if(argc != 2)
 		{
 			printf("ERROR, la sintaxis del servidor es: ./Nodo.c archivo_configuracion \n");
@@ -30,23 +34,22 @@ int main(int argc, char *argv[]) {
 
 	logger = log_create("Log.txt", "Node",1, log_level_from_string("DEBUG"));
 	socket_fileSystem =	conectarFileSystem();
-	char * paquete;
 	//todo Ver bien si es necesaria esta funcion
 	createNode(); //creo que no es necesario el createNodo.
-	socket_recv_packet(socket_fileSystem, &paquete,21);
-			int comando = obtenerBytes(1,paquete);
-			int numBlock;
-			int pack_size;
+	socket_recv_packet(socket_fileSystem, (void**)paquete, &packet_size);
+			char comando = obtenerComando(paquete);
+			uint16_t numBlock;
+			uint32_t pack_size;
 			char * buffer ;
 			switch(comando){
  	 	 	case 1: //setBloque
-      	  		numBlock= obtenerBytes(2,paquete);
-      	  		pack_size = obtenerBytes(3,paquete);
+      	  		numBlock= obtenerNumBlock(paquete);
+      	  		pack_size = obtenerSize(paquete);
       	  		buffer = obtenerRestantes(paquete);
-      	    setBloque(numBlock, buffer);
+      	    setBloque(numBlock, &buffer);
 			break;
 			case 2: //getBloque
-				numBlock= obtenerBytes(2,paquete);
+				numBlock= obtenerNumBlock(paquete);
 				getBloque(numBlock);
 				break;
 			//default =  log_error("Log.txt", "Node",1,log_level_from_string("ERROR"));
@@ -315,22 +318,21 @@ int conectarFileSystem(){
 	return sockfd;*/
 }
 
-char* getBloque(int nroBloque){
+char* getBloque(uint16_t nroBloque){
 			int mapper;
 			char* mapeo;
 			int size;
 			int pagesize;
-			char* file_name = "./archivo_mmap.txt"; //Aca tiene que abrir el archivo que crea en el createNodo
 			//Se abre el archivo para solo lectura
 
-			mapper = fopen (file_name, O_RDONLY);
+			mapper = open (archivo_bin, O_RDONLY);
 			pagesize = getpagesize();
 			size = size_of(mapper);
 			//size = 20;
 			//Trate size bytes a partir de la posicion pagesize*(nroBloque-1)
 			if( (mapeo = mmap( NULL, size, PROT_READ, MAP_SHARED, mapper, pagesize*(nroBloque-1) )) == MAP_FAILED){
 				//Si no se pudo ejecutar el MMAP, imprimir el error y abortar;
-				log_error(logger, "Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size",file_name,size);
+				log_error(logger, "Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size",archivo_bin,size);
 				//fprintf(stderr, "Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size", file_name, size, strerror(errno));
 				abort();
 			}
@@ -343,8 +345,30 @@ char* getBloque(int nroBloque){
 			return mapeo;
 		}
 
-void setBloque(int nroBloque,char** string){
-	//socket_recv_packet(int socket, void** packet, size_t* size);
+void setBloque(uint16_t nroBloque,char** string){
+	int mapper;
+	char* mapeo;
+	int size;
+	int pagesize;
+	//Se abre el archivo para lectura y escritura
+
+	mapper = open (archivo_bin, O_WRONLY);
+	pagesize = getpagesize();
+	//Size debe llegar a 20mb asi los bloques son de 20mb
+	size = size_of(mapper);
+	//Trate size bytes a partir de la posicion pagesize*(nroBloque-1)
+	if( (mapeo = mmap( NULL, size, PROT_READ, MAP_SHARED, mapper, pagesize*(nroBloque-1) )) == MAP_FAILED){
+		//Si no se pudo ejecutar el MMAP, imprimir el error y abortar;
+		log_error(logger, "Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size",archivo_bin,size);
+		//fprintf(stderr, "Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size", file_name, size, strerror(errno));
+		abort();
+	}
+	//Aca se tiene que mandar lo que tiene string adentro de mapeo.
+	fputs(pagesize*(nroBloque-1),mapeo);
+	//Se unmapea , y se cierrra el archivo
+	munmap( mapeo, size );
+	close(mapper);
+
 	/*Recibe un buffer de datos,despues con el puntero que me devuelve el mmap modifico el archivo mapeado, primero busco puntero[ j ]=\0 y lo saco,
 	 * relleno los espacios que falten hasta el nuevo bloque y remplazo el puntero[ j ]=datos[a] ,agrego el \0 y cierro el mmap.*/
 }
@@ -406,12 +430,28 @@ int size_of(int fd){
 	return buf.st_size;
 }
 
-int obtenerBytes(int comand,char *paquete){
-	return comand;
+char obtenerComando(char* paquete){
+	char* comando;
+	memcpy(paquete,&comando,sizeof(char));
+	return *comando;
 }
 
-char* obtenerRestantes(char *paquete){
-	return paquete;
+uint16_t obtenerNumBlock(char* paquete){
+	uint16_t* numBlock;
+	memcpy(paquete+sizeof(char),&numBlock,sizeof(uint16_t));
+	return *numBlock;
+}
+
+uint32_t obtenerSize(char* paquete){
+	uint32_t* size;
+	memcpy(paquete+sizeof(char)+sizeof(uint16_t),&size,sizeof(uint32_t));
+	return *size;
+}
+
+char* obtenerRestantes(char* paquete){
+	char** packet;
+	memcpy(paquete+sizeof(char)+sizeof(uint16_t)+sizeof(uint32_t),&packet,sizeof(uint32_t));
+	return *packet;
 }
 
 

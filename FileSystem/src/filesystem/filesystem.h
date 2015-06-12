@@ -6,6 +6,14 @@
 #include "../mongo/mongo_node.h"
 
 #define FILESYSTEM_BLOCK_COPIES 3
+#define	NODE_BLOCK_SIZE	20 * 1024 * 1024
+
+// Holds an operation to be done. ALL POINTERS ARE FREED BY OTHERS. (maybe? wtf)
+typedef struct {
+	node_t *node;
+	off_t blockIndex;
+	char *block;
+} nodeBlockSendOperation_t;
 
 void filesystem_initialize();
 void filesystem_shutdown();
@@ -20,7 +28,9 @@ t_list* filesystem_getDirsInDir(char *parentId);
 t_list* filesystem_getFilesInDir(char *parentId);
 
 bool filesystem_deleteDirByNameInDir(char *dirName, char *parentId);
+bool filesystem_deleteDir(dir_t *dir);
 bool filesystem_deleteFileByNameInDir(char *fileName, char *parentId);
+bool filesystem_deleteFile(file_t *file);
 
 void filesystem_moveFile(file_t *file, char *destinationId);
 void filesystem_moveDir(dir_t *dir, char *destinationId);
@@ -28,8 +38,9 @@ void filesystem_moveDir(dir_t *dir, char *destinationId);
 bool filesystem_copyFileFromFS(char *route, file_t *file);
 bool filesystem_addDir(dir_t *dir);
 
-node_t* filesystem_getNodeByName(char *nodeName);
+node_t* filesystem_getNodeById(char *nodeId);
 void filesystem_nodeIsDown(char *nodeName);
+node_t* filesystem_addNode(char *nodeId, size_t blocksCount);
 
 char* filesystem_md5sum(file_t* file);
 

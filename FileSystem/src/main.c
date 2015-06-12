@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <commons/config.h>
 
-#include "mongo/mongo_file.h"
-#include "mongo/mongo_dir.h"
 #include "console/console.h"
 #include "filesystem/filesystem.h"
 
@@ -15,8 +13,6 @@ typedef struct {
 bool initConfig(fscfg_t *fsConfig);
 void config_free(fscfg_t *fsConfig);
 
-void testNode();
-
 int main(void) {
 	fscfg_t *fsConfig = malloc(sizeof(fscfg_t));
 
@@ -26,45 +22,12 @@ int main(void) {
 		return EXIT_FAILURE;
 	}
 
-	testNode();
-
 	filesystem_initialize();
 	console_start();
 	filesystem_shutdown();
 
 	config_free(fsConfig);
 	return EXIT_SUCCESS;
-}
-
-void testNode() {
-	if (0) {
-		node_t* node = node_create(500);
-
-		node->name = strdup("Node4");
-		if (0) {
-			node_setBlockUsed(node, 1);
-			node_setBlockUsed(node, 2);
-			node_setBlockUsed(node, 23);
-			node_setBlockUsed(node, 10);
-			node_setBlockUsed(node, 15);
-			node_setBlockUsed(node, 18);
-			node_setBlockUsed(node, 6);
-			node_setBlockUsed(node, 7);
-		}
-		node_printBlocksStatus(node);
-		mongo_node_save(node);
-		node_printBlocksStatus(node);
-		node_free(node);
-
-		if (1) {
-			node_t* node2 = mongo_node_getByName("Node1");
-
-			node_printBlocksStatus(node2);
-			//node_setBlockUsed(node2, 3);
-			//mongo_node_updateBlocks(node2);
-			node_free(node2);
-		}
-	}
 }
 
 bool initConfig(fscfg_t *fsConfig) {
