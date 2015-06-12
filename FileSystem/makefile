@@ -1,5 +1,5 @@
 NAME=FileSystem
-LIBS= -I/usr/local/include/libmongoc-1.0 -I/usr/local/include/libbson-1.0 -lcommons -lbson-1.0 -lmongoc-1.0
+LIBS= -I/usr/local/include/libmongoc-1.0 -I/usr/local/include/libbson-1.0 -lcommons -lbson-1.0 -lmongoc-1.0 -lpthread
 MODS=-Wall -MMD -MP
 CC=gcc -g
 MV=mv -f

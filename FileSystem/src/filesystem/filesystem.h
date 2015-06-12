@@ -8,6 +8,13 @@
 #define FILESYSTEM_BLOCK_COPIES 3
 #define	NODE_BLOCK_SIZE	20 * 1024 * 1024
 
+// Holds an operation to be done. ALL POINTERS ARE FREED BY OTHERS. (maybe? wtf)
+typedef struct {
+	node_t *node;
+	off_t blockIndex;
+	char *block;
+} nodeBlockSendOperation_t;
+
 void filesystem_initialize();
 void filesystem_shutdown();
 
