@@ -12,7 +12,7 @@ typedef struct {
 } file_t;
 
 typedef struct {
-	char nodeId[ID_SIZE];
+	char *nodeId;
 	off_t blockIndex;
 } file_block_t;
 

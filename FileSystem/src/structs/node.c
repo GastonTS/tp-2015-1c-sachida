@@ -10,7 +10,6 @@ bool node_blockIsValidIndex(node_t *node, off_t blockIndex);
 bson_t* node_getBSON(node_t *node) {
 	bson_t *bson = bson_new();
 	BSON_APPEND_UTF8(bson, "_id", node->id);
-	BSON_APPEND_UTF8(bson, "name", node->name);
 	BSON_APPEND_BINARY(bson, "blocks", BSON_SUBTYPE_BINARY, (uint8_t * ) node->blocks->bitarray, node->blocks->size);
 	BSON_APPEND_INT32(bson, "blocksCount", node->blocksCount);
 	return bson;
@@ -28,9 +27,7 @@ node_t* node_getNodeFromBSON(const bson_t *doc) {
 			value = bson_iter_value(&iter);
 
 			if (strcmp(key, "_id") == 0) {
-				strcpy(node->id, value->value.v_utf8.str);
-			} else if (strcmp(key, "name") == 0) {
-				node->name = strdup(value->value.v_utf8.str);
+				node->id = strdup(value->value.v_utf8.str);
 			} else if (strcmp(key, "blocks") == 0) {
 				char *bitarray = malloc(value->value.v_binary.data_len);
 				memcpy(bitarray, value->value.v_binary.data, value->value.v_binary.data_len);
@@ -107,7 +104,9 @@ void node_free_blocks(node_t *node) {
 }
 
 void node_free(node_t *node) {
-	free(node->name);
+	if (node->id) {
+		free(node->id);
+	}
 	node_free_blocks(node);
 	free(node);
 }

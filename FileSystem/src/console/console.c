@@ -354,7 +354,7 @@ void copyFile(char **parameters) {
 			file->size = 0;
 
 			if (!filesystem_copyFileFromFS(source, file)) {
-				printf("Cannot create file '%s': Directory or file already exists with that name.\n", fileName);
+				printf("Cannot create file '%s': Directory or file already exists with that name.\n", dest);
 			}
 
 			file_free(file);
@@ -389,7 +389,7 @@ void md5sum(char *fileName) {
 
 void printNodeStatus(char *nodeName) {
 	if (!isNull(nodeName)) {
-		node_t *node = filesystem_getNodeByName(nodeName);
+		node_t *node = filesystem_getNodeById(nodeName);
 
 		if (node) {
 			node_printBlocksStatus(node);

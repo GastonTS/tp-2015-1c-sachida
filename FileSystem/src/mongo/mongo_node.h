@@ -10,7 +10,6 @@ bool mongo_node_save(node_t *node);
 
 node_t* mongo_node_getById(char *id);
 t_list* mongo_node_getAll();
-node_t* mongo_node_getByName(char *name);
 
 bool mongo_node_deleteAll();
 

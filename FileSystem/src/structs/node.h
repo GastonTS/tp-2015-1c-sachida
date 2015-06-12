@@ -5,8 +5,7 @@
 #include "../mongo/mongo.h"
 
 typedef struct {
-	char id[ID_SIZE];
-	char *name;
+	char *id;
 	t_bitarray *blocks;
 	size_t blocksCount;
 } node_t;

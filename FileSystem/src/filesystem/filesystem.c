@@ -160,14 +160,14 @@ bool filesystem_copyFileFromFS(char *route, file_t *file) {
 	file->size = fileSize;
 
 	// TESTING ONLY printf("%s\n", filesystem_getMD5FromBlocks(blocks));
-	if (filesystem_distributeBlocksToNodes(blocks, file)) {
+	if (!filesystem_distributeBlocksToNodes(blocks, file)) { // TODO
 		list_destroy_and_destroy_elements(blocks, free);
 		return 0;
 	}
 	list_destroy_and_destroy_elements(blocks, free);
 
-	if (mongo_file_save(file)) {
-		// If for some reason, the file could not be saved in the db, then should destroy the blocks.
+	if (!mongo_file_save(file)) {
+		// If for some reason, the file could not be saved in the db, then should destroy the blocks that were used for that file.
 		filesystem_deleteFile(file);
 		return 0;
 	}
@@ -180,19 +180,15 @@ bool filesystem_addDir(dir_t *dir) {
 		return 0;
 	}
 
-	return !mongo_dir_save(dir);
-}
-
-node_t* filesystem_getNodeByName(char *nodeName) {
-	return mongo_node_getByName(nodeName);
+	return mongo_dir_save(dir);
 }
 
 node_t* filesystem_getNodeById(char *nodeId) {
 	return mongo_node_getById(nodeId);
 }
 
-void filesystem_nodeIsDown(char *nodeName) {
-	node_t *node = filesystem_getNodeByName(nodeName);
+void filesystem_nodeIsDown(char *nodeId) {
+	node_t *node = filesystem_getNodeById(nodeId);
 	if (node) {
 		t_list *files = mongo_file_getFilesThatHaveNode(node->id);
 		void listFile(file_t *file) {
@@ -204,6 +200,22 @@ void filesystem_nodeIsDown(char *nodeName) {
 
 		node_free(node);
 	}
+}
+
+node_t* filesystem_addNode(char *nodeId, size_t blocksCount) {
+	node_t *node = filesystem_getNodeById(nodeId);
+	if (node) {
+		t_list *files = mongo_file_getFilesThatHaveNode(node->id);
+		// TODO: marcar los bloques del archivo como disponibles o que?.
+		list_destroy_and_destroy_elements(files, (void *) file_free);
+	} else {
+		// Nuevo nodo
+		// TODO
+		node = node_create(blocksCount);
+		node->id = strdup(nodeId);
+		mongo_node_save(node);
+	}
+	return node;
 }
 
 char* filesystem_md5sum(file_t* file) {
@@ -360,13 +372,19 @@ bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 					 * Cuando asigno el bloque como usado, hago el update en la siguiente linea?
 					 * Puede ser innecesario, y podria hacer el rollback al salir, en la funcion anterior.
 					 * Ver bien esto y testearlo !.
+					 *
+					 * Definicion final:
+					 * Modifico la lista de nodos pero no la guardo nunca.
+					 * Podria guardar a parte la lista de nodos a guardar y despues iterarla.
+					 * Guardo la lista de threads o algo asi ?..
+					 *
 					 * */
 					filesystem_sendBlockToNode(selectedNode, firstBlockFreeIndex, block);
 					node_setBlockUsed(selectedNode, firstBlockFreeIndex);
 					mongo_node_updateBlocks(selectedNode);
 
 					file_block_t *blockCopy = file_block_create();
-					strcpy(blockCopy->nodeId, selectedNode->id);
+					blockCopy->nodeId = strdup(selectedNode->id);
 					blockCopy->blockIndex = firstBlockFreeIndex;
 					list_add(blockCopies, blockCopy);
 				}
@@ -380,9 +398,11 @@ bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 
 	list_iterate(blocks, (void *) sendBlockToNodes);
 	list_destroy_and_destroy_elements(nodes, (void *) node_free);
+
+	return success; // TODO.
 }
 
 void filesystem_sendBlockToNode(node_t *node, off_t blockIndex, char *block) {
 	// TODO
-	log_info(filesystem_logger, "Sending block to node %s (%s), blockIndex %d\n", node->name, node->id, blockIndex);
+	log_info(filesystem_logger, "Sending block to node %s , blockIndex %d\n", node->id, blockIndex);
 }

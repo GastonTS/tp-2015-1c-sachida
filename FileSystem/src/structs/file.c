@@ -112,7 +112,7 @@ file_block_t* file_block_getFileFromBSON(bson_t *doc) {
 			value = bson_iter_value(&iter);
 
 			if (strcmp(key, "nodeId") == 0) {
-				strcpy(fileBlock->nodeId, value->value.v_utf8.str);
+				fileBlock->nodeId = strdup(value->value.v_utf8.str);
 			} else if (strcmp(key, "blockIndex") == 0) {
 				fileBlock->blockIndex = value->value.v_int32;
 			}
@@ -144,5 +144,8 @@ file_block_t* file_block_create() {
 }
 
 void file_block_free(file_block_t *fileBlock) {
+	if (fileBlock->nodeId) {
+		free(fileBlock->nodeId);
+	}
 	free(fileBlock);
 }

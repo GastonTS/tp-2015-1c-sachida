@@ -17,9 +17,11 @@ void mongo_node_init() {
 	nodeCollection = mongoc_client_get_collection(client, "filesystem", "node");
 
 	// Create index to avoid duplicate nodes.
+	/*
 	const bson_t *indexKeys = BCON_NEW("name", BCON_INT32(1));
 	mongo_createIndexIfAbsent(nodeCollection, "name_1", indexKeys, 1);
 	bson_destroy((bson_t *) indexKeys);
+	*/
 }
 
 void mongo_node_shutdown() {
@@ -30,7 +32,7 @@ bool mongo_node_save(node_t *node) {
 
 	mongo_node_checkInit();
 
-	mongo_generateId(node->id);
+	// TODO ? mongo_generateId(node->id);
 
 	return mongo_saveDoc(nodeCollection, node_getBSON(node));
 }
@@ -47,16 +49,6 @@ t_list* mongo_node_getAll() {
 	mongo_node_checkInit();
 
 	return mongo_getByQuery(nodeCollection, bson_new(), (void*) node_getNodeFromBSON);
-}
-
-node_t* mongo_node_getByName(char *name) {
-	bson_t *query;
-
-	mongo_node_checkInit();
-
-	query = BCON_NEW("name", BCON_UTF8(name));
-
-	return mongo_getDocByQuery(nodeCollection, query, (void*) node_getNodeFromBSON);
 }
 
 bool mongo_node_deleteAll() {

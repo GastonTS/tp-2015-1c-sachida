@@ -31,9 +31,9 @@ void filesystem_moveDir(dir_t *dir, char *destinationId);
 bool filesystem_copyFileFromFS(char *route, file_t *file);
 bool filesystem_addDir(dir_t *dir);
 
-node_t* filesystem_getNodeByName(char *nodeName);
 node_t* filesystem_getNodeById(char *nodeId);
 void filesystem_nodeIsDown(char *nodeName);
+node_t* filesystem_addNode(char *nodeId, size_t blocksCount);
 
 char* filesystem_md5sum(file_t* file);
 

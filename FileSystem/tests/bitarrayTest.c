@@ -36,9 +36,9 @@ void testCreateFile() {
 }
 
 void testCreateNode() {
-	node_t* node = node_create(90);
+	char nodeId[] = "Node4";
 
-	node->name = strdup("Node3");
+	node_t *node = filesystem_addNode(nodeId, 45);
 
 	node_printBlocksStatus(node);
 	/*
@@ -51,13 +51,12 @@ void testCreateNode() {
 	 node_setBlockUsed(node, 6);
 	 node_setBlockUsed(node, 7);
 	 */
-	mongo_node_save(node);
 
 	node_printBlocksStatus(node);
 
 	node_free(node);
 
-	node_t* node2 = mongo_node_getByName("Node1");
+	node_t* node2 = filesystem_getNodeById(nodeId);
 
 	if (node2) {
 		node_printBlocksStatus(node2);
