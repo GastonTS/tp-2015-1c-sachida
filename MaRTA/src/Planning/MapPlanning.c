@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <commons/collections/list.h>
-#include "../structs/nodo.h"
+#include "../structs/node.h"
 #include "../MaRTA.h"
 #include "MapPlanning.h"
 #include <time.h>
@@ -22,7 +22,7 @@ char* getTime() { //TODO:revisar si se puede ampliar a mili/microsegundos
 	return time;
 }
 
-void selectNode(t_copy *copy, t_node **selectedNode, int *numBlock) {
+void selectNode(t_copy *copy, t_node **selectedNode, uint32_t *numBlock) {
 	bool lessWorkLoad(t_node *lessBusy, t_node *busy) {
 		if (lessBusy && busy)
 			return workLoad(lessBusy->maps, lessBusy->reduces) < workLoad(busy->maps, busy->reduces);
@@ -61,7 +61,7 @@ void notificarMap(t_map *map) {
 
 void removeMapNode(t_map *map) {
 	t_node *selectedNode = findNode(nodes, map->nodeName);
-	bool isNumBlock(int numBlock) {
+	bool isNumBlock(uint32_t numBlock) {
 		return numBlock == map->numBlock;
 	}
 	list_remove_by_condition(selectedNode->maps, (void *) isNumBlock);
@@ -73,7 +73,7 @@ void jobMap(t_job *job) {
 	void fileMap(t_file *file) {
 		void mapPlanning(t_list *copies) {
 			t_node* selectedNode = NULL;
-			int numBlock;
+			uint32_t numBlock;
 
 			void selectNodeToMap(t_copy *copy) {
 				selectNode(copy, &selectedNode, &numBlock);
@@ -113,13 +113,13 @@ void jobMap(t_job *job) {
 
 }
 
-void rePlanMap(t_job *job, int idMap) {
+void rePlanMap(t_job *job, uint32_t idMap) {
 	bool findMap(t_map *map) {
 		return isMap(map, idMap);
 	}
 	t_map *map = list_find(job->maps, (void *) findMap);
 	t_node *selectedNode = NULL;
-	int numBlock;
+	uint32_t numBlock;
 
 	void selectNodeToMap(t_copy *copy) {
 		selectNode(copy, &selectedNode, &numBlock);

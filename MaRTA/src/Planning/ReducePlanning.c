@@ -2,14 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <commons/collections/list.h>
-#include "../structs/nodo.h"
+#include "../structs/node.h"
 #include "../MaRTA.h"
 #include "MapPlanning.h"
 #include <time.h>
 
 typedef struct {
 	char *nodeName;
-	int count;
+	uint32_t count;
 } t_temporalCount;
 
 void notificarReduce(t_reduce *reduce) {
@@ -38,16 +38,16 @@ t_temp * mapToTemporal(t_map *map) {
 	temporal->originMap = map->id;
 	temporal->nodeIP = map->nodeIP;
 	temporal->nodePort = map->nodePort;
-	temporal->tempName = map->tempResultName;
+	strcpy(temporal->tempName, map->tempResultName);
 	return temporal;
 }
 
 t_temp * reduceToTemporal(t_reduce *reduce) {
 	t_temp *temporal = malloc(sizeof(t_temp));
-	temporal->originMap = -1;
+	temporal->originMap = 0;
 	temporal->nodeIP = reduce->nodeIP;
 	temporal->nodePort = reduce->nodePort;
-	temporal->tempName = reduce->tempResultName;
+	strcpy(temporal->tempName, reduce->tempResultName);
 	return temporal;
 }
 

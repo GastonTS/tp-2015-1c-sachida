@@ -3,8 +3,8 @@
 
 void jobMapTest();
 void RePlanTest();
-void setup();
-void freeSetup();
+void planningTestSetup();
+void planningTestFree();
 void noCombinerPlanTest();
 void combinerPartialsReducePlanTest();
 void combinerPlanTest();

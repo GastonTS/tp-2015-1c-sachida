@@ -2,7 +2,7 @@
 #include <string.h>
 #include "job.h"
 
-t_copy *CreateCopy(char *nodeName, int numBlock) {
+t_copy *CreateCopy(char *nodeName, uint32_t numBlock) {
 	t_copy *copy = malloc(sizeof(t_copy));
 	strcpy(copy->nodeName, nodeName);
 	copy->numBlock = numBlock;
@@ -11,12 +11,12 @@ t_copy *CreateCopy(char *nodeName, int numBlock) {
 
 t_file *CreateFile(char *path) {
 	t_file *file = malloc(sizeof(t_file));
-	file->path = "sarasa.txt";
+	file->path = strdup(path);
 	file->blocks = list_create();
 	return file;
 }
 
-t_job *CreateJob(int id, bool combiner) {
+t_job *CreateJob(uint32_t id, bool combiner) {
 	t_job *job = malloc(sizeof(t_job));
 	job->id = id;
 	job->combiner = combiner;
@@ -33,6 +33,7 @@ void freeCopies(t_list *copies) {
 }
 
 void freeFile(t_file *file) {
+	free(file->path);
 	list_destroy_and_destroy_elements(file->blocks, (void *) freeCopies);
 	free(file);
 }
@@ -50,6 +51,6 @@ void freeJob(t_job *job) {
 	free(job);
 }
 
-bool isMap(t_map *map, int idMap) {
+bool isMap(t_map *map, uint32_t idMap) {
 	return map->id == idMap;
 }
