@@ -10,7 +10,7 @@
 
 void serializeJobToMaRTA(int fd, bool combiner, t_list *files);
 void desserializeMapOrder(void *buffer);
-void desserializeReduceOrder(void *buffer);
+void desserializeReduceOrder(void *buffer, size_t sbuffer);
 void recvOrder(int fd);
 int fd;
 
@@ -79,7 +79,7 @@ void recvOrder(int fd) {
 	if (order == 'm')
 		desserializeMapOrder(buffer + sOrder);
 	else if (order == 'r')
-		desserializeReduceOrder(buffer + sOrder);
+		desserializeReduceOrder(buffer + sOrder, sbuffer - sOrder);
 }
 
 void desserializeMapOrder(void *buffer) {
@@ -124,23 +124,24 @@ typedef struct {
 	char tempName[60];
 } t_temp;
 
-void desserializeTempToList(t_list *temporals, void *buffer) {
+void desserializeTempToList(t_list *temporals, void *buffer, size_t *sbuffer) {
 	t_temp *temporal = malloc(sizeof(t_temp));
 	size_t snodeIP;
 
-	memcpy(&temporal->originMap, buffer, sizeof(uint32_t));
+	memcpy(&temporal->originMap, buffer + *sbuffer, sizeof(uint32_t));
 	temporal->originMap = ntohl(temporal->originMap);
-	memcpy(&snodeIP, buffer + sizeof(uint32_t), sizeof(snodeIP));
-	memcpy(temporal->nodeIP, buffer + sizeof(uint32_t) + sizeof(snodeIP), snodeIP);
-	memcpy(&temporal->nodePort, buffer + sizeof(uint32_t) + sizeof(snodeIP) + snodeIP, sizeof(uint16_t));
+	memcpy(&snodeIP, buffer + *sbuffer + sizeof(uint32_t), sizeof(snodeIP));
+	temporal->nodeIP = malloc(snodeIP);
+	memcpy(temporal->nodeIP, buffer + *sbuffer + sizeof(uint32_t) + sizeof(snodeIP), snodeIP);
+	memcpy(&temporal->nodePort, buffer + *sbuffer + sizeof(uint32_t) + sizeof(snodeIP) + snodeIP, sizeof(uint16_t));
 	temporal->nodePort = ntohs(temporal->nodePort);
-	memcpy(temporal->tempName, buffer + sizeof(uint32_t) + sizeof(snodeIP) + snodeIP + sizeof(uint16_t), sizeof(char) * 60);
+	memcpy(temporal->tempName, buffer + *sbuffer + sizeof(uint32_t) + sizeof(snodeIP) + snodeIP + sizeof(uint16_t), sizeof(char) * 60);
 
 	list_add(temporals, temporal);
-	buffer += sizeof(uint32_t) + sizeof(snodeIP) + snodeIP + sizeof(uint16_t) + sizeof(char) * 60;
+	*sbuffer += sizeof(uint32_t) + sizeof(snodeIP) + snodeIP + sizeof(uint16_t) + sizeof(char) * 60;
 }
 
-void desserializeReduceOrder(void *buffer) {
+void desserializeReduceOrder(void *buffer, size_t sbuffer) {
 	size_t snodePort = sizeof(uint16_t);
 	size_t stempName = sizeof(char) * 60;
 	size_t snodeIP;
@@ -148,7 +149,7 @@ void desserializeReduceOrder(void *buffer) {
 	char* nodeIP;
 	uint16_t nodePort;
 	char tempResultName[60];
-	//uint16_t cantTemps = 0;
+	uint16_t countTemps = 0;
 
 	memcpy(&snodeIP, buffer, sizeof(size_t));
 	nodeIP = malloc(snodeIP);
@@ -156,16 +157,28 @@ void desserializeReduceOrder(void *buffer) {
 	memcpy(&nodePort, buffer + sizeof(snodeIP) + snodeIP, snodePort);
 	nodePort = ntohs(nodePort);
 	memcpy(tempResultName, buffer + sizeof(snodeIP) + snodeIP + snodePort, stempName);
-	/*memcpy(&cantTemps, buffer + sizeof(snodeIP) + snodeIP + snodePort + stempName, sizeof(uint16_t));
-	cantTemps = ntohs(cantTemps);
-	void *auxBuffer = buffer + sizeof(snodeIP) + snodeIP + snodePort + stempName + sizeof(uint16_t);
+	memcpy(&countTemps, buffer + sizeof(snodeIP) + snodeIP + snodePort + stempName, sizeof(uint16_t));
+	countTemps = ntohs(countTemps);
+	void *tempsBuffer = malloc(sbuffer - sizeof(snodeIP) - snodeIP - snodePort - stempName - sizeof(uint16_t));
+	tempsBuffer = buffer + sizeof(snodeIP) + snodeIP + snodePort + stempName + sizeof(uint16_t);
+	size_t stempsBuffer = 0;
 	t_list *temps = list_create();
-	for (; cantTemps; cantTemps--) {
-		desserializeTempToList(temps, auxBuffer);
-	}*/
+	for (; countTemps; countTemps--) {
+		desserializeTempToList(temps, tempsBuffer, &stempsBuffer);
+	}
 
-	printf("\n\n%s\n", nodeIP);
+	//Test TODO: Adaptar a las estructuras de Job
+	printf("\n%s\n", nodeIP);
 	printf("%d\n", nodePort);
 	printf("%s\n", tempResultName);
-	//printf("%d==%d\n",cantTemps, list_size(temps));
+	printf("Count Temps:%d\n", list_size(temps));
+	void showTemp(t_temp *temp) {
+		printf("-Temp-\n");
+		printf("\t%d\n", temp->originMap);
+		printf("\t%s\n", temp->nodeIP);
+		printf("\t%d\n", temp->nodePort);
+		printf("\t%s\n", temp->tempName);
+	}
+	list_iterate(temps, (void *) showTemp);
+	//End
 }

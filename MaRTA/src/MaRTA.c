@@ -7,9 +7,10 @@
 #include "structs/node.h"
 #include "structs/job.h"
 #include "Serialize/serialize.h"
-#include "../test/PlanningTest.h"
 #include "MaRTA.h"
 #include "../../utils/socket.h"
+#include "../test/PlanningTest.h"
+#include "../test/SerealizeTest.h"
 
 typedef struct {
 	uint16_t listenPort;
@@ -24,10 +25,10 @@ t_list *nodes;
 int fdListener;
 int fdAccepted;
 bool exitMaRTA;
+uint32_t cantJobs;
 
 int initConfig(char* configFile);
 void freeMaRTA();
-uint32_t cantJobs;
 
 int main(int argc, char *argv[]) {
 
@@ -48,54 +49,7 @@ int main(int argc, char *argv[]) {
 	nodes = list_create();
 
 	fdListener = socket_listen(cfgMaRTA->listenPort);
-	while (!exitMaRTA) {
-		printf("Waiting conecttion...\n");
-		fflush(stdout);
-		fdAccepted = socket_accept(fdListener);
-		switch (socket_handshake_to_client(fdAccepted, HANDSHAKE_MARTA, HANDSHAKE_FILESYSTEM | HANDSHAKE_JOB)) {
-		case HANDSHAKE_FILESYSTEM:
-			printf("\nEl FileSystem!\n");
-			break;
-		case HANDSHAKE_JOB:
-			cantJobs++;
-			//TODO levantar un hilo
-			t_job *job = desserealizeJob(fdAccepted, cantJobs);
-
-			if (job->combiner)
-				log_info(logger, "Iniciando Job: %d (Combiner)", job->id);
-			else
-				log_info(logger, "Iniciando Job: %d (No combiner)", job->id);
-
-			t_map *map = malloc(sizeof(t_map));
-			map->id = 42;
-			map->numBlock = 13;
-			map->nodePort = 30123;
-			map->nodeIP = "x.y.z.w";
-			strcpy(map->tempResultName, "sarasaaaaaaaaaaaa.txt");
-			serializeMapToOrder(fdAccepted, map);
-
-			t_reduce *reduce = malloc(sizeof(t_reduce));
-			reduce->finalNode = "Nodo Final";
-			reduce->nodeIP = "x.y.z.w";
-			reduce->nodePort = 54321;
-			strcpy(reduce->tempResultName, "wasabisarasajuanatenaten");
-			reduce->temps = list_create();
-			t_temp *temp1 = malloc(sizeof(t_temp));
-			temp1->nodeIP = "ip del temporal 1";
-			temp1->nodePort = 2531;
-			temp1->originMap = 15;
-			strcpy(temp1->tempName, "JA! mas mas y mas");
-			list_add(reduce->temps, temp1);
-			serializeReduceToOrder(fdAccepted, reduce);
-
-			freeJob(job);
-
-			if (cantJobs == 3) //XXX
-				exitMaRTA = 1;
-			break;
-		}
-	}
-	fflush(stdout);
+	seializeCompleteJobTest();
 
 	list_destroy_and_destroy_elements(nodes, (void *) freeNode);
 	freeMaRTA();
