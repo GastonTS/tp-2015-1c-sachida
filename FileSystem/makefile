@@ -6,7 +6,6 @@ MV=mv -f
 RM=rm -rf
 GO=./$(NAME).o
 SRCS=$(shell find ./ -iname "*.c" ! -path "./tests/*")
-UTILS=$(shell find ../utils/ -iname *.c)
 
 all: clean dependents build
 debug: CC += -DDEBUG -g -O0
@@ -16,7 +15,7 @@ clean:
 dependents:
 
 build:
-	$(CC) $(MODS) -o $(NAME).o $(SRCS) $(UTILS) $(LIBS)
+	$(CC) $(MODS) -o $(NAME).o $(SRCS) $(LIBS)
 go:
 	$(GO)
 val:
