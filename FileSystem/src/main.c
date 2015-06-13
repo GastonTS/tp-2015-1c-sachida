@@ -4,10 +4,11 @@
 
 #include "console/console.h"
 #include "filesystem/filesystem.h"
+#include "connections/connections.h"
 
 typedef struct {
-	int *port;
-	int *minNodesCount;
+	int port;
+	int minNodesCount;
 } fscfg_t;
 
 bool initConfig(fscfg_t *fsConfig);
@@ -22,8 +23,11 @@ int main(void) {
 		return EXIT_FAILURE;
 	}
 
+
 	filesystem_initialize();
+	connections_initialize(fsConfig->port);
 	console_start();
+	connections_shutdown();
 	filesystem_shutdown();
 
 	config_free(fsConfig);
@@ -48,14 +52,11 @@ bool initConfig(fscfg_t *fsConfig) {
 
 	config = config_create("config.cfg");
 
-	fsConfig->port = malloc(sizeof(int));
-	fsConfig->minNodesCount = malloc(sizeof(int));
+	fsConfig->port = getConfigInt("PORT");
+	fsConfig->minNodesCount = getConfigInt("MIN_NODES_COUNT");
 
-	*fsConfig->port = getConfigInt("PORT");
-	*fsConfig->minNodesCount = getConfigInt("MIN_NODES_COUNT");
-
-	printf("\t Port to listen: %d \n", *fsConfig->port);
-	printf("\t Minimum number of nodes to startup: %d \n", *fsConfig->minNodesCount);
+	printf("\t Port to listen: %d \n", fsConfig->port);
+	printf("\t Minimum number of nodes to startup: %d \n", fsConfig->minNodesCount);
 
 	config_destroy(config);
 
@@ -63,7 +64,5 @@ bool initConfig(fscfg_t *fsConfig) {
 }
 
 void config_free(fscfg_t *fsConfig) {
-	free(fsConfig->port);
-	free(fsConfig->minNodesCount);
 	free(fsConfig);
 }
