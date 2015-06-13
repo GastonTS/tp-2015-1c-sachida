@@ -29,10 +29,22 @@ Casi--> Notificar a MARTA de la ejecucion
 #include "structs/Job.h"
 #include "/home/utnso/tp-2015-1c-sachida/utils/socket.h"
 
+
+typedef struct {
+	uint16_t PUERTO_MARTA;
+	char* IP_MARTA;
+	char* MAPPER;
+	char* REDUCER;
+	char* RESULTADO;
+	char* COMBINER;
+} t_configJob;
+
+t_configJob* cfgJob;
 t_list* list_archivos;
 
 void leerArchivoConfig(char* conf);
-void convertirListaArch(char* cadena,t_list* lista);
+int initConfig(char* configFile);
+//void convertirListaArch(char* cadena,t_list* lista);
 int conectarMarta();
 void atenderMarta(int socketMarta);
 void atenderMapper();
@@ -55,7 +67,13 @@ int main(int argc, char *argv[]){
 		return(-1);
 	}
 
-	leerArchivoConfig(argv[1]);
+	if (!initConfig(argv[1])) {
+			log_error(logger, "Config failed");
+			freeJob();
+			return EXIT_FAILURE;
+		}
+
+	//leerArchivoConfig(argv[1]);
 	log_info(logger,"termine archivo");
 	/*
 	int i;
@@ -68,6 +86,12 @@ int main(int argc, char *argv[]){
 		log_info(logger,"Posic: %d String: %s",i,cadena);
 	}*/
 
+	log_info(logger, "PUERTO MARTA: %d", cfgJob->PUERTO_MARTA);
+	log_info(logger, "IP MARTA: %s", cfgJob->IP_MARTA);
+	log_info(logger, "MAPPER: %s", cfgJob->MAPPER);
+	log_info(logger, "REDUCER: %s", cfgJob->REDUCER);
+	log_info(logger, "RESULTADO: %s", cfgJob->RESULTADO);
+	log_info(logger, "COMBINER: %s", cfgJob->COMBINER);
 	sock_marta = conectarMarta();
 
 	atenderMarta(sock_marta);
@@ -80,6 +104,8 @@ int main(int argc, char *argv[]){
 void freeJob(){
 	log_destroy(logger);
 }
+
+
 void leerArchivoConfig(char* conf){
 	t_config* config;
 	config = config_create(conf);
@@ -94,7 +120,7 @@ void leerArchivoConfig(char* conf){
 	ARCH_RESULTADO = config_get_string_value(config,"RESULTADO");
 	strcpy(COMBINER,config_get_string_value(config,"COMBINER"));
 
-	convertirListaArch(MAPPER,list_archivos);
+	//convertirListaArch(MAPPER,list_archivos);
 
 	log_info(logger,"Extraccion correcta del archivo de configuracion");
 
@@ -102,50 +128,56 @@ void leerArchivoConfig(char* conf){
 
 }
 
+int initConfig(char* configFile) {
 
-void convertirListaArch(char* cadena,t_list* list_archivos){
-	char* caracter;
-	int indice,longCadenaNueva,longCadena,count;
-	char* cadenaNueva;
+	t_config* _config;
+	int failure = 0;
 
-	while((caracter = strchr(cadena, ' '))){
-		indice = (int)(caracter - cadena);
-		longCadena = strlen(cadena);
-		longCadenaNueva = longCadena-indice;
-		cadenaNueva = malloc(indice+1);
-		memset(cadenaNueva,'\0',indice+1);
-		memcpy(cadenaNueva,cadena,indice);
-		if(cadenaNueva != '\0'){
-			log_info(logger,"cadenaNueva: %s",cadenaNueva);
-			list_add(list_archivos,cadenaNueva);
+	int getConfigInt(char *property) {
+		if (config_has_property(_config, property)) {
+			return config_get_int_value(_config, property);
 		}
-		//log_info(logger,"CadenaNueva: %s", cadenaNueva);
-		//realloc(cadena,i+1);
-		//memset(cadena,'\0',indice+1);
-		memcpy(cadena,cadena+indice+1,longCadenaNueva+1);
-		//log_info(logger,"nueva longitud: %d",longCadenaNueva);
-		//memset(cadenaNueva,'\0',i+1);
-		//memcpy(cadenaNueva,cadena+indice,i);
-		//log_info(logger,"String : %s",cadena);
-	}
-	log_info(logger,"cadena %s",cadena);
-	list_add(list_archivos,cadena);
-	free(cadenaNueva);
-	//free(cadena);
-	return;
-	/*
-	cadenaNueva = malloc(indice+1);
-	memset(cadenaNueva,'\0',indice+1);
-	memcpy(cadenaNueva,cadena, indice);
 
-	list_add(list_archivos,cadenaNueva);
-	for(i=0;i<list_size(list_archivos);i++){
-		cadenita = list_get(list_archivos,i);
-		log_info(logger,"lista posicion %d es %s",i,cadenita);
+		failure = 1;
+		log_error(logger, "Config not found for key %s", property);
+		return -1;
 	}
-	log_info(logger, "cadena Nueva: %s",cadenaNueva);
-	*/
+
+	char* getConfigString(char* property) {
+		if (config_has_property(_config, property)) {
+			return config_get_string_value(_config, property);
+		}
+
+		failure = 1;
+		log_error(logger, "Config not found for key %s", property);
+		return "";
+	}
+
+	_config = config_create(configFile);
+
+	cfgJob = malloc(sizeof(t_configJob));
+
+	cfgJob->PUERTO_MARTA = getConfigInt("PUERTO_MARTA");
+	cfgJob->IP_MARTA = getConfigString("IP_MARTA");
+	cfgJob->MAPPER = getConfigString("MAPPER");
+	cfgJob->REDUCER = getConfigString("REDUCER");
+	cfgJob->RESULTADO = getConfigString("RESULTADO");
+	cfgJob->COMBINER = getConfigString("COMBINER");
+
+	if (!failure) {
+		log_info(logger, "PUERTO MARTA: %d", cfgJob->PUERTO_MARTA);
+		log_info(logger, "IP MARTA: %s", cfgJob->IP_MARTA);
+		log_info(logger, "MAPPER: %s", cfgJob->MAPPER);
+		log_info(logger, "REDUCER: %s", cfgJob->REDUCER);
+		log_info(logger, "RESULTADO: %s", cfgJob->RESULTADO);
+		log_info(logger, "COMBINER: %s", cfgJob->COMBINER);
+	}
+
+	config_destroy(_config);
+	return !failure;
 }
+
+
 
 
 int conectarMarta(){
@@ -159,7 +191,7 @@ int conectarMarta(){
 		return(-1);
 	}
 
-	if((sock_marta = socket_connect(IP_MARTA,PUERTO_MARTA))<0){
+	if((sock_marta = socket_connect(cfgJob->IP_MARTA,cfgJob->PUERTO_MARTA))<0){
 		log_error(logger,"Error al conectar con MaRTA %d", sock_marta);
 		freeJob();
 	}
@@ -190,7 +222,6 @@ int conectarMarta(){
 	free(buffer);
 	return sock_marta;
 }
-
 
 void atenderMarta(int socketMarta){
 	int numbytes;
