@@ -5,14 +5,16 @@
 #include <commons/config.h>
 #include <commons/collections/list.h>
 #include "structs/node.h"
+#include "structs/job.h"
+#include "Serialize/serialize.h"
 #include "../test/PlanningTest.h"
 #include "MaRTA.h"
 #include "../../utils/socket.h"
 
 typedef struct {
-	int listenPort;
+	uint16_t listenPort;
 	char *fsIP;
-	int fsPort;
+	uint16_t fsPort;
 } t_configMaRTA;
 
 t_configMaRTA *cfgMaRTA;
@@ -25,11 +27,13 @@ bool exitMaRTA;
 
 int initConfig(char* configFile);
 void freeMaRTA();
+uint32_t cantJobs;
 
 int main(int argc, char *argv[]) {
 
 	logger = log_create("MaRTA.log", "MaRTA", 1, log_level_from_string("TRACE"));
 	exitMaRTA = false;
+	cantJobs = 0;
 	if (argc != 2) {
 		log_error(logger, "Missing config file");
 		freeMaRTA();
@@ -45,7 +49,7 @@ int main(int argc, char *argv[]) {
 
 	fdListener = socket_listen(cfgMaRTA->listenPort);
 	while (!exitMaRTA) {
-		printf("Waiting conecttion...");
+		printf("Waiting conecttion...\n");
 		fflush(stdout);
 		fdAccepted = socket_accept(fdListener);
 		switch (socket_handshake_to_client(fdAccepted, HANDSHAKE_MARTA, HANDSHAKE_FILESYSTEM | HANDSHAKE_JOB)) {
@@ -53,7 +57,18 @@ int main(int argc, char *argv[]) {
 			printf("\nEl FileSystem!\n");
 			break;
 		case HANDSHAKE_JOB:
-			printf("\nUn Job!\n");
+			cantJobs++;
+			//TODO levantar un hilo
+			t_job *job = desserealizeJob(fdAccepted, cantJobs);
+
+			if (job->combiner)
+				log_info(logger, "Iniciando Job: %d (Combiner)", job->id);
+			else
+				log_info(logger, "Iniciando Job: %d (No combiner)", job->id);
+			freeJob(job);
+
+			if (cantJobs == 3) //XXX
+				exitMaRTA = 1;
 			break;
 		}
 	}

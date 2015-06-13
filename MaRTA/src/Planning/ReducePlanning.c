@@ -9,7 +9,7 @@
 
 typedef struct {
 	char *nodeName;
-	int count;
+	uint32_t count;
 } t_temporalCount;
 
 void notificarReduce(t_reduce *reduce) {
@@ -44,7 +44,7 @@ t_temp * mapToTemporal(t_map *map) {
 
 t_temp * reduceToTemporal(t_reduce *reduce) {
 	t_temp *temporal = malloc(sizeof(t_temp));
-	temporal->originMap = -1;
+	temporal->originMap = 0;
 	temporal->nodeIP = reduce->nodeIP;
 	temporal->nodePort = reduce->nodePort;
 	temporal->tempName = reduce->tempResultName;

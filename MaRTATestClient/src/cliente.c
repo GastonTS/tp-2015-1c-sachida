@@ -5,7 +5,7 @@
 
 int fd;
 int fd2;
-
+/*
 int main() {
 	fd = socket_connect("127.0.0.1", 30000);
 	int a = socket_handshake_to_server(fd, HANDSHAKE_MARTA, HANDSHAKE_FILESYSTEM);
@@ -17,4 +17,4 @@ int main() {
 	printf("\n\n%i\n\n", a);
 	fflush(stdout);
 	return EXIT_SUCCESS;
-}
+}*/
