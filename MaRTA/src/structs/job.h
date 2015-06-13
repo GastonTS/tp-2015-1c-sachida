@@ -24,7 +24,7 @@ typedef struct {
 	uint32_t originMap;
 	char *nodeIP;
 	uint16_t nodePort;
-	char *tempName;
+	char tempName[60];
 } t_temp;
 
 typedef struct {

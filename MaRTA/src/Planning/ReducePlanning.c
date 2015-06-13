@@ -38,7 +38,7 @@ t_temp * mapToTemporal(t_map *map) {
 	temporal->originMap = map->id;
 	temporal->nodeIP = map->nodeIP;
 	temporal->nodePort = map->nodePort;
-	temporal->tempName = map->tempResultName;
+	strcpy(temporal->tempName, map->tempResultName);
 	return temporal;
 }
 
@@ -47,7 +47,7 @@ t_temp * reduceToTemporal(t_reduce *reduce) {
 	temporal->originMap = 0;
 	temporal->nodeIP = reduce->nodeIP;
 	temporal->nodePort = reduce->nodePort;
-	temporal->tempName = reduce->tempResultName;
+	strcpy(temporal->tempName, reduce->tempResultName);
 	return temporal;
 }
 

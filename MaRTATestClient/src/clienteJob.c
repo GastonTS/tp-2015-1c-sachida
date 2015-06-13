@@ -9,7 +9,8 @@
 #include "../../utils/socket.h"
 
 void serializeJobToMaRTA(int fd, bool combiner, t_list *files);
-void desserializeMapOrder(void *buffer, size_t sbuffer);
+void desserializeMapOrder(void *buffer);
+void desserializeReduceOrder(void *buffer);
 void recvOrder(int fd);
 int fd;
 
@@ -30,6 +31,7 @@ int main() {
 	bool combiner = false;
 	serializeJobToMaRTA(fd, combiner, files);
 	list_destroy(files);
+	recvOrder(fd);
 	recvOrder(fd);
 	return EXIT_SUCCESS;
 }
@@ -75,10 +77,12 @@ void recvOrder(int fd) {
 	memcpy(&order, buffer, sOrder);
 	printf("\nRECVORDER: %c\n", order);
 	if (order == 'm')
-		desserializeMapOrder(buffer + sOrder, sbuffer - sOrder);
+		desserializeMapOrder(buffer + sOrder);
+	else if (order == 'r')
+		desserializeReduceOrder(buffer + sOrder);
 }
 
-void desserializeMapOrder(void *buffer, size_t sbuffer) {
+void desserializeMapOrder(void *buffer) {
 	size_t sIdMap = sizeof(uint32_t);
 	size_t snumblock = sIdMap;
 	size_t snodePort = sizeof(uint16_t);
@@ -111,4 +115,57 @@ void desserializeMapOrder(void *buffer, size_t sbuffer) {
 	printf("%s\n", tempResultName);
 	fflush(stdout);
 	//End
+}
+
+typedef struct {
+	uint32_t originMap;
+	char *nodeIP;
+	uint16_t nodePort;
+	char tempName[60];
+} t_temp;
+
+void desserializeTempToList(t_list *temporals, void *buffer) {
+	t_temp *temporal = malloc(sizeof(t_temp));
+	size_t snodeIP;
+
+	memcpy(&temporal->originMap, buffer, sizeof(uint32_t));
+	temporal->originMap = ntohl(temporal->originMap);
+	memcpy(&snodeIP, buffer + sizeof(uint32_t), sizeof(snodeIP));
+	memcpy(temporal->nodeIP, buffer + sizeof(uint32_t) + sizeof(snodeIP), snodeIP);
+	memcpy(&temporal->nodePort, buffer + sizeof(uint32_t) + sizeof(snodeIP) + snodeIP, sizeof(uint16_t));
+	temporal->nodePort = ntohs(temporal->nodePort);
+	memcpy(temporal->tempName, buffer + sizeof(uint32_t) + sizeof(snodeIP) + snodeIP + sizeof(uint16_t), sizeof(char) * 60);
+
+	list_add(temporals, temporal);
+	buffer += sizeof(uint32_t) + sizeof(snodeIP) + snodeIP + sizeof(uint16_t) + sizeof(char) * 60;
+}
+
+void desserializeReduceOrder(void *buffer) {
+	size_t snodePort = sizeof(uint16_t);
+	size_t stempName = sizeof(char) * 60;
+	size_t snodeIP;
+
+	char* nodeIP;
+	uint16_t nodePort;
+	char tempResultName[60];
+	//uint16_t cantTemps = 0;
+
+	memcpy(&snodeIP, buffer, sizeof(size_t));
+	nodeIP = malloc(snodeIP);
+	memcpy(nodeIP, buffer + sizeof(snodeIP), snodeIP);
+	memcpy(&nodePort, buffer + sizeof(snodeIP) + snodeIP, snodePort);
+	nodePort = ntohs(nodePort);
+	memcpy(tempResultName, buffer + sizeof(snodeIP) + snodeIP + snodePort, stempName);
+	/*memcpy(&cantTemps, buffer + sizeof(snodeIP) + snodeIP + snodePort + stempName, sizeof(uint16_t));
+	cantTemps = ntohs(cantTemps);
+	void *auxBuffer = buffer + sizeof(snodeIP) + snodeIP + snodePort + stempName + sizeof(uint16_t);
+	t_list *temps = list_create();
+	for (; cantTemps; cantTemps--) {
+		desserializeTempToList(temps, auxBuffer);
+	}*/
+
+	printf("\n\n%s\n", nodeIP);
+	printf("%d\n", nodePort);
+	printf("%s\n", tempResultName);
+	//printf("%d==%d\n",cantTemps, list_size(temps));
 }

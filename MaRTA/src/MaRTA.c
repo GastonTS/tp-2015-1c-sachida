@@ -66,13 +66,28 @@ int main(int argc, char *argv[]) {
 			else
 				log_info(logger, "Iniciando Job: %d (No combiner)", job->id);
 
-			t_map *map=malloc(sizeof(t_map));
+			t_map *map = malloc(sizeof(t_map));
 			map->id = 42;
 			map->numBlock = 13;
 			map->nodePort = 30123;
 			map->nodeIP = "x.y.z.w";
 			strcpy(map->tempResultName, "sarasaaaaaaaaaaaa.txt");
-			serialiceMapToOrder(fdAccepted, map);
+			serializeMapToOrder(fdAccepted, map);
+
+			t_reduce *reduce = malloc(sizeof(t_reduce));
+			reduce->finalNode = "Nodo Final";
+			reduce->nodeIP = "x.y.z.w";
+			reduce->nodePort = 54321;
+			strcpy(reduce->tempResultName, "wasabisarasajuanatenaten");
+			reduce->temps = list_create();
+			t_temp *temp1 = malloc(sizeof(t_temp));
+			temp1->nodeIP = "ip del temporal 1";
+			temp1->nodePort = 2531;
+			temp1->originMap = 15;
+			strcpy(temp1->tempName, "JA! mas mas y mas");
+			list_add(reduce->temps, temp1);
+			serializeReduceToOrder(fdAccepted, reduce);
+
 			freeJob(job);
 
 			if (cantJobs == 3) //XXX
