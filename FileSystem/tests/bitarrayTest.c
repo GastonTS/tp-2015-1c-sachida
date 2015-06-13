@@ -36,9 +36,9 @@ void testCreateFile() {
 }
 
 void testCreateNode() {
-	char nodeId[] = "Node4";
+	char nodeId[] = "Node3";
 
-	node_t *node = filesystem_addNode(nodeId, 45);
+	node_t *node = filesystem_addNode(nodeId, 80);
 
 	node_printBlocksStatus(node);
 	/*

@@ -421,6 +421,7 @@ void *filesystem_sendBlockToNode(void *param) {
 
 	nodeBlockSendOperation_t* sendOperation = (nodeBlockSendOperation_t*) param;
 
+	// TODO mandar a node.
 	log_info(filesystem_logger, "Sending block to node %s , blockIndex %d", sendOperation->node->id, sendOperation->blockIndex);
 
 	filesystem_nodeBlockSendOperation_free(sendOperation);
