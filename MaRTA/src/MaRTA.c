@@ -65,6 +65,14 @@ int main(int argc, char *argv[]) {
 				log_info(logger, "Iniciando Job: %d (Combiner)", job->id);
 			else
 				log_info(logger, "Iniciando Job: %d (No combiner)", job->id);
+
+			t_map *map=malloc(sizeof(t_map));
+			map->id = 42;
+			map->numBlock = 13;
+			map->nodePort = 30123;
+			map->nodeIP = "x.y.z.w";
+			strcpy(map->tempResultName, "sarasaaaaaaaaaaaa.txt");
+			serialiceMapToOrder(fdAccepted, map);
 			freeJob(job);
 
 			if (cantJobs == 3) //XXX
