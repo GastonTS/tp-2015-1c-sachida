@@ -1,5 +1,5 @@
 #include "Nodo.h"
-#include "socket.h"
+#include "../../utils/socket.h"
 
 void createNode();
 //void getFileContent();
