@@ -33,6 +33,7 @@ void seializeCompleteJobTest() {
 			map->id = 42;
 			map->numBlock = 13;
 			map->nodePort = 30123;
+			map->nodeName=strdup("NodoX");
 			map->nodeIP = strdup("xxx.yyy.zzzz.wwwwwwww");
 			strcpy(map->tempResultName, "sarasaaaaaaaaaaaa.txt");
 			serializeMapToOrder(fdAccepted, map);
