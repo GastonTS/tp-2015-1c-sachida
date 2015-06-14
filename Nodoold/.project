@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>FileSystem</name>
+	<name>Nodo</name>
 	<comment></comment>
 	<projects>
+		<project>utils</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

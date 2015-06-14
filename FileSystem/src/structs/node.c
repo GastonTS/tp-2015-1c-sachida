@@ -4,7 +4,7 @@
 #include "node.h"
 
 void node_free_blocks(node_t *node);
-t_bitarray* getByteArrayForBlocksCount(size_t count);
+t_bitarray* getByteArrayForBlocksCount(uint32_t count);
 bool node_blockIsValidIndex(node_t *node, off_t blockIndex);
 
 bson_t* node_getBSON(node_t *node) {
@@ -87,7 +87,7 @@ off_t node_getFirstFreeBlock(node_t *node) {
 	return -1;
 }
 
-node_t* node_create(size_t blocksCount) {
+node_t* node_create(uint32_t blocksCount) {
 	node_t* node = malloc(sizeof(node_t));
 	node->blocks = getByteArrayForBlocksCount(blocksCount);
 	node->blocksCount = blocksCount;
@@ -111,7 +111,7 @@ void node_free(node_t *node) {
 	free(node);
 }
 
-t_bitarray* getByteArrayForBlocksCount(size_t count) {
+t_bitarray* getByteArrayForBlocksCount(uint32_t count) {
 	size_t size = (count + (CHAR_BIT - 1)) / CHAR_BIT; // Rounds up the division.
 	char *data = malloc(size);
 

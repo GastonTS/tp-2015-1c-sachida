@@ -1,12 +1,12 @@
 #include "Nodo.h"
-#include "socket.h"
+#include "../../utils/socket.h"
 
 void createNode();
 //void getFileContent();
 //void nodeMap(rutinaMap, int nroBloque);
 //void nodeReduce(int[string nameNode, int nroBloque], rutinaReduce, char nombreDondeGuarda);
-size_t size_of(int fd);
-size_t fileSize;
+int size_of(int fd);
+int fileSize;
 int conectarFileSystem();
 int socket_fileSystem;
 uint8_t obtenerComando(char* paquete);
@@ -23,10 +23,8 @@ int main(int argc, char *argv[]) {
 	printf("bloque %d\n", obtenerNumBlock(paquete));
 	uint32_t size = obtenerSize(paquete);
 	printf("len %d\n", size);
-	char *datosBloque = obtenerDatosBloque(paquete, size);
-	printf("comand %s\n", datosBloque);
-	free(datosBloque);
-	return EXIT_SUCCESS;
+	printf("comand %s\n", obtenerDatosBloque(paquete, size));
+	return 1;
 	//pthread_t conexionesJob;
 	//pthread_t conexionesNodo;
 	size_t packet_size;
@@ -47,8 +45,7 @@ int main(int argc, char *argv[]) {
 	//todo Ver bien si es necesaria esta funcion
 	createNode(); //creo que no es necesario el createNodo.
 	socket_recv_packet(socket_fileSystem, (void**) paquete, &packet_size);
-
-	uint8_t comando = obtenerComando(paquete);
+	char comando = obtenerComando(paquete);
 	uint16_t numBlock;
 	uint32_t pack_size;
 	char * buffer;
@@ -56,8 +53,8 @@ int main(int argc, char *argv[]) {
 	case 1: //setBloque
 		numBlock = obtenerNumBlock(paquete);
 		pack_size = obtenerSize(paquete);
-		buffer = obtenerDatosBloque(paquete, pack_size);
-		setBloque(numBlock, buffer);
+		buffer = obtenerRestantes(paquete);
+		setBloque(numBlock, &buffer);
 		break;
 	case 2: //getBloque
 		numBlock = obtenerNumBlock(paquete);
@@ -76,8 +73,7 @@ int main(int argc, char *argv[]) {
 		 //pthread_create(&conexionesNodo,NULL,(void*)escucharNodos,NULL);
 
 
-		 // TODO TODAS LAS FUNCIONES GETBLOQUE Y ESAS VAN ADENTRO DE LOS TRHEADS
-		 */
+		 /*TODO TODAS LAS FUNCIONES GETBLOQUE Y ESAS VAN ADENTRO DE LOS TRHEADS */
 		return EXIT_SUCCESS;
 	}
 }
@@ -85,8 +81,8 @@ int main(int argc, char *argv[]) {
 // Almacenar los datos del FS y hacer Map y Reduce segun lo requerido por los Jobs
 void createNode() {
 	//TODO DANI NO ENTIENDO QUE ES ESTE PARAMETRO
-	//fileSize = size_of(archivo_bin);
-	//printf("%d\n", fileSize);
+	fileSize = size_of(archivo_bin);
+	printf(fileSize);
 	/*Funcion de la biblioteca lisen. para esperar al FS
 	 stat se consigue el tamaño de la rchivo
 	 truncate -s 1G miarchivo.bin*/
@@ -329,8 +325,8 @@ int conectarFileSystem() {
 char* getBloque(uint16_t nroBloque) {
 	int mapper;
 	char* mapeo;
-	size_t size;
-	size_t pagesize;
+	int size;
+	int pagesize;
 	//Se abre el archivo para solo lectura
 
 	mapper = open(archivo_bin, O_RDONLY);
@@ -344,7 +340,7 @@ char* getBloque(uint16_t nroBloque) {
 		//fprintf(stderr, "Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size", file_name, size, strerror(errno));
 		abort();
 	}
-	log_info(logger, "Tamaño del archivo: %d\n", size);
+	log_info("Tamaño del archivo: %d\nContenido:'%s'\n", size, mapeo);
 	//printf ("Tamaño del archivo: %d\nContenido:'%s'\n", size, mapeo);
 
 	//Se unmapea , y se cierrra el archivo
@@ -353,7 +349,7 @@ char* getBloque(uint16_t nroBloque) {
 	return mapeo;
 }
 
-void setBloque(uint16_t nroBloque, char* string) {
+void setBloque(uint16_t nroBloque, char** string) {
 	int mapper;
 	char* mapeo;
 	int size;
@@ -372,7 +368,7 @@ void setBloque(uint16_t nroBloque, char* string) {
 		abort();
 	}
 	//Aca se tiene que mandar lo que tiene string adentro de mapeo.
-	// TODO . fputs(pagesize * (nroBloque - 1), mapeo);
+	fputs(pagesize * (nroBloque - 1), mapeo);
 	//Se unmapea , y se cierrra el archivo
 	munmap(mapeo, size);
 	close(mapper);
@@ -431,7 +427,7 @@ void getInfoConf(char* conf) {
  * 			 ejecucion: ./Nodo.c "rutaArchivoConfig"
  */
 
-size_t size_of(int fd) {
+int size_of(int fd) {
 	struct stat buf;
 	fstat(fd, &buf);
 	return buf.st_size;
@@ -456,9 +452,8 @@ uint32_t obtenerSize(char* paquete) {
 }
 
 char* obtenerDatosBloque(char* paquete, uint32_t size) {
-	char* packet = malloc(sizeof(char) * (size + 1));
+	char* packet = malloc(sizeof(char) * size);
 	memcpy(packet, paquete + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint32_t), size);
-	packet[size] = '\0';
 	return packet;
 }
 

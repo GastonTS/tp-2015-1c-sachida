@@ -38,8 +38,21 @@ void freeFile(t_file *file) {
 	free(file);
 }
 
+void freeTemp(t_temp *temp) {
+	if (temp->nodeIP) {
+		free (temp->nodeIP);
+	}
+	free(temp);
+}
+
 void freeReduce(t_reduce *reduce) {
-	list_destroy_and_destroy_elements(reduce->temps, (void *) free);
+	if (reduce->finalNode) {
+		free(reduce->finalNode);
+	}
+	if (reduce->nodeIP) {
+		free(reduce->nodeIP);
+	}
+	list_destroy_and_destroy_elements(reduce->temps, (void *) freeTemp);
 	free(reduce);
 }
 

@@ -20,6 +20,6 @@ build:
 go:
 	$(GO)
 val:
-	valgrind --leak-check=full $(GO)
+	valgrind --leak-check=full --track-origins=yes $(GO)
 lval:
 	valgrind --leak-check=full --log-file=$(NAME).v $(GO)
