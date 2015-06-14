@@ -29,8 +29,13 @@ void seializeCompleteJobTest() {
 			else
 				log_info(logger, "Iniciando Job: %d (No combiner)", job->id);
 
-			t_map *map = CreateMap(42, 13, 30123, "NodoX", "xxx.yyy.zzz.www", "SarasaTempporal.txt");
+			t_map *map = CreateMap(1, 13, 30123, "NodoX", "xxx.yyy.zzz.www", "temporal map 1.txt");
+			list_add(job->maps, map);
+
 			serializeMapToOrder(fdAccepted, map);
+			printf("\nMap done:%d", map->done);
+			recvResult(fdAccepted, job);
+			printf("Map done:%d\n\n", map->done);
 
 			job->finalReduce->finalNode = strdup("Nodo Final");
 			job->finalReduce->nodeIP = strdup("x.y.z.w");
@@ -40,7 +45,6 @@ void seializeCompleteJobTest() {
 			list_add(job->finalReduce->temps, temp1);
 			serializeReduceToOrder(fdAccepted, job->finalReduce);
 
-			freeMap(map);
 			freeJob(job);
 
 			if (cantJobs == 3) //XXX

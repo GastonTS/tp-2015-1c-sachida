@@ -113,11 +113,7 @@ void jobMap(t_job *job) {
 
 }
 
-void rePlanMap(t_job *job, uint16_t idMap) {
-	bool findMap(t_map *map) {
-		return isMap(map, idMap);
-	}
-	t_map *map = list_find(job->maps, (void *) findMap);
+void rePlanMap(t_job *job, t_map *map) {
 	t_node *selectedNode = NULL;
 	uint16_t numBlock;
 
@@ -127,7 +123,9 @@ void rePlanMap(t_job *job, uint16_t idMap) {
 
 	list_iterate(map->copies, (void*) selectNodeToMap);
 
+	free(map->nodeName);
 	map->nodeName = strdup(selectedNode->name);
+	free(map->nodeIP);
 	map->nodeIP = strdup(selectedNode->ip);
 	map->nodePort = selectedNode->port;
 	map->numBlock = numBlock;

@@ -5,8 +5,12 @@
 #include <commons/string.h>
 #include "../../../utils/socket.h"
 #include "serialize.h"
+#include "../Planning/MapPlanning.h"
 #include <arpa/inet.h>
 
+//**********************************************************************************//
+//									JOB												//
+//**********************************************************************************//
 void stringsToPathFile(t_list *list, char *string) {
 	char **splits = string_split(string, " ");
 	char **auxSplit = splits;
@@ -42,12 +46,27 @@ t_job *desserealizeJob(int fd, uint16_t id) {
 	return job;
 }
 
+void recvResult(int fd, t_job *job) {
+	void *buffer;
+	size_t sbuffer = 0;
+	socket_recv_packet(fd, &buffer, &sbuffer);
+	char resultFrom = '\0';
+	size_t sOrder = sizeof(char);
+	memcpy(&resultFrom, buffer, sOrder);
+	printf("\nRECVRESULT: %c\n", resultFrom);
+	if (resultFrom == 'm')
+		desserializeMapResult(buffer + sOrder, job);
+	else if (resultFrom == 'r')
+		desserializaReduceResult();
+	free(buffer);
+}
+//**********************************MAP*********************************************//
 void serializeMapToOrder(int fd, t_map *map) {
 	char order = 'm';
+	size_t sOrder = sizeof(char);
 	size_t sIpMap = sizeof(uint16_t);
 	size_t snumBlock = sIpMap;
 	size_t snodePort = sizeof(uint16_t);
-	size_t sOrder = sizeof(char);
 	size_t snodeIP = strlen(map->nodeIP) + 1;
 	size_t stempName = sizeof(char) * 60;
 	size_t sbuffer = sOrder + sIpMap + sizeof(snodeIP) + snodeIP + snodePort + snumBlock + stempName;
@@ -69,6 +88,29 @@ void serializeMapToOrder(int fd, t_map *map) {
 	free(buffer);
 }
 
+void desserializeMapResult(void *buffer, t_job *job) {
+	size_t sresult = sizeof(bool);
+	size_t sidMap = sizeof(uint16_t);
+
+	bool result;
+	uint16_t idMap;
+
+	memcpy(&result, buffer, sresult);
+	memcpy(&idMap, buffer + sresult, sidMap);
+	idMap = ntohs(idMap);
+
+	bool findMap(t_map *map) {
+		return isMap(map, idMap);
+	}
+	t_map *map = list_find(job->maps, (void *) findMap);
+
+	if (result) {
+		map->done = true;
+	} else {
+		rePlanMap(job, map);
+	}
+}
+//*********************************REDUCE*******************************************//
 size_t totalTempsSize(t_list *temps) {
 	size_t stemps = 0;
 	void upgradeSize(t_temp * temp) {
@@ -127,4 +169,8 @@ void serializeReduceToOrder(int fd, t_reduce *reduce) {
 	socket_send_packet(fd, buffer, sbuffer);
 	free(tempsBuffer);
 	free(buffer);
+}
+
+void desserializaReduceResult() {
+	//TODO
 }

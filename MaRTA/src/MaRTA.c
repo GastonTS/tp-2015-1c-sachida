@@ -49,6 +49,8 @@ int main(int argc, char *argv[]) {
 	nodes = list_create();
 
 	//planningTestSetup();
+	//jobMapTest();
+	//RePlanTest();
 	//noCombinerPlanTest();
 	//combinerPlanTest();
 	//planningTestFree();

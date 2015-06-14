@@ -152,6 +152,8 @@ void planningTestFree() {
 
 void jobMapTest() {
 	printf("**************************jobMapTest****************************\n");
+	job->finalReduce->finalNode = strdup("");
+	job->finalReduce->nodeIP = strdup("");
 	jobMap(job);
 	jobMap(job2);
 	printf("****************************************************************\n");
@@ -161,9 +163,12 @@ void RePlanTest() {
 	printf("**************************RePlanTest****************************\n");
 	printf("************************jobMapPlanning**************************\n");
 	jobMap(job);
+	job->finalReduce->finalNode = strdup("");
+	job->finalReduce->nodeIP = strdup("");
 	node5->active = 0;
 	printf("************************RePlanningMap(1)*************************\n");
-	rePlanMap(job, 1);
+	t_map *map = list_get(job->maps, 1);
+	rePlanMap(job, map);
 	printf("****************************************************************\n");
 }
 

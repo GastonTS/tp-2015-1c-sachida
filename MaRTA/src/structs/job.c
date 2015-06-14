@@ -18,6 +18,7 @@ t_map *CreateMap(uint16_t id, uint16_t numBlock, uint16_t nodePort, char *nodeNa
 	map->nodeIP = strdup(nodeIP);
 	memset(map->tempResultName, '\0', sizeof(char) * 60);
 	strcpy(map->tempResultName, tempResultName);
+	map->done = false;
 	return map;
 }
 

@@ -11,6 +11,7 @@
 void serializeJobToMaRTA(int fd, bool combiner, t_list *files);
 void desserializeMapOrder(void *buffer);
 void desserializeReduceOrder(void *buffer, size_t sbuffer);
+void serializeMapResult(int fd, bool result, uint16_t idMap);
 void recvOrder(int fd);
 int fd;
 
@@ -32,10 +33,14 @@ int main() {
 	serializeJobToMaRTA(fd, combiner, files);
 	list_destroy(files);
 	recvOrder(fd);
+	serializeMapResult(fd, true, 1);
 	recvOrder(fd);
 	return EXIT_SUCCESS;
 }
 
+//**********************************************************************************//
+//									MaRTA											//
+//**********************************************************************************//
 size_t lengthStringList(t_list *stringList) {
 	size_t length = 0;
 	void totalLength(char *string) {
@@ -73,7 +78,7 @@ void recvOrder(int fd) {
 	void *buffer;
 	size_t sbuffer = 0;
 	socket_recv_packet(fd, &buffer, &sbuffer);
-	uint16_t order = 0;
+	char order = '\0';
 	size_t sOrder = sizeof(char);
 	memcpy(&order, buffer, sOrder);
 	printf("\nRECVORDER: %c\n", order);
@@ -81,8 +86,10 @@ void recvOrder(int fd) {
 		desserializeMapOrder(buffer + sOrder);
 	else if (order == 'r')
 		desserializeReduceOrder(buffer + sOrder, sbuffer - sOrder);
+	free(buffer);
 }
 
+//***********************************MAP********************************************//
 void desserializeMapOrder(void *buffer) {
 	size_t sIdMap = sizeof(uint16_t);
 	size_t snumblock = sIdMap;
@@ -118,6 +125,23 @@ void desserializeMapOrder(void *buffer) {
 	//End
 }
 
+void serializeMapResult(int fd, bool result, uint16_t idMap) {
+	char resultFrom = 'm';
+	size_t sresultFrom = sizeof(char);
+	size_t sresult = sizeof(result);
+	size_t sidMap = sizeof(uint16_t);
+	size_t sbuffer = sresultFrom + sresult + sidMap;
+
+	idMap = htons(idMap);
+
+	void *buffer = malloc(sbuffer);
+	buffer = memset(buffer, '0', sbuffer);
+	memcpy(buffer, &resultFrom, sresultFrom);
+	memcpy(buffer + sresultFrom, &result, sresult);
+	memcpy(buffer + sresultFrom + sresult, &idMap, sidMap);
+	socket_send_packet(fd, buffer, sbuffer);
+}
+//*********************************REDUCE*******************************************//
 typedef struct {
 	uint16_t originMap;
 	char *nodeIP;
@@ -168,7 +192,7 @@ void desserializeReduceOrder(void *buffer, size_t sbuffer) {
 		desserializeTempToList(temps, tempsBuffer, &stempsBuffer);
 	}
 
-	//Test TODO: Adaptar a las estructuras de Job
+//Test TODO: Adaptar a las estructuras de Job
 	printf("\n%s\n", nodeIP);
 	printf("%d\n", nodePort);
 	printf("%s\n", tempResultName);
@@ -181,5 +205,5 @@ void desserializeReduceOrder(void *buffer, size_t sbuffer) {
 		printf("\t%s\n", temp->tempName);
 	}
 	list_iterate(temps, (void *) showTemp);
-	//End
+//End
 }
