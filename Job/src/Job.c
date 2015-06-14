@@ -26,7 +26,7 @@
  */
 
 #include "structs/Job.h"
-#include "/home/utnso/tp-2015-1c-sachida/utils/socket.h"
+#include "utils/socket.h"
 
 typedef struct {
 	uint16_t PUERTO_MARTA;
@@ -40,7 +40,6 @@ typedef struct {
 t_configJob* cfgJob;
 t_list* list_archivos;
 
-void leerArchivoConfig(char* conf);
 int initConfig(char* configFile);
 //void convertirListaArch(char* cadena,t_list* lista);
 int conectarMarta();
@@ -162,8 +161,7 @@ int conectarMarta() {
 	t_mensaje mensaje;
 
 	if ((buffer = (char*) malloc(sizeof(char) * MAXDATASIZE)) == NULL) {
-		printf(
-				"Error al reservar memoria para el buffer en conectar con MaRTA \n");
+		printf("Error al reservar memoria para el buffer en conectar con MaRTA \n");
 		return (-1);
 	}
 
@@ -174,8 +172,7 @@ int conectarMarta() {
 
 	log_info(logger, "Coneccion con MaRTA: %d", sock_marta);
 
-	if ((handshake = socket_handshake_to_server(sock_marta, HANDSHAKE_MARTA,
-			HANDSHAKE_JOB)) <= 0) {
+	if ((handshake = socket_handshake_to_server(sock_marta, HANDSHAKE_MARTA, HANDSHAKE_JOB)) <= 0) {
 		log_error(logger, "Error en el handshake con MaRTA: %d", handshake);
 	}
 
@@ -231,8 +228,7 @@ void atenderMarta(int socketMarta) {
 			//list_add(list_reducers,);
 
 		} else {
-			printf(
-					"Error en el recv MapReduce de MaRTA --> Me esta mandando otra cosa \n");
+			printf("Error en el recv MapReduce de MaRTA --> Me esta mandando otra cosa \n");
 			free(buffer);
 			close(socketMarta);
 			exit(-1);
@@ -253,8 +249,7 @@ void atenderMapper() {
 	t_mensaje mensaje;
 
 	if ((buffer = (char*) malloc(sizeof(char) * MAXDATASIZE)) == NULL) {
-		printf(
-				"Error al reservar memoria para el buffer en conectar con NODO mapper\n");
+		printf("Error al reservar memoria para el buffer en conectar con NODO mapper\n");
 		pthread_exit(&retorno);
 	}
 
@@ -269,8 +264,7 @@ void atenderMapper() {
 	//nodo.sin_addr.s_addr = inet_addr(IP_NODO);
 	memset(&(nodo.sin_zero), 0, 8);
 
-	if (connect(sockfd, (struct sockaddr *) &nodo, sizeof(struct sockaddr))
-			== -1) {
+	if (connect(sockfd, (struct sockaddr *) &nodo, sizeof(struct sockaddr)) == -1) {
 		printf("Error en el connect con NODO mapper \n");
 		close(sockfd);
 		pthread_exit(&retorno);
@@ -328,8 +322,7 @@ void confirmarMap() {
 	int retorno = 0;
 
 	if ((buffer = (char*) malloc(sizeof(char) * MAXDATASIZE)) == NULL) {
-		printf(
-				"Error al reservar memoria para el buffer en confirmarMap a MaRTA\n");
+		printf("Error al reservar memoria para el buffer en confirmarMap a MaRTA\n");
 		pthread_exit(&retorno);
 	}
 
@@ -361,8 +354,7 @@ void atenderReducer() {
 	t_mensaje mensaje;
 
 	if ((buffer = (char*) malloc(sizeof(char) * MAXDATASIZE)) == NULL) {
-		printf(
-				"Error al reservar memoria para el buffer en conectar con NODO reduce \n");
+		printf("Error al reservar memoria para el buffer en conectar con NODO reduce \n");
 		pthread_exit(&retorno);
 	}
 
@@ -377,8 +369,7 @@ void atenderReducer() {
 	//nodo.sin_addr.s_addr = inet_addr(IP_NODO);
 	memset(&(nodo.sin_zero), 0, 8);
 
-	if (connect(sockfd, (struct sockaddr *) &nodo, sizeof(struct sockaddr))
-			== -1) {
+	if (connect(sockfd, (struct sockaddr *) &nodo, sizeof(struct sockaddr)) == -1) {
 		printf("Error en el connect con NODO reduce \n");
 		close(sockfd);
 		pthread_exit(&retorno);
@@ -423,8 +414,7 @@ void confirmarReduce() {
 	int retorno = 0;
 
 	if ((buffer = (char*) malloc(sizeof(char) * MAXDATASIZE)) == NULL) {
-		printf(
-				"Error al reservar memoria para el buffer en confirmarReduce a MaRTA\n");
+		printf("Error al reservar memoria para el buffer en confirmarReduce a MaRTA\n");
 		pthread_exit(&retorno);
 	}
 
