@@ -5,12 +5,12 @@
 #include <stdlib.h>
 #include "node.h"
 
-t_node *CreateNode(int active, char *IP, int port, char name[25]) {
+t_node *CreateNode(int active, char *IP, int port, char* name) {
 	t_node *node = malloc(sizeof(t_node));
 	node->active = active;
-	node->ip = IP;
+	node->ip = strdup(IP);
 	node->port = port;
-	strcpy(node->name, name);
+	node->name = strdup(name);
 	node->maps = list_create();
 	node->reduces = list_create();
 	return node;
@@ -25,6 +25,12 @@ int workLoad(t_list *maps, t_list *reduces) {
 }
 
 void freeNode(t_node *node) {
+	if (node->ip) {
+		free(node->ip);
+	}
+	if (node->name) {
+		free(node->name);
+	}
 	list_destroy(node->maps);
 	list_destroy(node->reduces);
 	free(node);

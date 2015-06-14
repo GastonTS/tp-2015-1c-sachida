@@ -4,7 +4,7 @@
 #include <commons/collections/list.h>
 
 typedef struct {
-	char name[25];
+	char *name;
 	char *ip;
 	int port;
 	int active;

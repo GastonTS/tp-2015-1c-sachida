@@ -48,6 +48,11 @@ int main(int argc, char *argv[]) {
 
 	nodes = list_create();
 
+	//planningTestSetup();
+	//noCombinerPlanTest();
+	//combinerPlanTest();
+	//planningTestFree();
+
 	fdListener = socket_listen(cfgMaRTA->listenPort);
 	seializeCompleteJobTest();
 
@@ -88,7 +93,7 @@ int initConfig(char* configFile) {
 	log_info(logger, "Loading config...");
 
 	cfgMaRTA->listenPort = getConfigInt("PUERTO_LISTEN");
-	cfgMaRTA->fsIP = getCongifString("IP_FILE_SYSTEM");
+	cfgMaRTA->fsIP = strdup(getCongifString("IP_FILE_SYSTEM"));
 	cfgMaRTA->fsPort = getConfigInt("PUERTO_FILE_SYSTEM");
 
 	if (!failure) {
@@ -102,6 +107,9 @@ int initConfig(char* configFile) {
 }
 
 void freeMaRTA() {
+	if (cfgMaRTA->fsIP) {
+		free(cfgMaRTA->fsIP);
+	}
 	free(cfgMaRTA);
 	log_destroy(logger);
 }

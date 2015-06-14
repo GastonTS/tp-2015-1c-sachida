@@ -4,7 +4,7 @@
 
 t_copy *CreateCopy(char *nodeName, uint16_t numBlock) {
 	t_copy *copy = malloc(sizeof(t_copy));
-	strcpy(copy->nodeName, nodeName);
+	copy->nodeName = strdup(nodeName);
 	copy->numBlock = numBlock;
 	return copy;
 }
@@ -28,24 +28,34 @@ t_job *CreateJob(uint16_t id, bool combiner) {
 	return job;
 }
 
+void freeCopy(t_copy *copy) {
+	if (copy->nodeName) {
+		free(copy->nodeName);
+	}
+	free(copy);
+}
+
 void freeCopies(t_list *copies) {
-	list_destroy_and_destroy_elements(copies, (void *) free);
+	list_destroy_and_destroy_elements(copies, (void *) freeCopy);
 }
 
 void freeFile(t_file *file) {
-	free(file->path);
+	if (file->path) {
+		free(file->path);
+	}
+
 	list_destroy_and_destroy_elements(file->blocks, (void *) freeCopies);
 	free(file);
 }
 
 void freeTemp(t_temp *temp) {
 	if (temp->nodeIP) {
-		free (temp->nodeIP);
+		free(temp->nodeIP);
 	}
 	free(temp);
 }
 
-void freeReduce(t_reduce *reduce) {
+void freeReduce(t_reduce *reduce) {//FIXME Valgrind Error uninitialised value
 	if (reduce->finalNode) {
 		free(reduce->finalNode);
 	}
@@ -56,9 +66,19 @@ void freeReduce(t_reduce *reduce) {
 	free(reduce);
 }
 
+void freeMap(t_map *map) {
+	if (map->nodeName) {
+		free(map->nodeName);
+	}
+	if (map->nodeIP) {
+		free(map->nodeIP);
+	}
+	free(map);
+}
+
 void freeJob(t_job *job) {
 	list_destroy_and_destroy_elements(job->files, (void *) freeFile);
-	list_destroy_and_destroy_elements(job->maps, (void *) free);
+	list_destroy_and_destroy_elements(job->maps, (void *) freeMap);
 	list_destroy_and_destroy_elements(job->partialReduces, (void *) freeReduce);
 	freeReduce(job->finalReduce);
 	free(job);

@@ -49,9 +49,7 @@ void seializeCompleteJobTest() {
 			list_add(job->finalReduce->temps, temp1);
 			serializeReduceToOrder(fdAccepted, job->finalReduce);
 
-			// TODO hacer funcion freeMap
-			free(map->nodeIP);
-			free(map);
+			freeMap(map);
 			freeJob(job);
 
 			if (cantJobs == 3) //XXX

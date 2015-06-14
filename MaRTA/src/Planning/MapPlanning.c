@@ -91,8 +91,8 @@ void jobMap(t_job *job) {
 					t_map *mapPlanned = malloc(sizeof(t_map));
 					mapPlanned->id = list_size(job->maps);
 					mapPlanned->copies = copies;
-					mapPlanned->nodeName = selectedNode->name;
-					mapPlanned->nodeIP = selectedNode->ip;
+					mapPlanned->nodeName = strdup(selectedNode->name);
+					mapPlanned->nodeIP = strdup(selectedNode->ip);
 					mapPlanned->nodePort = selectedNode->port;
 					mapPlanned->numBlock = numBlock;
 					setTempMapName(mapPlanned, job);
@@ -127,7 +127,8 @@ void rePlanMap(t_job *job, uint16_t idMap) {
 
 	list_iterate(map->copies, (void*) selectNodeToMap);
 
-	map->nodeIP = selectedNode->ip;
+	map->nodeName = strdup(selectedNode->name);
+	map->nodeIP = strdup(selectedNode->ip);
 	map->nodePort = selectedNode->port;
 	map->numBlock = numBlock;
 	setTempMapName(map, job);

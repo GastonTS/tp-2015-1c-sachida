@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 typedef struct {
-	char nodeName[25];
+	char* nodeName;
 	uint16_t numBlock;
 } t_copy;
 
@@ -53,6 +53,7 @@ typedef struct {
 t_copy *CreateCopy(char *nodeName, uint16_t numBlock);
 t_file *CreateFile(char *path);
 t_job *CreateJob(uint16_t id, bool combiner);
+void freeMap(t_map* map);
 void freeJob(t_job *job);
 bool isMap(t_map *map, uint16_t idMap);
 
