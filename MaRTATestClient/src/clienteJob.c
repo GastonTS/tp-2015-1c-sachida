@@ -59,7 +59,7 @@ void serializeJobToMaRTA(int fd, bool combiner, t_list *files) {
 	size_t scombiner = sizeof(combiner);
 	size_t sbuffer = scombiner + filesLength;
 	void *buffer = malloc(sbuffer);
-	combiner = htonl(combiner);
+	combiner = htons(combiner);
 	memcpy(buffer, &combiner, scombiner);
 	memcpy((buffer + scombiner), stringFiles, filesLength);
 
@@ -83,16 +83,16 @@ void recvOrder(int fd) {
 }
 
 void desserializeMapOrder(void *buffer) {
-	size_t sIdMap = sizeof(uint32_t);
+	size_t sIdMap = sizeof(uint16_t);
 	size_t snumblock = sIdMap;
 	size_t snodePort = sizeof(uint16_t);
 	size_t stempName = sizeof(char) * 60;
 	size_t snodeIP;
 
-	uint32_t idMap;
+	uint16_t idMap;
 	char* nodeIP;
 	uint16_t nodePort;
-	uint32_t numBlock;
+	uint16_t numBlock;
 	char tempResultName[60];
 
 	memcpy(&idMap, buffer, sIdMap);
@@ -103,9 +103,9 @@ void desserializeMapOrder(void *buffer) {
 	memcpy(&numBlock, buffer + sIdMap + sizeof(size_t) + snodeIP + snodePort, snumblock);
 	memcpy(tempResultName, buffer + sIdMap + sizeof(size_t) + snodeIP + snodePort + snumblock, stempName);
 
-	idMap = ntohl(idMap);
+	idMap = ntohs(idMap);
 	nodePort = ntohs(nodePort);
-	numBlock = ntohl(numBlock);
+	numBlock = ntohs(numBlock);
 
 	//Test TODO: Adaptar a las estructuras de Job
 	printf("\n%d\n", idMap);
@@ -118,7 +118,7 @@ void desserializeMapOrder(void *buffer) {
 }
 
 typedef struct {
-	uint32_t originMap;
+	uint16_t originMap;
 	char *nodeIP;
 	uint16_t nodePort;
 	char tempName[60];
@@ -128,17 +128,17 @@ void desserializeTempToList(t_list *temporals, void *buffer, size_t *sbuffer) {
 	t_temp *temporal = malloc(sizeof(t_temp));
 	size_t snodeIP;
 
-	memcpy(&temporal->originMap, buffer + *sbuffer, sizeof(uint32_t));
-	temporal->originMap = ntohl(temporal->originMap);
-	memcpy(&snodeIP, buffer + *sbuffer + sizeof(uint32_t), sizeof(snodeIP));
+	memcpy(&temporal->originMap, buffer + *sbuffer, sizeof(uint16_t));
+	temporal->originMap = ntohs(temporal->originMap);
+	memcpy(&snodeIP, buffer + *sbuffer + sizeof(uint16_t), sizeof(snodeIP));
 	temporal->nodeIP = malloc(snodeIP);
-	memcpy(temporal->nodeIP, buffer + *sbuffer + sizeof(uint32_t) + sizeof(snodeIP), snodeIP);
-	memcpy(&temporal->nodePort, buffer + *sbuffer + sizeof(uint32_t) + sizeof(snodeIP) + snodeIP, sizeof(uint16_t));
+	memcpy(temporal->nodeIP, buffer + *sbuffer + sizeof(uint16_t) + sizeof(snodeIP), snodeIP);
+	memcpy(&temporal->nodePort, buffer + *sbuffer + sizeof(uint16_t) + sizeof(snodeIP) + snodeIP, sizeof(uint16_t));
 	temporal->nodePort = ntohs(temporal->nodePort);
-	memcpy(temporal->tempName, buffer + *sbuffer + sizeof(uint32_t) + sizeof(snodeIP) + snodeIP + sizeof(uint16_t), sizeof(char) * 60);
+	memcpy(temporal->tempName, buffer + *sbuffer + sizeof(uint16_t) + sizeof(snodeIP) + snodeIP + sizeof(uint16_t), sizeof(char) * 60);
 
 	list_add(temporals, temporal);
-	*sbuffer += sizeof(uint32_t) + sizeof(snodeIP) + snodeIP + sizeof(uint16_t) + sizeof(char) * 60;
+	*sbuffer += sizeof(uint16_t) + sizeof(snodeIP) + snodeIP + sizeof(uint16_t) + sizeof(char) * 60;
 }
 
 void desserializeReduceOrder(void *buffer, size_t sbuffer) {

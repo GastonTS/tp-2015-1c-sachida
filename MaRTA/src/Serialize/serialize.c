@@ -21,7 +21,7 @@ void stringsToPathFile(t_list *list, char *string) {
 	free(splits);
 }
 
-t_job *desserealizeJob(int fd, uint32_t id) {
+t_job *desserealizeJob(int fd, uint16_t id) {
 	size_t sbuffer;
 	void *buffer;
 	socket_recv_packet(fd, &buffer, &sbuffer);
@@ -44,7 +44,7 @@ t_job *desserealizeJob(int fd, uint32_t id) {
 
 void serializeMapToOrder(int fd, t_map *map) {
 	char order = 'm';
-	size_t sIpMap = sizeof(uint32_t);
+	size_t sIpMap = sizeof(uint16_t);
 	size_t snumBlock = sIpMap;
 	size_t snodePort = sizeof(uint16_t);
 	size_t sOrder = sizeof(char);
@@ -52,8 +52,8 @@ void serializeMapToOrder(int fd, t_map *map) {
 	size_t stempName = sizeof(char) * 60;
 	size_t sbuffer = sOrder + sIpMap + sizeof(snodeIP) + snodeIP + snodePort + snumBlock + stempName;
 
-	uint32_t id = htonl(map->id);
-	uint32_t numBlock = htonl(map->numBlock);
+	uint16_t id = htons(map->id);
+	uint16_t numBlock = htons(map->numBlock);
 	uint16_t nodePort = htons(map->nodePort);
 
 	void *buffer = malloc(sbuffer);
@@ -72,7 +72,7 @@ size_t totalTempsSize(t_list *temps) {
 	size_t stemps = 0;
 	void upgradeSize(t_temp * temp) {
 		size_t snodeIP = strlen(temp->nodeIP) + 1;
-		stemps += sizeof(uint32_t) + sizeof(snodeIP) + snodeIP + sizeof(uint16_t) + sizeof(char) * 60;
+		stemps += sizeof(uint16_t) + sizeof(snodeIP) + snodeIP + sizeof(uint16_t) + sizeof(char) * 60;
 	}
 	list_iterate(temps, (void *) upgradeSize);
 	return stemps;
@@ -80,16 +80,16 @@ size_t totalTempsSize(t_list *temps) {
 
 void serializeTemp(t_temp *temporal, void *buffer, size_t *sbuffer) {
 	size_t snodeIP = strlen(temporal->nodeIP) + 1;
-	uint32_t originMap = htonl(temporal->originMap);
+	uint16_t originMap = htons(temporal->originMap);
 	uint16_t nodePort = htons(temporal->nodePort);
 
-	memcpy(buffer + *sbuffer, &originMap, sizeof(uint32_t));
-	memcpy(buffer + *sbuffer + sizeof(uint32_t), &snodeIP, sizeof(snodeIP));
-	memcpy(buffer + *sbuffer + sizeof(uint32_t) + sizeof(snodeIP), temporal->nodeIP, snodeIP);
-	memcpy(buffer + *sbuffer + sizeof(uint32_t) + sizeof(snodeIP) + snodeIP, &nodePort, sizeof(uint16_t));
-	memcpy(buffer + *sbuffer + sizeof(uint32_t) + sizeof(snodeIP) + snodeIP + sizeof(uint16_t), temporal->tempName, sizeof(char) * 60);
+	memcpy(buffer + *sbuffer, &originMap, sizeof(uint16_t));
+	memcpy(buffer + *sbuffer + sizeof(uint16_t), &snodeIP, sizeof(snodeIP));
+	memcpy(buffer + *sbuffer + sizeof(uint16_t) + sizeof(snodeIP), temporal->nodeIP, snodeIP);
+	memcpy(buffer + *sbuffer + sizeof(uint16_t) + sizeof(snodeIP) + snodeIP, &nodePort, sizeof(uint16_t));
+	memcpy(buffer + *sbuffer + sizeof(uint16_t) + sizeof(snodeIP) + snodeIP + sizeof(uint16_t), temporal->tempName, sizeof(char) * 60);
 
-	*sbuffer += sizeof(uint32_t) + sizeof(snodeIP) + snodeIP + sizeof(uint16_t) + sizeof(char) * 60;
+	*sbuffer += sizeof(uint16_t) + sizeof(snodeIP) + snodeIP + sizeof(uint16_t) + sizeof(char) * 60;
 }
 
 void serializeReduceToOrder(int fd, t_reduce *reduce) {

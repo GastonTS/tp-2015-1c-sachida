@@ -25,7 +25,7 @@ t_list *nodes;
 int fdListener;
 int fdAccepted;
 bool exitMaRTA;
-uint32_t cantJobs;
+uint16_t cantJobs;
 
 int initConfig(char* configFile);
 void freeMaRTA();

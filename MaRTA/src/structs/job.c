@@ -2,7 +2,7 @@
 #include <string.h>
 #include "job.h"
 
-t_copy *CreateCopy(char *nodeName, uint32_t numBlock) {
+t_copy *CreateCopy(char *nodeName, uint16_t numBlock) {
 	t_copy *copy = malloc(sizeof(t_copy));
 	strcpy(copy->nodeName, nodeName);
 	copy->numBlock = numBlock;
@@ -16,7 +16,7 @@ t_file *CreateFile(char *path) {
 	return file;
 }
 
-t_job *CreateJob(uint32_t id, bool combiner) {
+t_job *CreateJob(uint16_t id, bool combiner) {
 	t_job *job = malloc(sizeof(t_job));
 	job->id = id;
 	job->combiner = combiner;
@@ -51,6 +51,6 @@ void freeJob(t_job *job) {
 	free(job);
 }
 
-bool isMap(t_map *map, uint32_t idMap) {
+bool isMap(t_map *map, uint16_t idMap) {
 	return map->id == idMap;
 }

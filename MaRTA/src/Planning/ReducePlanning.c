@@ -9,7 +9,7 @@
 
 typedef struct {
 	char *nodeName;
-	uint32_t count;
+	uint16_t count;
 } t_temporalCount;
 
 void notificarReduce(t_reduce *reduce) {

@@ -22,7 +22,7 @@ char* getTime() { //TODO:revisar si se puede ampliar a mili/microsegundos
 	return time;
 }
 
-void selectNode(t_copy *copy, t_node **selectedNode, uint32_t *numBlock) {
+void selectNode(t_copy *copy, t_node **selectedNode, uint16_t *numBlock) {
 	bool lessWorkLoad(t_node *lessBusy, t_node *busy) {
 		if (lessBusy && busy)
 			return workLoad(lessBusy->maps, lessBusy->reduces) < workLoad(busy->maps, busy->reduces);
@@ -61,7 +61,7 @@ void notificarMap(t_map *map) {
 
 void removeMapNode(t_map *map) {
 	t_node *selectedNode = findNode(nodes, map->nodeName);
-	bool isNumBlock(uint32_t numBlock) {
+	bool isNumBlock(uint16_t numBlock) {
 		return numBlock == map->numBlock;
 	}
 	list_remove_by_condition(selectedNode->maps, (void *) isNumBlock);
@@ -73,7 +73,7 @@ void jobMap(t_job *job) {
 	void fileMap(t_file *file) {
 		void mapPlanning(t_list *copies) {
 			t_node* selectedNode = NULL;
-			uint32_t numBlock;
+			uint16_t numBlock;
 
 			void selectNodeToMap(t_copy *copy) {
 				selectNode(copy, &selectedNode, &numBlock);
@@ -86,7 +86,7 @@ void jobMap(t_job *job) {
 					list_iterate(job->maps, (void *) removeMapNode);
 					filesAvailables = 0;
 				} else {
-					list_add(selectedNode->maps, (void *) numBlock);
+					list_add(selectedNode->maps, &numBlock);
 
 					t_map *mapPlanned = malloc(sizeof(t_map));
 					mapPlanned->id = list_size(job->maps);
@@ -113,13 +113,13 @@ void jobMap(t_job *job) {
 
 }
 
-void rePlanMap(t_job *job, uint32_t idMap) {
+void rePlanMap(t_job *job, uint16_t idMap) {
 	bool findMap(t_map *map) {
 		return isMap(map, idMap);
 	}
 	t_map *map = list_find(job->maps, (void *) findMap);
 	t_node *selectedNode = NULL;
-	uint32_t numBlock;
+	uint16_t numBlock;
 
 	void selectNodeToMap(t_copy *copy) {
 		selectNode(copy, &selectedNode, &numBlock);

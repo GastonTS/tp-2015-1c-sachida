@@ -10,6 +10,6 @@ extern t_log *logger;
 extern int fdListener;
 extern int fdAccepted;
 extern bool exitMaRTA;
-extern uint32_t cantJobs;
+extern uint16_t cantJobs;
 
 #endif

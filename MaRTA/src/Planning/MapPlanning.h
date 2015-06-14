@@ -4,7 +4,7 @@
 #include "../structs/job.h"
 
 void jobMap(t_job *job);
-void rePlanMap(t_job *job, uint32_t idMap);
+void rePlanMap(t_job *job, uint16_t idMap);
 char *getTime();
 
 #endif
