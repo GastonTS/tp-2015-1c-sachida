@@ -37,6 +37,7 @@ void seializeCompleteJobTest() {
 			recvResult(fdAccepted, job);
 			printf("Map done:%d\n\n", map->done);
 
+			job->finalReduce->done = 0;
 			job->finalReduce->finalNode = strdup("Nodo Final");
 			job->finalReduce->nodeIP = strdup("x.y.z.w");
 			job->finalReduce->nodePort = 54321;
@@ -44,6 +45,9 @@ void seializeCompleteJobTest() {
 			t_temp *temp1 = CreateTemp("ip del temporal 1", 12345, 15, "JA! mas mas y mas");
 			list_add(job->finalReduce->temps, temp1);
 			serializeReduceToOrder(fdAccepted, job->finalReduce);
+			printf("\nReduce done:%d", job->finalReduce->done);
+			recvResult(fdAccepted, job);
+			printf("Reduce done:%d\n\n", job->finalReduce->done);
 
 			freeJob(job);
 

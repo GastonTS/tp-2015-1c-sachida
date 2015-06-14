@@ -28,6 +28,7 @@ typedef struct {
 } t_temp;
 
 typedef struct {
+	uint16_t id;
 	t_list *temps;
 	char *finalNode;
 	char *nodeIP;
@@ -58,5 +59,6 @@ t_job *CreateJob(uint16_t id, bool combiner);
 void freeMap(t_map* map);
 void freeJob(t_job *job);
 bool isMap(t_map *map, uint16_t idMap);
+bool isReduce(t_reduce *reduce, uint16_t idReduce);
 
 #endif

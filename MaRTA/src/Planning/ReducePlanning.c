@@ -13,7 +13,8 @@ typedef struct {
 } t_temporalCount;
 
 void notificarReduce(t_reduce *reduce) {
-	log_trace(logger, "\nReduce planned: \n\tIP Node: %s \n\tPort node: %d\n\tStored in: %s", reduce->nodeIP, reduce->nodePort, reduce->tempResultName);
+	log_trace(logger, "\nReduce planned: \n\tReduce ID: %d \n\tIP Node: %s \n\tPort node: %d\n\tStored in: %s", reduce->id, reduce->nodeIP, reduce->nodePort,
+			reduce->tempResultName);
 	reduce->done = false;
 	t_node *selectedNode = findNode(nodes, reduce->finalNode);
 	list_add(selectedNode->reduces, (void *) reduce->temps);
@@ -95,6 +96,7 @@ void noCombinerReducePlanning(t_job *job) {
 	}
 
 	list_iterate(job->maps, (void *) createTemporal);
+	job->finalReduce->id = 0;
 	job->finalReduce->finalNode = strdup(selectedNode->name);
 	job->finalReduce->nodeIP = strdup(selectedNode->ip);
 	job->finalReduce->nodePort = selectedNode->port;
@@ -111,6 +113,7 @@ void combinerPartialsReducePlanning(t_job *job) {
 		t_reduce *reduce = list_find(job->partialReduces, (void *) findReduce);
 		if (reduce == NULL) {
 			reduce = malloc(sizeof(t_reduce));
+			reduce->id = list_size(job->partialReduces) + 1;
 			reduce->finalNode = strdup(map->nodeName);
 			reduce->nodeIP = strdup(map->nodeIP);
 			reduce->nodePort = map->nodePort;
@@ -154,6 +157,7 @@ void combinerFinalReducePlanning(t_job *job) {
 	}
 
 	list_iterate(job->partialReduces, (void *) selectFinalNode);
+	job->finalReduce->id = 0;
 	job->finalReduce->finalNode = strdup(selectedNode->name);
 	job->finalReduce->nodeIP = strdup(selectedNode->ip);
 	job->finalReduce->nodePort = selectedNode->port;

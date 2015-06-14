@@ -12,6 +12,7 @@ void serializeJobToMaRTA(int fd, bool combiner, t_list *files);
 void desserializeMapOrder(void *buffer);
 void desserializeReduceOrder(void *buffer, size_t sbuffer);
 void serializeMapResult(int fd, bool result, uint16_t idMap);
+void serializeReduceResult(int fd, bool result, uint16_t idResult, char failedTemp[60]);
 void recvOrder(int fd);
 int fd;
 
@@ -35,6 +36,10 @@ int main() {
 	recvOrder(fd);
 	serializeMapResult(fd, true, 1);
 	recvOrder(fd);
+	char failedTemp[60];
+	memset(failedTemp, '\0', sizeof(char) * 60);
+	strcpy(failedTemp, "TemporalFallido");
+	serializeReduceResult(fd, false, 0, failedTemp);
 	return EXIT_SUCCESS;
 }
 
@@ -206,4 +211,23 @@ void desserializeReduceOrder(void *buffer, size_t sbuffer) {
 	}
 	list_iterate(temps, (void *) showTemp);
 //End
+}
+
+void serializeReduceResult(int fd, bool result, uint16_t idResult, char failedTemp[60]) {
+	char resultFrom = 'r';
+	size_t sresultFrom = sizeof(char);
+	size_t sresult = sizeof(result);
+	size_t sidResult = sizeof(uint16_t);
+	//Mando el nombre del temporal que fallo para poder identificar del otro lado de donde vino el error
+	size_t sbuffer = sresultFrom + sresult + sidResult + sizeof(char) * 60;
+
+	idResult = htons(idResult);
+
+	void *buffer = malloc(sbuffer);
+	buffer = memset(buffer, '0', sbuffer);
+	memcpy(buffer, &resultFrom, sresultFrom);
+	memcpy(buffer + sresultFrom, &result, sresult);
+	memcpy(buffer + sresultFrom + sresult, &idResult, sidResult);
+	memcpy(buffer + sresultFrom + sresult + sidResult, failedTemp, sizeof(char) * 60);
+	socket_send_packet(fd, buffer, sbuffer);
 }

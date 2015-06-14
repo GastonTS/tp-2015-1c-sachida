@@ -51,13 +51,13 @@ void recvResult(int fd, t_job *job) {
 	size_t sbuffer = 0;
 	socket_recv_packet(fd, &buffer, &sbuffer);
 	char resultFrom = '\0';
-	size_t sOrder = sizeof(char);
-	memcpy(&resultFrom, buffer, sOrder);
+	size_t sResult = sizeof(char);
+	memcpy(&resultFrom, buffer, sResult);
 	printf("\nRECVRESULT: %c\n", resultFrom);
 	if (resultFrom == 'm')
-		desserializeMapResult(buffer + sOrder, job);
+		desserializeMapResult(buffer + sResult, job);
 	else if (resultFrom == 'r')
-		desserializaReduceResult();
+		desserializaReduceResult(buffer + sResult, job);
 	free(buffer);
 }
 //**********************************MAP*********************************************//
@@ -171,6 +171,33 @@ void serializeReduceToOrder(int fd, t_reduce *reduce) {
 	free(buffer);
 }
 
-void desserializaReduceResult() {
-	//TODO
+void desserializaReduceResult(void *buffer, t_job *job) {
+	size_t sresult = sizeof(bool);
+	size_t sidReduce = sizeof(uint16_t);
+
+	bool result;
+	uint16_t idReduce;
+	char failedTemp[60];
+	memset(failedTemp, '\0', sizeof(char) * 60);
+
+	memcpy(&result, buffer, sresult);
+	memcpy(&idReduce, buffer + sresult, sidReduce);
+	memcpy(&failedTemp, buffer + sresult + sidReduce, sizeof(char) * 60);
+	idReduce = ntohs(idReduce);
+
+	if (result) {
+		if (!idReduce)
+			job->finalReduce->done = 1;
+		else {
+			bool findReduce(t_reduce *reduce) {
+				return isReduce(reduce, idReduce);
+			}
+			t_reduce *reduce = list_find(job->partialReduces, (void *) findReduce);
+			reduce->done = 1;
+		}
+
+	} else {
+		//TODO RePlanReduce
+		printf("%s\n", failedTemp);
+	}
 }
