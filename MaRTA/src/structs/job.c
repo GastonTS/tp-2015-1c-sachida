@@ -9,6 +9,28 @@ t_copy *CreateCopy(char *nodeName, uint16_t numBlock) {
 	return copy;
 }
 
+t_map *CreateMap(uint16_t id, uint16_t numBlock, uint16_t nodePort, char *nodeName, char *nodeIP, char tempResultName[60]) {
+	t_map *map = malloc(sizeof(t_map));
+	map->id = id;
+	map->numBlock = numBlock;
+	map->nodePort = nodePort;
+	map->nodeName = strdup(nodeName);
+	map->nodeIP = strdup(nodeIP);
+	memset(map->tempResultName, '\0', sizeof(char) * 60);
+	strcpy(map->tempResultName, tempResultName);
+	return map;
+}
+
+t_temp *CreateTemp(char *nodeIP, uint16_t nodePort, uint16_t originMap, char tempName[60]) {
+	t_temp *temp = malloc(sizeof(t_temp));
+	temp->nodeIP = strdup(nodeIP);
+	temp->nodePort = nodePort;
+	temp->originMap = originMap;
+	memset(temp->tempName, '\0', sizeof(char) * 60);
+	strcpy(temp->tempName, tempName);
+	return temp;
+}
+
 t_file *CreateFile(char *path) {
 	t_file *file = malloc(sizeof(t_file));
 	file->path = strdup(path);
@@ -23,13 +45,14 @@ t_job *CreateJob(uint16_t id, bool combiner) {
 	job->files = list_create();
 	job->finalReduce = malloc(sizeof(t_reduce));
 	job->finalReduce->temps = list_create();
+	memset(job->finalReduce->tempResultName, '\0', sizeof(char) * 60);
 	job->partialReduces = list_create();
 	job->maps = list_create();
 	return job;
 }
 
 void freeCopy(t_copy *copy) {
-	if (copy->nodeName) {
+	if (copy->nodeName) { //FIXME si viene sin inicializar estallan los ifs
 		free(copy->nodeName);
 	}
 	free(copy);
@@ -55,7 +78,7 @@ void freeTemp(t_temp *temp) {
 	free(temp);
 }
 
-void freeReduce(t_reduce *reduce) {//FIXME Valgrind Error uninitialised value
+void freeReduce(t_reduce *reduce) {
 	if (reduce->finalNode) {
 		free(reduce->finalNode);
 	}

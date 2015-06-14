@@ -59,6 +59,7 @@ void serializeJobToMaRTA(int fd, bool combiner, t_list *files) {
 	size_t scombiner = sizeof(combiner);
 	size_t sbuffer = scombiner + filesLength;
 	void *buffer = malloc(sbuffer);
+	buffer = memset(buffer, '\0', sbuffer);
 	combiner = htons(combiner);
 	memcpy(buffer, &combiner, scombiner);
 	memcpy((buffer + scombiner), stringFiles, filesLength);

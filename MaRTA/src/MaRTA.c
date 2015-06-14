@@ -10,7 +10,7 @@
 #include "MaRTA.h"
 #include "../../utils/socket.h"
 #include "../test/PlanningTest.h"
-#include "../test/SerealizeTest.h"
+#include "../test/SerializeTest.h"
 
 typedef struct {
 	uint16_t listenPort;

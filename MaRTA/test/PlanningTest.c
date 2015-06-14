@@ -137,6 +137,8 @@ void planningTestSetup() {
 	list_add(notAvailableFile->blocks, unavailableCopies);
 
 	job2 = CreateJob(23, false);
+	job2->finalReduce->finalNode = strdup("");
+	job2->finalReduce->nodeIP = strdup("");
 	list_add(job2->files, file3);
 	list_add(job2->files, notAvailableFile);
 	//Fin Job 2

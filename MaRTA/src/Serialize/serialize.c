@@ -57,6 +57,7 @@ void serializeMapToOrder(int fd, t_map *map) {
 	uint16_t nodePort = htons(map->nodePort);
 
 	void *buffer = malloc(sbuffer);
+	buffer = memset(buffer, '\0', sbuffer);
 	memcpy(buffer, &order, sOrder);
 	memcpy(buffer + sOrder, &id, sIpMap);
 	memcpy(buffer + sOrder + sIpMap, &snodeIP, sizeof(snodeIP));
@@ -114,6 +115,7 @@ void serializeReduceToOrder(int fd, t_reduce *reduce) {
 
 	size_t sbuffer = sOrder + sizeof(snodeIP) + snodeIP + snodePort + stempName + sizeof(uint16_t) + stemps;
 	void *buffer = malloc(sbuffer);
+	buffer = memset(buffer, '\0', sbuffer);
 	memcpy(buffer, &order, sOrder);
 	memcpy(buffer + sOrder, &snodeIP, sizeof(snodeIP));
 	memcpy(buffer + sOrder + sizeof(snodeIP), reduce->nodeIP, snodeIP);

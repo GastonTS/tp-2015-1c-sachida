@@ -51,6 +51,8 @@ typedef struct {
 } t_job;
 
 t_copy *CreateCopy(char *nodeName, uint16_t numBlock);
+t_map *CreateMap(uint16_t id, uint16_t numBlock, uint16_t nodePort, char *nodeName, char *nodeIP, char tempResultName[60]);
+t_temp *CreateTemp(char *nodeIP, uint16_t nodePort, uint16_t originMap, char tempName[60]);
 t_file *CreateFile(char *path);
 t_job *CreateJob(uint16_t id, bool combiner);
 void freeMap(t_map* map);
