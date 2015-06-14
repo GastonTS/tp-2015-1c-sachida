@@ -7,6 +7,8 @@
 #include <pthread.h>
 // #include <semaphore.h>
 
+#include "../connections/connections.h"
+
 bool filesystem_canCreateResource(char *resourceName, char *parentId);
 char* filesystem_md5(char *str);
 t_list* filesystem_getFSFileBlocks(char *route, size_t *fileSize);
@@ -153,9 +155,9 @@ void filesystem_moveDir(dir_t *dir, char *destinationId) {
 	mongo_dir_updateParentId(dir->id, destinationId);
 }
 
-bool filesystem_copyFileFromFS(char *route, file_t *file) {
+int filesystem_copyFileFromFS(char *route, file_t *file) {
 	if (!filesystem_canCreateResource(file->name, file->parentId)) {
-		return 0;
+		return -1;
 	}
 
 	size_t fileSize;
@@ -164,16 +166,16 @@ bool filesystem_copyFileFromFS(char *route, file_t *file) {
 	file->size = fileSize;
 
 	// TESTING ONLY printf("%s\n", filesystem_getMD5FromBlocks(blocks));
-	if (!filesystem_distributeBlocksToNodes(blocks, file)) { // TODO
+	if (!filesystem_distributeBlocksToNodes(blocks, file)) {
 		list_destroy_and_destroy_elements(blocks, free);
-		return 0;
+		return -2;
 	}
 	list_destroy_and_destroy_elements(blocks, free);
 
 	if (!mongo_file_save(file)) {
 		// If for some reason, the file could not be saved in the db, then should destroy the blocks that were used for that file.
 		filesystem_deleteFile(file);
-		return 0;
+		return -3;
 	}
 
 	return 1;
@@ -206,7 +208,7 @@ void filesystem_nodeIsDown(char *nodeId) {
 	}
 }
 
-node_t* filesystem_addNode(char *nodeId, size_t blocksCount) {
+node_t* filesystem_addNode(char *nodeId, uint16_t blocksCount) {
 	node_t *node = filesystem_getNodeById(nodeId);
 	if (node) {
 		t_list *files = mongo_file_getFilesThatHaveNode(node->id);
@@ -215,6 +217,7 @@ node_t* filesystem_addNode(char *nodeId, size_t blocksCount) {
 	} else {
 		// Nuevo nodo
 		// TODO
+		log_info(filesystem_logger, "New NODE connected. Name: %s . blocksCount %d", nodeId, blocksCount);
 		node = node_create(blocksCount);
 		node->id = strdup(nodeId);
 		mongo_node_save(node);
@@ -423,6 +426,7 @@ void *filesystem_sendBlockToNode(void *param) {
 
 	// TODO mandar a node.
 	log_info(filesystem_logger, "Sending block to node %s , blockIndex %d", sendOperation->node->id, sendOperation->blockIndex);
+	connections_sendBlockToNode(sendOperation);
 
 	filesystem_nodeBlockSendOperation_free(sendOperation);
 
@@ -430,7 +434,7 @@ void *filesystem_sendBlockToNode(void *param) {
 }
 
 nodeBlockSendOperation_t* filesystem_nodeBlockSendOperation_create(node_t *node, off_t blockIndex, char *block) {
-	nodeBlockSendOperation_t* nodeSendBlockOperation = malloc(sizeof(nodeBlockSendOperation_t));
+	nodeBlockSendOperation_t *nodeSendBlockOperation = malloc(sizeof(nodeBlockSendOperation_t));
 	nodeSendBlockOperation->node = node;
 	nodeSendBlockOperation->blockIndex = blockIndex;
 	nodeSendBlockOperation->block = block;

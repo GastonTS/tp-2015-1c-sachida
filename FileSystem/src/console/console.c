@@ -353,8 +353,13 @@ void copyFile(char **parameters) {
 			strcpy(file->parentId, currentDirId);
 			file->size = 0;
 
-			if (!filesystem_copyFileFromFS(source, file)) {
+			int result = filesystem_copyFileFromFS(source, file);
+			if (result == -1) {
 				printf("Cannot create file '%s': Directory or file already exists with that name.\n", dest);
+			} else if (result == -2) {
+				printf("Cannot create file '%s': There is not enough space to make all the copies.\n", dest);
+			} else if (result == -3) {
+				printf("Cannot create file '%s': Something went wrong when trying to persist the information.\n", dest);
 			}
 
 			file_free(file);
