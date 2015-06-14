@@ -13,10 +13,23 @@ void connections_acceptNode(int socketAccepted);
 t_dictionary *nodesSockets;
 int exitConnections;
 pthread_t listenerThread;
-
 // TODO. crear un logger de connections?
 
+int connections_getNodeSocket(char *nodeId) {
+	// TODO, mutex por nodo? o en el sendoperation.
+
+	int *nodeSocket = dictionary_get(nodesSockets, nodeId);
+	return (nodeSocket ? *nodeSocket : -1);
+}
+
+void connections_setNodeSocket(char *nodeId, int socket) {
+	int *socketAcceptedPtr = malloc(sizeof(int));
+	*socketAcceptedPtr = socket;
+	dictionary_put(nodesSockets, nodeId, socketAcceptedPtr);
+}
+
 void connections_initialize(int port) {
+	testV = 0;
 	exitConnections = 0;
 	nodesSockets = dictionary_create();
 
@@ -45,9 +58,17 @@ void *connections_listenerThread(void *param) {
 		case HANDSHAKE_NODO:
 			// Tengo que recibir sus datos entonces..
 			connections_acceptNode(socketAccepted); // TODO, mover a thread? SI. hacer.
+			connections_test(); // TODO delete
+			// exitConnections = 1;
+
 			break;
 		}
 	}
+
+	// TODO.
+	printf("SALI?????");
+	fflush(stdout);
+	//..
 
 	socket_close(socketListener);
 	return NULL;
@@ -76,31 +97,57 @@ void connections_acceptNode(int socketAccepted) {
 	// ...
 
 	//  Save the socket as a reference to this node.
-	int *socketAcceptedPtr = malloc(sizeof(int));
-	*socketAcceptedPtr = socketAccepted;
-	dictionary_put(nodesSockets, nodeName, socketAcceptedPtr);
+	connections_setNodeSocket(nodeName, socketAccepted);
 
 	filesystem_addNode(nodeName, blocksCount);
 
 	//
 	// TODO en este mismo thread funciona, pero en un nuevo thread da success, pero no se recibe del otro lado.. ver bien!
-	node_t *node = node_create(blocksCount);
-	node->id = strdup(nodeName);
-	nodeBlockSendOperation_t* nodeSendBlockOperation = malloc(sizeof(nodeBlockSendOperation_t));
-	nodeSendBlockOperation->node = node;
-	nodeSendBlockOperation->blockIndex = 45876;
-	nodeSendBlockOperation->block = "HOLA1";
-	connections_sendBlockToNode(nodeSendBlockOperation);
+	connections_test();
+
+	pthread_t t;
+	void *test(void *param) {
+		connections_test();
+		return NULL;
+	}
+	if (pthread_create(&t, NULL, (void *) test, NULL)) {
+		return; // -1; // TODO handle error
+	}
+	pthread_join(t, NULL);
+
+	while (0) {
+		if (testV) {
+
+			printf("TESTV\n");
+			fflush(stdout);
+			connections_test();
+			testV = 0;
+		}
+	}
 	//
 
 	free(nodeName);
 }
 
+void connections_test() {
+
+	nodeBlockSendOperation_t *nodeSendBlockOperation = malloc(sizeof(nodeBlockSendOperation_t));
+	node_t *node = node_create(10);
+	node->id = strdup("Nodo1");
+	nodeSendBlockOperation->node = node;
+	nodeSendBlockOperation->blockIndex = 45876;
+	nodeSendBlockOperation->block = strdup("HOLA1");
+
+	connections_getBlockFromNode(nodeSendBlockOperation);
+}
+
 bool connections_sendBlockToNode(nodeBlockSendOperation_t *sendOperation) {
 
-	if (!dictionary_has_key(nodesSockets, sendOperation->node->id)) {
+	int nodeSocket = connections_getNodeSocket(sendOperation->node->id);
+	if (nodeSocket == -1) {
 		// TODO que onda?
-		printf("EL NODO NO ESTA CONECTADO :O");
+		printf("EL NODO NO ESTA CONECTADO ? :O\n");
+		fflush(stdout);
 		return 0;
 	}
 
@@ -114,15 +161,50 @@ bool connections_sendBlockToNode(nodeBlockSendOperation_t *sendOperation) {
 	uint32_t sBlockDataSerialized = htonl(sBlockData);
 
 	void *buffer = malloc(sBuffer);
+	memset(buffer, '\0', sBuffer); // TODO,borrar?
 	memcpy(buffer, &command, sizeof(command));
 	memcpy(buffer + sizeof(command), &numBlockSerialized, sizeof(numBlock));
 	memcpy(buffer + sizeof(command) + sizeof(numBlock), &sBlockDataSerialized, sizeof(sBlockData));
 	memcpy(buffer + sizeof(command) + sizeof(numBlock) + sizeof(sBlockData), sendOperation->block, sBlockData);
 
-	int *nodeSocket = dictionary_get(nodesSockets, sendOperation->node->id);
-	e_socket_status status = socket_send_packet(*nodeSocket, buffer, sBuffer);
+	e_socket_status status = socket_send_packet(nodeSocket, buffer, sBuffer);
 
 	free(buffer);
 
+	printf("SENT SET\n"); // Todo..
+	fflush(stdout);
+
 	return (status == SOCKET_ERROR_NONE);
+}
+
+char* connections_getBlockFromNode(nodeBlockSendOperation_t *sendOperation) {
+
+	int nodeSocket = connections_getNodeSocket(sendOperation->node->id);
+	if (nodeSocket == -1) {
+		// TODO que onda?
+		printf("EL NODO NO ESTA CONECTADO ? :O\n");
+		fflush(stdout);
+		return 0;
+	}
+
+	uint8_t command = 2; // declare in header..
+	uint16_t numBlock = sendOperation->blockIndex;
+
+	size_t sBuffer = sizeof(command) + sizeof(numBlock);
+
+	uint16_t numBlockSerialized = htons(numBlock);
+
+	void *buffer = malloc(sBuffer);
+	memset(buffer, '\0', sBuffer); // TODO,borrar?
+	memcpy(buffer, &command, sizeof(command));
+	memcpy(buffer + sizeof(command), &numBlockSerialized, sizeof(numBlock));
+
+	e_socket_status status = socket_send_packet(nodeSocket, buffer, sBuffer);
+
+	free(buffer);
+
+	printf("SENT GET\n"); // Todo..
+	fflush(stdout);
+
+	return ""; // TODO .
 }

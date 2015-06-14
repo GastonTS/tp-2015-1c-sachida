@@ -15,6 +15,9 @@
 typedef struct sockaddr_in t_sockaddr_in;
 typedef struct sockaddr* p_sockaddr;
 
+void prtbuf(char *buffer, size_t size);
+
+
 int socket_setoption(int fd) { //Setea el tiempo para reintentar algo por ese fd
 	struct timeval timeout;
 	timeout.tv_sec = 10;
@@ -139,6 +142,7 @@ int isLittleEndian() {
 
 //hton un poco mas generico, tenes que mandarle el sizeoff del tipo de dato que mandes
 void* hton(void* value, size_t size) {
+	// printf("hton: %d - " ,*((size_t *) value));
 	if (isLittleEndian()) {
 		void* l = value;
 		void* a = malloc(1);
@@ -150,6 +154,7 @@ void* hton(void* value, size_t size) {
 		}
 		free(a);
 	}
+	// printf("%d\n" ,*((size_t *) value));
 	return value;
 }
 
@@ -162,6 +167,14 @@ e_socket_status socket_send_integer(int socket, void* integer, size_t size) {
 
 e_socket_status socket_recv_integer(int socket, void* integer, size_t size) {
 	e_socket_status status = socket_recv(socket, integer, size);
+
+
+
+
+	printf("\t BUFFER RECIBIDO: ");
+	prtbuf(integer, size);
+
+
 	hton(integer, size);
 	return status;
 }
@@ -196,22 +209,44 @@ e_socket_status socket_send(int socket, void* stream, size_t size) {
 
 //Similar a la anterior pero con recv (no sirve para multiplexado
 e_socket_status socket_recv(int socket, void* stream, size_t size) {
+	printf("\t\t\t\tENTRE A SOCKET RECv");
+	fflush(stdout);
 	if (!stream)
 		return SOCKET_ERROR_RECV;
 	void* data = stream;
-	size_t count = 0, torecv = size;
+	int count = 0;
+	size_t torecv = size;
 	for (; torecv; torecv -= count, data += count) {
 		int retry = 3;
-		while (0 > (count = recv(socket, data, torecv, 0)) && retry--) {
+		printf("RECV: socket %d, torecv: %d", socket, torecv);
+		fflush(stdout);
+		count = recv(socket, data, torecv, 0);
+		if (count == -1){
+			count = 0;
+			continue;
+		}
+
+		printf("\t\t\t\tretry: %d , count: %d , size pedido: %d\n", retry,count, size);
+		printf("EXPRESION BOOLEANA %d", (0 > (count)));
+		fflush(stdout);
+
+		while ((0 > (count)) && retry--) {
+			printf("ERROR SOCKET %d", errno);
+			fflush(stdout);
 			switch (errno) {
 			case ECONNREFUSED:
 			case ETIMEDOUT:
-				usleep(3000000);
+				printf("\t\tSLEEEEEEEEEP: ");
+				fflush(stdout);
+				printf("%d\n",				usleep(3000000));
+				fflush(stdout);
 				continue;
 			default:
 				return SOCKET_ERROR_RECV;
 			}
 		}
+		printf("\t\t\t\tAFTER while retry: %d , count: %d , size pedido: %d\n", retry,count, size);
+		fflush(stdout);
 		if (0 > count)
 			return SOCKET_ERROR_RECV;
 	}
@@ -230,19 +265,55 @@ e_socket_status socket_send_packet(int socket, void* packet, size_t size) {
 			spacket = size, 	//el tamaño de lo que realmente va a mandar
 			sbufer = ssize + spacket; //El tamaño de header+contenido
 	void* buffer = malloc(sbufer);
+
+	printf("SIZE ENVIADO: %d\n", size);
+	fflush(stdout);
+
 	hton(memcpy(buffer, &size, ssize), ssize); //copia el tamaño de lo que va mandar
+	//size = htonl(size);
+	//mempcy(buffer, &size, ssize);
+
+
 	memcpy(buffer + ssize, packet, spacket); //copia el contenido del paquete en el buffer
+
+
+	printf("\t BUFFER ENVIADO: ");
+	prtbuf(buffer, sbufer);
+	printf("\n");
+
+
 	e_socket_status status = socket_send(socket, buffer, sbufer); //manda el buffer
 	free(buffer);
 	return status;
 }
 
+void prtbuf(char *buffer, size_t size) {
+	int i;
+	for (i = 0; i < size; i++) {
+		int a = (buffer[i]);
+		//int a = *((char *)buffer[i]);
+		printf("%d ",a);
+	}
+	fflush(stdout);
+}
+
 e_socket_status socket_recv_packet(int socket, void** packet, size_t* size) {
 	e_socket_status status = socket_recv_integer(socket, size, sizeof(size_t));
+
+
+	fflush(stdout);
+
 	if (0 > status)
 		return status;
 	*packet = malloc(*size); //hace un malloc del tamaño que tiene que recibir (parametro)
 	status = socket_recv(socket, *packet, *size); //recibe ese tamaño en el buffer (packet) para desserializarlo en implementacion particular
+
+
+	printf ( " | ");
+	prtbuf(*packet, *size);
+	printf("\n");
+	printf("SIZE RECIBIDO: %d\n", *size);
+
 	if (0 > status)
 		free(*packet);
 	return status;

@@ -422,6 +422,32 @@ bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 
 void *filesystem_sendBlockToNode(void *param) {
 
+	connections_test();
+
+
+testV = 1;
+return NULL;
+
+	node_t *node = node_create(10);
+	node->id = strdup("Nodo1");
+	nodeBlockSendOperation_t *nodeSendBlockOperation = malloc(sizeof(nodeBlockSendOperation_t));
+	nodeSendBlockOperation->node = node;
+	nodeSendBlockOperation->blockIndex = 62087;
+	nodeSendBlockOperation->block = "gfcghcfgcgfc";
+	connections_sendBlockToNode(nodeSendBlockOperation);
+
+
+
+
+
+
+
+
+
+
+
+
+
 	nodeBlockSendOperation_t* sendOperation = (nodeBlockSendOperation_t*) param;
 
 	// TODO mandar a node.
