@@ -48,7 +48,7 @@ void seializeCompleteJobTest() {
 			printf("\nReduce done:%d", job->finalReduce->done);
 			recvResult(fdAccepted, job);
 			printf("Reduce done:%d\n\n", job->finalReduce->done);
-
+			sendDieOrder(fdAccepted);
 			freeJob(job);
 
 			if (cantJobs == 3) //XXX

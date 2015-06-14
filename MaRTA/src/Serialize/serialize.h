@@ -9,5 +9,6 @@ void serializeReduceToOrder(int fd, t_reduce *reduce);
 void recvResult(int fd, t_job *job);
 void desserializeMapResult(void *buffer, t_job *job);
 void desserializaReduceResult(void *buffer, t_job *job);
+void sendDieOrder(int fd);
 
 #endif

@@ -60,6 +60,17 @@ void recvResult(int fd, t_job *job) {
 		desserializaReduceResult(buffer + sResult, job);
 	free(buffer);
 }
+
+void sendDieOrder(int fd) {
+	char order = 'd';
+	size_t sOrder = sizeof(char);
+	size_t sbuffer = sOrder;
+	void *buffer = malloc(sbuffer);
+	buffer = memset(buffer, '\0', sbuffer);
+	memcpy(buffer, &order, sOrder);
+	socket_send_packet(fd, buffer, sbuffer);
+	free(buffer);
+}
 //**********************************MAP*********************************************//
 void serializeMapToOrder(int fd, t_map *map) {
 	char order = 'm';

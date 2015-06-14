@@ -40,6 +40,7 @@ int main() {
 	memset(failedTemp, '\0', sizeof(char) * 60);
 	strcpy(failedTemp, "TemporalFallido");
 	serializeReduceResult(fd, false, 0, failedTemp);
+	recvOrder(fd);
 	return EXIT_SUCCESS;
 }
 
@@ -91,6 +92,9 @@ void recvOrder(int fd) {
 		desserializeMapOrder(buffer + sOrder);
 	else if (order == 'r')
 		desserializeReduceOrder(buffer + sOrder, sbuffer - sOrder);
+	else if (order == 'd') {
+		printf("\nDIE JOB\n");
+	}
 	free(buffer);
 }
 
