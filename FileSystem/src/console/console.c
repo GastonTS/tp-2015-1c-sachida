@@ -323,7 +323,7 @@ void listResources() {
 	list_destroy_and_destroy_elements(dirs, (void*) dir_free);
 
 	void printFile(file_t *file) {
-		printf("\t%-16d %s \n", file->size, file->name);
+		printf("\t%-16zu %s \n", file->size, file->name);
 	}
 
 	t_list *files = filesystem_getFilesInDir(currentDirId);
