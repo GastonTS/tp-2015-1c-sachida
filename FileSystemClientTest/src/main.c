@@ -6,7 +6,7 @@
 
 int main(void) {
 
-	//startNodo();
-	startMarta();
+	startNodo();
+	//startMarta();
 	return EXIT_SUCCESS;
 }
