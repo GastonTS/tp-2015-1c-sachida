@@ -13,7 +13,7 @@ typedef struct {
 
 typedef struct {
 	char *nodeId;
-	off_t blockIndex;
+	uint16_t blockIndex;
 } file_block_t;
 
 bson_t* file_getBSON(file_t *file);

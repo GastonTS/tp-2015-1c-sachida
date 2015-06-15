@@ -5,7 +5,7 @@
 #include "../mongo/mongo_file.h"
 #include "../mongo/mongo_node.h"
 
-#define FILESYSTEM_BLOCK_COPIES 1
+#define FILESYSTEM_BLOCK_COPIES 3
 #define	NODE_BLOCK_SIZE	20 * 1024 * 1024
 
 // Holds an operation to be done. ALL POINTERS ARE FREED BY OTHERS. (maybe? wtf)

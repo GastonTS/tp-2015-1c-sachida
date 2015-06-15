@@ -5,6 +5,9 @@
 #include <stdlib.h>
 #include "../filesystem/filesystem.h"
 
+#define NODE_COMMAND_SET_BLOCK 1
+#define NODE_COMMAND_GET_BLOCK 2
+
 void connections_initialize(int port);
 void connections_shutdown();
 
