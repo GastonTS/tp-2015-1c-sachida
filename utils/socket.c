@@ -174,7 +174,8 @@ e_socket_status socket_send(int socket, void* stream, size_t size) {
 	if (!stream) //Si no envia bytes en el stream tira error
 		return SOCKET_ERROR_SEND;
 	void* data = stream; //data es el puntero que voy a usar para ir avanzando en el stream y saber desde donde empezar
-	size_t count = 0, tosend = size; //tosend es el tamaño total a mandar y count es lo que mando en ese send especifico
+	size_t tosend = size; //tosend es el tamaño total a mandar y count es lo que mando en ese send especifico
+	int count = 0;
 	for (; tosend; tosend -= count, data += count) { //le resta a tosend lo que envio y mueve el puntero data para enviar desde ahi
 		//otra vez el while para reintentar pero con send
 		int retry = 3;
@@ -199,21 +200,20 @@ e_socket_status socket_recv(int socket, void* stream, size_t size) {
 	if (!stream)
 		return SOCKET_ERROR_RECV;
 	void* data = stream;
-	size_t count = 0, torecv = size;
+	size_t torecv = size;
+	int count;
 	for (; torecv; torecv -= count, data += count) {
-		int retry = 3;
-		while (0 > (count = recv(socket, data, torecv, 0)) && retry--) {
+		while (0 > (count = recv(socket, data, torecv, 0))) {
 			switch (errno) {
 			case ECONNREFUSED:
+			case EAGAIN:
 			case ETIMEDOUT:
-				usleep(3000000);
+				usleep(1000000);
 				continue;
 			default:
 				return SOCKET_ERROR_RECV;
 			}
 		}
-		if (0 > count)
-			return SOCKET_ERROR_RECV;
 	}
 	return SOCKET_ERROR_NONE;
 }
@@ -343,12 +343,12 @@ int socket_handshake_to_server(int socket, int hiserver, int hiclient) {
 //switch(socket_handshake_to_client(fd, HANDSHAKE_MARTA, HNADSHAKE_JOB | HANDSHAKE_FILESYSTEM)) dependiendo del resultado
 //se que accion tomar, porque me devuelve cual handshake recibi.
 int socket_handshake_to_client(int socket, int hiserver, int hiclient) {
-	if (0 > socket_send_string(socket, _get_handshake_msg(hiserver)))//Primero envia el handshake al cliente
+	if (0 > socket_send_string(socket, _get_handshake_msg(hiserver))) //Primero envia el handshake al cliente
 		return SOCKET_ERROR_SEND;
-	int client = _check_handshake(socket, hiclient);//Se fija si el recibido esta en los permitidos (hiclient)
+	int client = _check_handshake(socket, hiclient); //Se fija si el recibido esta en los permitidos (hiclient)
 	if (0 > client)
 		return client;
-	if (0 > socket_send_string(socket, _HANDSHAKE_WELCOME))//Si esta permitido envia el wellcome
+	if (0 > socket_send_string(socket, _HANDSHAKE_WELCOME)) //Si esta permitido envia el wellcome
 		return SOCKET_ERROR_WELCOME;
 	return client;
 }

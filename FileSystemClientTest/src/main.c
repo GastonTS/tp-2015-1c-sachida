@@ -4,9 +4,13 @@
 #include <netinet/in.h>
 #include "utils/socket.h"
 
-void deserialzeSetBloque(void *buffer);
 void escucharAcciones(int fsSocket);
+
+void deserialzeSetBloque(void *buffer);
 void setBloque(uint16_t numBlock, char *blockData);
+
+void deserialzeGetBloque(void *buffer);
+void getBloque(uint16_t numBlock);
 
 int main(void) {
 	char FS_IP[] = "127.0.0.1";
@@ -53,7 +57,7 @@ void escucharAcciones(int fsSocket) {
 		void *buffer;
 		size_t sbuffer = 0;
 		printf("Waiting for FS instructions.\n");
-		socket_recv_packet(fsSocket, &buffer, &sbuffer);
+		socket_recv_packet(fsSocket, &buffer, &sbuffer); // TODO handlear el error
 
 		//  DESERIALZE ..
 
@@ -67,7 +71,7 @@ void escucharAcciones(int fsSocket) {
 			break;
 		case 2:
 			//getBloque
-			// TODO.
+			deserialzeGetBloque(buffer);
 			break;
 		}
 
@@ -92,6 +96,19 @@ void deserialzeSetBloque(void *buffer) {
 
 	free(blockData);
 }
+
 void setBloque(uint16_t numBlock, char *blockData) {
-	printf("Seteo en el bloque numero %d . DATA: \n%s\n\n\n\n", numBlock, blockData);
+	printf("----------SET BLOQUE-----------\nSeteo en el bloque numero %d . DATA: \n%s\n----------------------------\n", numBlock, blockData);
+}
+
+void deserialzeGetBloque(void *buffer) {
+	uint16_t numBlock;
+	memcpy(&numBlock, buffer + sizeof(uint8_t), sizeof(uint16_t));
+	numBlock = ntohs(numBlock);
+
+	getBloque(numBlock);
+}
+
+void getBloque(uint16_t numBlock) {
+	printf("----------GET BLOQUE-----------\nObtengo el bloque numero %d\n----------------------------\n", numBlock);
 }

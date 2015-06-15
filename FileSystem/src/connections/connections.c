@@ -32,6 +32,19 @@ void connections_shutdown() {
 	pthread_join(listenerThread, NULL);
 }
 
+int connections_getNodeSocket(char *nodeId) {
+	// TODO, mutex por nodo? o en el sendoperation.
+
+	int *nodeSocket = dictionary_get(nodesSockets, nodeId);
+	return (nodeSocket ? *nodeSocket : -1);
+}
+
+void connections_setNodeSocket(char *nodeId, int socket) {
+	int *socketAcceptedPtr = malloc(sizeof(int));
+	*socketAcceptedPtr = socket;
+	dictionary_put(nodesSockets, nodeId, socketAcceptedPtr);
+}
+
 void *connections_listenerThread(void *param) {
 	int port = *((int *) param);
 	int socketListener = socket_listen(port);
@@ -76,9 +89,7 @@ void connections_acceptNode(int socketAccepted) {
 	// ...
 
 	//  Save the socket as a reference to this node.
-	int *socketAcceptedPtr = malloc(sizeof(int));
-	*socketAcceptedPtr = socketAccepted;
-	dictionary_put(nodesSockets, nodeName, socketAcceptedPtr);
+	connections_setNodeSocket(nodeName, socketAccepted);
 
 	filesystem_addNode(nodeName, blocksCount);
 
@@ -98,9 +109,11 @@ void connections_acceptNode(int socketAccepted) {
 
 bool connections_sendBlockToNode(nodeBlockSendOperation_t *sendOperation) {
 
-	if (!dictionary_has_key(nodesSockets, sendOperation->node->id)) {
+	int nodeSocket = connections_getNodeSocket(sendOperation->node->id);
+	if (nodeSocket == -1) {
 		// TODO que onda?
-		printf("EL NODO NO ESTA CONECTADO :O");
+		printf("EL NODO NO ESTA CONECTADO ? :O\n");
+		fflush(stdout);
 		return 0;
 	}
 
@@ -119,10 +132,38 @@ bool connections_sendBlockToNode(nodeBlockSendOperation_t *sendOperation) {
 	memcpy(buffer + sizeof(command) + sizeof(numBlock), &sBlockDataSerialized, sizeof(sBlockData));
 	memcpy(buffer + sizeof(command) + sizeof(numBlock) + sizeof(sBlockData), sendOperation->block, sBlockData);
 
-	int *nodeSocket = dictionary_get(nodesSockets, sendOperation->node->id);
-	e_socket_status status = socket_send_packet(*nodeSocket, buffer, sBuffer);
+	e_socket_status status = socket_send_packet(nodeSocket, buffer, sBuffer);
 
 	free(buffer);
 
 	return (status == SOCKET_ERROR_NONE);
+}
+
+char* connections_getBlockFromNode(nodeBlockSendOperation_t *sendOperation) {
+
+	int nodeSocket = connections_getNodeSocket(sendOperation->node->id);
+	if (nodeSocket == -1) {
+		// TODO que onda?
+		printf("EL NODO NO ESTA CONECTADO ? :O\n");
+		fflush(stdout);
+		return 0;
+	}
+
+	uint8_t command = 2; // declare in header..
+	uint16_t numBlock = sendOperation->blockIndex;
+
+	size_t sBuffer = sizeof(command) + sizeof(numBlock);
+
+	uint16_t numBlockSerialized = htons(numBlock);
+
+	void *buffer = malloc(sBuffer);
+	memset(buffer, '\0', sBuffer); // TODO,borrar?
+	memcpy(buffer, &command, sizeof(command));
+	memcpy(buffer + sizeof(command), &numBlockSerialized, sizeof(numBlock));
+
+	e_socket_status status = socket_send_packet(nodeSocket, buffer, sBuffer);
+
+	free(buffer);
+
+	return ""; // TODO .
 }
