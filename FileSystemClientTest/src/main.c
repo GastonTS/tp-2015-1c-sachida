@@ -9,8 +9,8 @@ void escucharAcciones(int fsSocket);
 void deserialzeSetBloque(void *buffer);
 void setBloque(uint16_t numBlock, char *blockData);
 
-void deserialzeGetBloque(void *buffer);
-void getBloque(uint16_t numBlock);
+void deserialzeGetBloque(void *buffer, int fsSocket);
+char* getBloque(uint16_t numBlock);
 
 int main(void) {
 	char FS_IP[] = "127.0.0.1";
@@ -71,7 +71,7 @@ void escucharAcciones(int fsSocket) {
 			break;
 		case 2:
 			//getBloque
-			deserialzeGetBloque(buffer);
+			deserialzeGetBloque(buffer, fsSocket);
 			break;
 		}
 
@@ -101,14 +101,23 @@ void setBloque(uint16_t numBlock, char *blockData) {
 	printf("----------SET BLOQUE-----------\nSeteo en el bloque numero %d . DATA: \n%s\n----------------------------\n", numBlock, blockData);
 }
 
-void deserialzeGetBloque(void *buffer) {
+void deserialzeGetBloque(void *buffer, int fsSocket) {
 	uint16_t numBlock;
 	memcpy(&numBlock, buffer + sizeof(uint8_t), sizeof(uint16_t));
 	numBlock = ntohs(numBlock);
 
-	getBloque(numBlock);
+	char *bloque = getBloque(numBlock);
+
+	e_socket_status status = socket_send_packet(fsSocket, bloque, strlen(bloque));
+
+	if (status != SOCKET_ERROR_NONE) {
+		// TODO, manejar el error.
+	}
+
+	free(bloque);
 }
 
-void getBloque(uint16_t numBlock) {
+char* getBloque(uint16_t numBlock) {
 	printf("----------GET BLOQUE-----------\nObtengo el bloque numero %d\n----------------------------\n", numBlock);
+	return strdup("Este es el bloque");
 }

@@ -70,7 +70,11 @@ void connections_acceptNode(int socketAccepted) {
 
 	void *buffer;
 	size_t sbuffer = 0;
-	socket_recv_packet(socketAccepted, &buffer, &sbuffer);
+	e_socket_status status = socket_recv_packet(socketAccepted, &buffer, &sbuffer);
+
+	if (status != SOCKET_ERROR_NONE) {
+		return;
+	}
 
 	// NODE DESERIALZE ..
 
@@ -93,17 +97,6 @@ void connections_acceptNode(int socketAccepted) {
 
 	filesystem_addNode(nodeName, blocksCount);
 
-	//
-	// TODO en este mismo thread funciona, pero en un nuevo thread da success, pero no se recibe del otro lado.. ver bien!
-	node_t *node = node_create(blocksCount);
-	node->id = strdup(nodeName);
-	nodeBlockSendOperation_t* nodeSendBlockOperation = malloc(sizeof(nodeBlockSendOperation_t));
-	nodeSendBlockOperation->node = node;
-	nodeSendBlockOperation->blockIndex = 45876;
-	nodeSendBlockOperation->block = "HOLA1";
-	connections_sendBlockToNode(nodeSendBlockOperation);
-	//
-
 	free(nodeName);
 }
 
@@ -111,9 +104,6 @@ bool connections_sendBlockToNode(nodeBlockSendOperation_t *sendOperation) {
 
 	int nodeSocket = connections_getNodeSocket(sendOperation->node->id);
 	if (nodeSocket == -1) {
-		// TODO que onda?
-		printf("EL NODO NO ESTA CONECTADO ? :O\n");
-		fflush(stdout);
 		return 0;
 	}
 
@@ -139,31 +129,49 @@ bool connections_sendBlockToNode(nodeBlockSendOperation_t *sendOperation) {
 	return (status == SOCKET_ERROR_NONE);
 }
 
-char* connections_getBlockFromNode(nodeBlockSendOperation_t *sendOperation) {
+char* connections_getBlockFromNode(file_block_t *fileBlock) {
 
-	int nodeSocket = connections_getNodeSocket(sendOperation->node->id);
+	int nodeSocket = connections_getNodeSocket(fileBlock->nodeId);
 	if (nodeSocket == -1) {
-		// TODO que onda?
-		printf("EL NODO NO ESTA CONECTADO ? :O\n");
-		fflush(stdout);
-		return 0;
+		return NULL;
 	}
 
+	e_socket_status status;
+
 	uint8_t command = 2; // declare in header..
-	uint16_t numBlock = sendOperation->blockIndex;
+	uint16_t numBlock = fileBlock->blockIndex;
 
 	size_t sBuffer = sizeof(command) + sizeof(numBlock);
 
 	uint16_t numBlockSerialized = htons(numBlock);
 
 	void *buffer = malloc(sBuffer);
-	memset(buffer, '\0', sBuffer); // TODO,borrar?
 	memcpy(buffer, &command, sizeof(command));
 	memcpy(buffer + sizeof(command), &numBlockSerialized, sizeof(numBlock));
 
-	e_socket_status status = socket_send_packet(nodeSocket, buffer, sBuffer);
+	status = socket_send_packet(nodeSocket, buffer, sBuffer);
 
 	free(buffer);
 
-	return ""; // TODO .
+	if (status != SOCKET_ERROR_NONE) {
+		return NULL;
+	}
+
+	// Wait for the response..
+
+	buffer = NULL;
+	sBuffer = 0;
+	status = socket_recv_packet(nodeSocket, &buffer, &sBuffer);
+
+	if (status != SOCKET_ERROR_NONE) {
+		return NULL;
+	}
+
+	char *block = malloc(sBuffer + 1);
+	memcpy(block, buffer, sBuffer);
+	block[sBuffer] = '\0';
+
+	free(buffer);
+
+	return block;
 }

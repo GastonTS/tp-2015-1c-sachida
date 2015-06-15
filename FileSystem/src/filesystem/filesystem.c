@@ -227,7 +227,25 @@ node_t* filesystem_addNode(char *nodeId, uint16_t blocksCount) {
 
 char* filesystem_md5sum(file_t* file) {
 	// TODO
-	return filesystem_md5("asdasd");
+	t_list *blocksData = list_create();
+	void listBlocks(t_list* blockCopies) {
+		void listBlockCopy(file_block_t *blockCopy) {
+			// TODO, move to threads and join later after iterate.
+			char *block = connections_getBlockFromNode(blockCopy);
+			if (!block) {
+				// TODO, aca deberia ir a buscar en el siguiente nodo que tenga este mismo bloque.
+				printf("BLOCK ES NULL :O");
+			}
+			list_add(blocksData, block);
+
+		}
+		list_iterate(blockCopies, (void *) listBlockCopy);
+	}
+	list_iterate(file->blocks, (void *) listBlocks);
+
+	char *md5str = filesystem_getMD5FromBlocks(blocksData);
+	list_destroy_and_destroy_elements(blocksData, free);
+	return md5str;
 }
 
 // PRIVATE

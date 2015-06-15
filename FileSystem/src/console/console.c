@@ -377,18 +377,17 @@ void md5sum(char *fileName) {
 	if (!isNull(fileName)) {
 		file_t *file = filesystem_getFileByNameInDir(fileName, currentDirId);
 		if (file) {
-			// TODO armar bien esto..
-			printf("MD5 de '%s'\n", fileName);
 			char *md5sum = filesystem_md5sum(file);
-			printf("%s\n", md5sum);
 			if (md5sum) {
+				printf("%s\t%s\n", md5sum, fileName);
 				free(md5sum);
+			} else {
+				printf("There was an error trying to get the MD5 of %s\n", fileName);
 			}
 			file_free(file);
 		} else {
 			printf("File '%s' not found.\n", fileName);
 		}
-
 	}
 }
 
