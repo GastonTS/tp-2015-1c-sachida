@@ -231,6 +231,7 @@ char* filesystem_md5sum(file_t* file) {
 	void listBlocks(t_list* blockCopies) {
 		void listBlockCopy(file_block_t *blockCopy) {
 			// TODO, move to threads and join later after iterate.
+			// TODO , chequear que aca se esta agregando varias veces la misma copia, deberia cortar una vez que la tiene.
 			char *block = connections_getBlockFromNode(blockCopy);
 			if (!block) {
 				// TODO, aca deberia ir a buscar en el siguiente nodo que tenga este mismo bloque.
