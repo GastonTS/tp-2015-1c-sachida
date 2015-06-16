@@ -29,16 +29,6 @@ void freeNodo();
 
 //Le agregue los argumentos para que se pueda pasar el archivo de conf como parametro del main
 int main(int argc, char *argv[]) {
-	// op 1, bloque 21, leng 0001
-	char paquete[] = { 0b00000001, 0b00010101, 0b00000000, 0b00000001,
-			0b00000000, 0b00000000, 0b00000000, 0b01000110 };
-	printf("comand %d\n", obtenerComando(paquete));
-	printf("bloque %d\n", obtenerNumBlock(paquete));
-	uint32_t size = obtenerSize(paquete);
-	printf("len %d\n", size);
-	char *datosBloque = obtenerDatosBloque(paquete, size);
-	printf("comand %s\n", datosBloque);
-	free(datosBloque);
 	logger = log_create("Nodo.log", "Nodo", 1, log_level_from_string("TRACE"));
 
 	if (argc != 2) {
@@ -51,27 +41,12 @@ int main(int argc, char *argv[]) {
 		freeNodo();
 		return EXIT_FAILURE;
 	}
-	printf("Levanto el archv de conf\n");
-	//freeNode();
-	return EXIT_SUCCESS;
-	//pthread_t conexionesJob;
-	//pthread_t conexionesNodo;
-	size_t packet_size;
-	//char* paquete;
-	//initConfig(argv[1]);
-	//printf("Levanto el archv de conf");
-	/*Creo el logger parametros -->
-	 Nombre del archivo de log
-	 nombre del programa que crea el log
-	 se muestra el log por pantalla?
-	 nivel minimo de log */
 
-	//logger = log_create("Log.txt", "Node", 1, log_level_from_string("DEBUG"));
+	freeNodo();
 	socket_fileSystem = conectarFileSystem();
-	//todo Ver bien si es necesaria esta funcion
-	createNode(); //creo que no es necesario el createNodo.
+	size_t packet_size;
+	char* paquete;
 	socket_recv_packet(socket_fileSystem, (void**) paquete, &packet_size);
-
 	uint8_t comando = obtenerComando(paquete);
 	uint16_t numBlock;
 	uint32_t pack_size;
@@ -104,6 +79,17 @@ int main(int argc, char *argv[]) {
 		 */
 		return EXIT_SUCCESS;
 	}
+	// op 1, bloque 21, leng 0001
+	/*char paquete[] = { 0b00000001, 0b00010101, 0b00000000, 0b00000001,
+			0b00000000, 0b00000000, 0b00000000, 0b01000110 };
+	printf("comand %d\n", obtenerComando(paquete));
+	printf("bloque %d\n", obtenerNumBlock(paquete));
+	uint32_t size = obtenerSize(paquete);
+	printf("len %d\n", size);
+	char *datosBloque = obtenerDatosBloque(paquete, size);
+	printf("comand %s\n", datosBloque);
+	free(datosBloque);*/
+	return EXIT_SUCCESS;
 }
 
 // Almacenar los datos del FS y hacer Map y Reduce segun lo requerido por los Jobs
@@ -466,9 +452,7 @@ int initConfig(char* configFile) {
 	}
 
 	_config = config_create(configFile);
-
 	cfgNodo = malloc(sizeof(t_configNodo));
-
 	log_info(logger, "Loading config...");
 
 	cfgNodo->archivo_bin = strdup(getCongifString("ARCHIVO_BIN"));
