@@ -9,6 +9,7 @@
 #define JOB_H_
 
 #include <stdlib.h>
+#include <stdbool.h> //boleans
 #include <string.h>
 #include <pthread.h>
 #include <netinet/in.h>
@@ -45,34 +46,10 @@
 #define JOB 400
 #define NODO 500
 
-t_list *list_mappers;
-t_list *list_reducers;
-t_list *list_archivos;
-
-int PUERTO_MARTA;
-char IP_MARTA[16];
-char* MAPPER;
-char* REDUCER;
 t_log* logger;
 int sock_marta;
 
 
-char* ARCH_RESULTADO;
-char COMBINER[2];
 
-typedef struct {
-	int tipo;
-	int id_proceso;
-	int datosNumericos;
-	t_list* listaArchivos;
-	char mensaje[16];
-} t_mensaje;
-
-void leerArchivoConfig(char* conf);
-int conectarMarta();
-int conectarMarta();
-void atenderMarta(int socketMarta);
-void atenderMapper();
-void atenderReducer();
 
 #endif /* JOB_H_ */

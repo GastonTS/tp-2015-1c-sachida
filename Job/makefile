@@ -6,7 +6,6 @@ MV=mv -f
 RM=rm -rf
 GO=./$(NAME).o config.cfg
 SRCS=$(shell find ./ -iname *.c)
-UTILS=$(shell find ../utils/ -iname *.c)
 
 all: clean dependents build
 debug: CC += -DDEBUG -g -O0
