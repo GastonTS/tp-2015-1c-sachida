@@ -17,7 +17,7 @@ void startNodo() {
 	// Le mando mi info para que me levante como nodo.
 
 	uint16_t cantBloques = 30; // Le voy a decir que tengo 10 bloques para usar.
-	char myName[] = "Nodo2"; // Le paso mi nombre.
+	char myName[] = "Nodo1"; // Le paso mi nombre.
 
 	uint16_t sName = strlen(myName);
 	size_t sBuffer = sizeof(cantBloques) + sizeof(sName) + sName;
@@ -86,6 +86,7 @@ void deserialzeSetBloque(void *buffer) {
 
 void setBloque(uint16_t numBlock, char *blockData) {
 	printf("----------SET BLOQUE-----------\nSeteo en el bloque numero %d . DATA: \n%s\n----------------------------\n", numBlock, blockData);
+	fflush(stdout);
 }
 
 void deserialzeGetBloque(void *buffer, int fsSocket) {
@@ -106,5 +107,6 @@ void deserialzeGetBloque(void *buffer, int fsSocket) {
 
 char* getBloque(uint16_t numBlock) {
 	printf("----------GET BLOQUE-----------\nObtengo el bloque numero %d\n----------------------------\n", numBlock);
+	fflush(stdout);
 	return strdup("Este es el bloque");
 }

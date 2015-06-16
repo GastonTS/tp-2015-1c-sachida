@@ -40,7 +40,7 @@ bool filesystem_addDir(dir_t *dir);
 
 node_t* filesystem_getNodeById(char *nodeId);
 void filesystem_nodeIsDown(char *nodeName);
-node_t* filesystem_addNode(char *nodeId, uint16_t blocksCount);
+void filesystem_addNode(char *nodeId, uint16_t blocksCount);
 
 char* filesystem_md5sum(file_t* file);
 

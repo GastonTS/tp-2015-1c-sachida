@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <arpa/inet.h>
 
 // Siempre que halla if (0> algo) significa "Si hay error"
 // Siempre que halla if (0< algo) significa "Si NO hay error"
@@ -72,10 +73,26 @@ int socket_listen(t_port port) {
 	return fd;
 }
 
+// Accept without getting the client's IP
 int socket_accept(int fdListener) {
-	struct sockaddr addr;
+	char *IP;
+	int fd = socket_accept_and_get_ip(fdListener, &IP);
+	if (IP) {
+		free(IP);
+	}
+	return fd;
+}
+
+// Accept getting the client's IP
+int socket_accept_and_get_ip(int fdListener, char **ipAddress) {
+	struct sockaddr_in addr;
 	socklen_t addrlen = sizeof(addr);
-	int fd = accept(fdListener, &addr, &addrlen);
+	int fd = accept(fdListener, (struct sockaddr *) &addr, &addrlen);
+
+	// set the ip.
+	*ipAddress = malloc(INET_ADDRSTRLEN);
+	inet_ntop(AF_INET, &addr.sin_addr.s_addr, *ipAddress, INET_ADDRSTRLEN);
+
 	//Usa retval para poder mandar error si hubo error en el setoption
 	int retval = socket_setoption(fd);
 	if (0 > retval)

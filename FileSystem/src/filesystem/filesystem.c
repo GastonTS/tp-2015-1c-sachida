@@ -7,7 +7,7 @@
 #include <pthread.h>
 // #include <semaphore.h>
 
-#include "../connections/connections.h"
+#include "../connections/connections_node.h"
 
 bool filesystem_canCreateResource(char *resourceName, char *parentId);
 char* filesystem_md5(char *str);
@@ -208,7 +208,7 @@ void filesystem_nodeIsDown(char *nodeId) {
 	}
 }
 
-node_t* filesystem_addNode(char *nodeId, uint16_t blocksCount) {
+void filesystem_addNode(char *nodeId, uint16_t blocksCount) {
 	node_t *node = filesystem_getNodeById(nodeId);
 	if (node) {
 		t_list *files = mongo_file_getFilesThatHaveNode(node->id);
@@ -222,28 +222,41 @@ node_t* filesystem_addNode(char *nodeId, uint16_t blocksCount) {
 		node->id = strdup(nodeId);
 		mongo_node_save(node);
 	}
-	return node;
+	node_free(node);
 }
 
 char* filesystem_md5sum(file_t* file) {
-	// TODO
+	// TODO, mover a thread?..
+	//pthread_t getBlockThread[list_size(file->blocks)];
+	//int thCount = 0;
+	bool found = 0;
+	bool isComplete = 1;
+
 	t_list *blocksData = list_create();
 	void listBlocks(t_list* blockCopies) {
-		void listBlockCopy(file_block_t *blockCopy) {
-			// TODO, move to threads and join later after iterate.
-			// TODO , chequear que aca se esta agregando varias veces la misma copia, deberia cortar una vez que la tiene.
-			char *block = connections_getBlockFromNode(blockCopy);
-			if (!block) {
-				// TODO, aca deberia ir a buscar en el siguiente nodo que tenga este mismo bloque.
-				printf("BLOCK ES NULL :O");
-			}
-			list_add(blocksData, block);
-
+		if (!isComplete) {
+			return;
 		}
+		void listBlockCopy(file_block_t *blockCopy) {
+			if (!found) {
+				char *block = connections_node_getBlock(blockCopy);
+				if (block) {
+					found = 1;
+					list_add(blocksData, block);
+				}
+			}
+		}
+		found = 0;
 		list_iterate(blockCopies, (void *) listBlockCopy);
+		if (!found) {
+			isComplete = 0;
+		}
 	}
 	list_iterate(file->blocks, (void *) listBlocks);
 
+	if (!isComplete) {
+		return NULL;
+	}
 	char *md5str = filesystem_getMD5FromBlocks(blocksData);
 	list_destroy_and_destroy_elements(blocksData, free);
 	return md5str;
