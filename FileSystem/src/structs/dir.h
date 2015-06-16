@@ -17,4 +17,6 @@ dir_t* dir_getDirFromBSON(const bson_t *doc);
 dir_t* dir_create();
 void dir_free(dir_t* dir);
 
+void freeSplits(char **splits);
+
 #endif

@@ -59,3 +59,14 @@ void dir_free(dir_t* dir) {
 	}
 	free(dir);
 }
+
+void freeSplits(char **splits) {
+	char **auxSplit = splits;
+
+	while (*auxSplit != NULL) {
+		free(*auxSplit);
+		auxSplit++;
+	}
+
+	free(splits);
+}

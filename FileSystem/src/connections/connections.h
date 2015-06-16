@@ -9,7 +9,12 @@
 #include <commons/log.h>
 #include "../utils/socket.h"
 
-void connections_initialize(int port);
+typedef struct {
+	int port;
+	int minNodesCount;
+} fs_connections_cfg_t;
+
+void connections_initialize(fs_connections_cfg_t *config);
 void connections_shutdown();
 
 #endif

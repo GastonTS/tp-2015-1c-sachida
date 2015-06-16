@@ -15,11 +15,9 @@
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
 void readCommand(char *command);
-void freeSplits(char ** splits);
 
 bool isCurrentRootDir();
 bool isRootDir(char *dirId);
-bool resolveDir(char *dirPath, char *dirPrompt, char *dirId);
 int isNull(char *parameter);
 
 void format();
@@ -125,17 +123,6 @@ void readCommand(char *input) {
 	input[strlen(input) - 1] = '\0'; // Removes the \n
 }
 
-void freeSplits(char **splits) {
-	char **auxSplit = splits;
-
-	while (*auxSplit != NULL) {
-		free(*auxSplit);
-		auxSplit++;
-	}
-
-	free(splits);
-}
-
 int isNull(char *parameter) {
 	if (parameter == NULL) {
 		printf("You are missing one or more parameters.. \n");
@@ -147,75 +134,6 @@ int isNull(char *parameter) {
 
 bool isCurrentRootDir() {
 	return isRootDir(currentDirId);
-}
-
-bool isRootDir(char *dirId) {
-	return string_equals_ignore_case(dirId, ROOT_DIR_ID);
-}
-
-// Resolves a path like: folder/../folder/folder2/../..
-bool resolveDir(char *dirPath, char *dirPrompt, char *dirId) {
-	char **dirNames;
-	char *dirName;
-	int i = 0;
-
-	char newDirPrompt[512];
-	char newDirId[ID_SIZE];
-
-	strcpy(newDirPrompt, currentDirPrompt);
-	strcpy(newDirId, currentDirId);
-
-	dirNames = string_split(dirPath, "/");
-
-	while (dirNames[i]) {
-		dirName = dirNames[i];
-
-		if (strcmp(dirName, "") != 0) {
-			if (strcmp(dirName, "..") == 0) {
-				if (!isRootDir(newDirId)) {
-					dir_t *currentDir = filesystem_getDirById(newDirId);
-
-					// Removes the last folder in the prompt
-					newDirPrompt[string_length(newDirPrompt) - string_length(currentDir->name) - 1] = '\0';
-
-					strcpy(newDirId, currentDir->parentId);
-
-					if (isRootDir(newDirId)) {
-						strcat(newDirPrompt, "/");
-					}
-					dir_free(currentDir);
-				}
-			} else {
-				dir_t *dir = filesystem_getDirByNameInDir(dirName, newDirId);
-
-				if (dir) {
-					if (!isRootDir(newDirId)) {
-						strcat(newDirPrompt, "/");
-					}
-					strcat(newDirPrompt, dir->name);
-					strcpy(newDirId, dir->id);
-
-					dir_free(dir);
-				} else {
-					printf("Directory '%s' not found.\n", dirName);
-					freeSplits(dirNames);
-					return 0;
-				}
-			}
-		}
-		i++;
-	}
-
-	if (dirPrompt) {
-		strcpy(dirPrompt, newDirPrompt);
-	}
-	if (dirId) {
-		strcpy(dirId, newDirId);
-	}
-
-	freeSplits(dirNames);
-
-	return 1;
 }
 
 // FUNCTIONS FOR EACH COMMAND ..
@@ -253,29 +171,29 @@ void deleteResource(char **parameters) {
 void moveResource(char *resource, char *destination) {
 	if (!isNull(resource) && !isNull(destination)) {
 
-		char *destinationId = malloc(ID_SIZE);
+		dir_t *destinationDir = filesystem_resolveDirPath(destination, currentDirId, currentDirPrompt, NULL);
+		if (!destinationDir) {
+			printf("Cannot move. Dir %s not found", destination);
+			return;
+		}
 
 		dir_t *dirToMove = filesystem_getDirByNameInDir(resource, currentDirId);
 		if (dirToMove) {
-			if (resolveDir(destination, NULL, destinationId)) {
-				filesystem_moveDir(dirToMove, destinationId);
-			}
+			filesystem_moveDir(dirToMove, destinationDir->id);
 			dir_free(dirToMove);
 		} else {
 			// If couldn't find a dir, then try to find a file:
 
 			file_t *fileToMove = filesystem_getFileByNameInDir(resource, currentDirId);
 			if (fileToMove) {
-				if (resolveDir(destination, NULL, destinationId)) {
-					filesystem_moveFile(fileToMove, destinationId);
-				}
+				filesystem_moveFile(fileToMove, destinationDir->id);
 				file_free(fileToMove);
 			} else {
 				printf("Cannot move '%s': No such file or directory.\n", resource);
 			}
 		}
 
-		free(destinationId);
+		dir_free(destinationDir);
 	}
 }
 
@@ -298,15 +216,15 @@ void changeDir(char *dirName) {
 	if (!isNull(dirName)) {
 
 		char *newDirPrompt = malloc(sizeof(char) * 512);
-		char *newDirId = malloc(ID_SIZE);
 
-		if (resolveDir(dirName, newDirPrompt, newDirId)) {
-			strcpy(currentDirId, newDirId);
+		dir_t *movedToDir = filesystem_resolveDirPath(dirName, currentDirId, currentDirPrompt, newDirPrompt);
+		if (movedToDir) {
+			strcpy(currentDirId, movedToDir->id);
 			strcpy(currentDirPrompt, newDirPrompt);
+			dir_free(movedToDir);
 		}
 
 		free(newDirPrompt);
-		free(newDirId);
 	}
 }
 

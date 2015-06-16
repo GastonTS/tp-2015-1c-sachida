@@ -8,6 +8,8 @@
 #define NODE_COMMAND_SET_BLOCK 1
 #define NODE_COMMAND_GET_BLOCK 2
 
+int connections_node_getConnectedCount();
+
 void connections_node_initialize();
 void connections_node_shutdown();
 

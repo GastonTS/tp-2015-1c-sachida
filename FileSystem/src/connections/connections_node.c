@@ -32,6 +32,11 @@ void connections_node_setNodeSocket(char *nodeId, int socket) {
 	dictionary_put(nodesSockets, nodeId, socketAcceptedPtr);
 }
 
+int connections_node_getConnectedCount() {
+	// TODO mutex
+	return dictionary_size(nodesSockets);
+}
+
 void connections_node_accept(int socketAccepted, char *clientIP) {
 
 	void *buffer;
