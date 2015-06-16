@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
-#include <commons/log.h>
 #include <pthread.h>
+#include <commons/string.h>
 // #include <semaphore.h>
 
 #include "../connections/connections_node.h"
@@ -17,11 +17,13 @@ bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file);
 void *filesystem_sendBlockToNode(void *param);
 nodeBlockSendOperation_t* filesystem_nodeBlockSendOperation_create(node_t *node, off_t blockIndex, char *block);
 void filesystem_nodeBlockSendOperation_free(nodeBlockSendOperation_t* nodeSendBlockOperation);
+bool isRootDirId(char *id);
+bool isRootDir(dir_t *dir);
 
-t_log* filesystem_logger;
+t_log* mdfs_logger;
 
 void filesystem_initialize() {
-	filesystem_logger = log_create("filesystem.log", "MDFS", 0, log_level_from_string("TRACE"));
+	mdfs_logger = log_create("filesystem.log", "MDFS", 0, log_level_from_string("TRACE"));
 	mongo_dir_init();
 	mongo_file_init();
 	mongo_node_init();
@@ -32,11 +34,11 @@ void filesystem_shutdown() {
 	mongo_file_shutdown();
 	mongo_node_shutdown();
 	mongo_shutdown();
-	log_destroy(filesystem_logger);
+	log_destroy(mdfs_logger);
 }
 
 bool filesystem_format() {
-	log_info(filesystem_logger, "Format FS.");
+	log_info(mdfs_logger, "Format FS.");
 	if (mongo_dir_deleteAll() && mongo_file_deleteAll()) {
 		t_list *nodes = mongo_node_getAll();
 
@@ -217,7 +219,7 @@ void filesystem_addNode(char *nodeId, uint16_t blocksCount) {
 	} else {
 		// Nuevo nodo
 		// TODO
-		log_info(filesystem_logger, "New NODE connected. Name: %s . blocksCount %d", nodeId, blocksCount);
+		log_info(mdfs_logger, "New NODE connected. Name: %s . blocksCount %d", nodeId, blocksCount);
 		node = node_create(blocksCount);
 		node->id = strdup(nodeId);
 		mongo_node_save(node);
@@ -262,7 +264,84 @@ char* filesystem_md5sum(file_t* file) {
 	return md5str;
 }
 
+// Resolves a path like: folder/../folder/folder2/../.. and sets the fullPath in fullPath
+dir_t* filesystem_resolveDirPath(char *path, char *startingDirId, char *startingPath, char *fullPath) {
+	char **dirNames;
+	char *dirName;
+	int i = 0;
+
+	char newFullPath[1024];
+
+	strcpy(newFullPath, startingPath);
+
+	dirNames = string_split(path, "/");
+
+	dir_t *currentDir;
+
+	if (isRootDirId(startingDirId)) {
+		currentDir = dir_create();
+		strcpy(currentDir->id, ROOT_DIR_ID);
+	} else {
+		currentDir = filesystem_getDirById(startingDirId);
+	}
+
+	if (!currentDir) {
+		freeSplits(dirNames);
+		return NULL;
+	}
+
+	while (dirNames[i]) {
+		dirName = dirNames[i];
+
+		if (strcmp(dirName, "") != 0) {
+			if (strcmp(dirName, "..") == 0) {
+				if (!isRootDir(currentDir)) {
+					// Removes the last folder in the prompt
+					newFullPath[string_length(newFullPath) - string_length(currentDir->name) - 1] = '\0';
+
+					dir_free(currentDir);
+					currentDir = filesystem_getDirById(currentDir->parentId);
+
+					if (isRootDir(currentDir)) {
+						strcat(newFullPath, "/");
+					}
+				}
+			} else {
+				dir_free(currentDir);
+				currentDir = filesystem_getDirByNameInDir(dirName, currentDir->id);
+
+				if (currentDir) {
+					if (!isRootDir(currentDir)) {
+						strcat(newFullPath, "/");
+					}
+					strcat(newFullPath, currentDir->name);
+				} else {
+					freeSplits(dirNames);
+					return NULL;
+				}
+			}
+		}
+		i++;
+	}
+
+	if (fullPath) {
+		strcpy(fullPath, newFullPath);
+	}
+
+	freeSplits(dirNames);
+
+	return currentDir;
+}
+
 // PRIVATE
+
+bool isRootDirId(char *id) {
+	return string_equals_ignore_case(id, ROOT_DIR_ID);
+}
+
+bool isRootDir(dir_t *dir) {
+	return isRootDirId(dir->id);
+}
 
 bool filesystem_canCreateResource(char *resourceName, char *parentId) {
 	dir_t *dir = filesystem_getDirByNameInDir(resourceName, parentId);
@@ -409,12 +488,12 @@ bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 					list_add(blockCopies, blockCopy);
 				} else {
 					success = 0;
-					log_error(filesystem_logger, "Couldn't find a free block to store the block");
+					log_error(mdfs_logger, "Couldn't find a free block to store the block");
 					return;
 				}
 			} else {
 				success = 0;
-				log_error(filesystem_logger, "There are less free nodes than copies to be done.");
+				log_error(mdfs_logger, "There are less free nodes than copies to be done.");
 				return;
 			}
 		}
@@ -456,7 +535,7 @@ void *filesystem_sendBlockToNode(void *param) {
 
 	nodeBlockSendOperation_t* sendOperation = (nodeBlockSendOperation_t*) param;
 
-	log_info(filesystem_logger, "Sending block to node %s , blockIndex %d", sendOperation->node->id, sendOperation->blockIndex);
+	log_info(mdfs_logger, "Sending block to node %s , blockIndex %d", sendOperation->node->id, sendOperation->blockIndex);
 	// TODO . connections_sendBlockToNode(sendOperation);
 
 	filesystem_nodeBlockSendOperation_free(sendOperation);

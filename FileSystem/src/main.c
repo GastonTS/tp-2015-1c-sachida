@@ -6,35 +6,30 @@
 #include "filesystem/filesystem.h"
 #include "connections/connections.h"
 
-typedef struct {
-	int port;
-	int minNodesCount;
-} fscfg_t;
-
-bool initConfig(fscfg_t *fsConfig);
-void config_free(fscfg_t *fsConfig);
+bool initConfig(fs_connections_cfg_t *fsConfig);
+void config_free(fs_connections_cfg_t *fsConfig);
 
 int main(void) {
-	fscfg_t *fsConfig = malloc(sizeof(fscfg_t));
+	fs_connections_cfg_t *fsConnectionsConfig = malloc(sizeof(fs_connections_cfg_t));
 
-	if (!initConfig(fsConfig)) {
+	if (!initConfig(fsConnectionsConfig)) {
 		printf("Init failed\n");
-		config_free(fsConfig);
+		config_free(fsConnectionsConfig);
 		return EXIT_FAILURE;
 	}
 
 
 	filesystem_initialize();
-	connections_initialize(fsConfig->port);
+	connections_initialize(fsConnectionsConfig);
 	console_start();
 	connections_shutdown();
 	filesystem_shutdown();
 
-	config_free(fsConfig);
+	config_free(fsConnectionsConfig);
 	return EXIT_SUCCESS;
 }
 
-bool initConfig(fscfg_t *fsConfig) {
+bool initConfig(fs_connections_cfg_t *fsConfig) {
 	bool missing = 0;
 	t_config* config;
 
@@ -63,6 +58,6 @@ bool initConfig(fscfg_t *fsConfig) {
 	return !missing;
 }
 
-void config_free(fscfg_t *fsConfig) {
+void config_free(fs_connections_cfg_t *fsConfig) {
 	free(fsConfig);
 }

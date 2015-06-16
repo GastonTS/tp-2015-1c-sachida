@@ -7,19 +7,15 @@ void *connections_listenerThread(void *param);
 int exitConnections;
 pthread_t listenerThread;
 
-// TODO. crear un logger de connections? SI, con func y semaphore.
-t_log* connections_logger;
 
-void connections_initialize(int port) {
-	connections_logger = log_create("filesystem.log", "MDFS", 0, log_level_from_string("TRACE"));
-
+void connections_initialize(fs_connections_cfg_t *config) {
 	connections_node_initialize();
 	connections_marta_initialize();
 
 	exitConnections = 0;
 
-	if (pthread_create(&listenerThread, NULL, (void *) connections_listenerThread, (void *) &port)) {
-		return; // -1; // TODO handle error
+	if (pthread_create(&listenerThread, NULL, (void *) connections_listenerThread, (void *) config)) {
+		log_error(mdfs_logger, "Error while trying to create new thread: connections_listenerThread");
 	}
 }
 
@@ -27,15 +23,13 @@ void connections_shutdown() {
 	connections_node_shutdown();
 	connections_marta_shutdown();
 
-	log_destroy(connections_logger);
-
 	exitConnections = 1; // TODO , ver bien como hacer esto..
 	pthread_join(listenerThread, NULL);
 }
 
 void *connections_listenerThread(void *param) {
-	int port = *((int *) param);
-	int socketListener = socket_listen(port);
+	fs_connections_cfg_t *config = (fs_connections_cfg_t *)param;
+	int socketListener = socket_listen(config->port);
 	int socketAccepted;
 
 	while (!exitConnections) {
@@ -47,7 +41,12 @@ void *connections_listenerThread(void *param) {
 			connections_node_accept(socketAccepted, clientIP); // TODO, mover a thread? SI. hacer.
 			break;
 		case HANDSHAKE_MARTA:
-			connections_marta_accept(socketAccepted); // TODO, mover a thread? SI. hacer.
+			if (connections_node_getConnectedCount() < config->minNodesCount) {
+				log_info(mdfs_logger, "Marta connected but rejected\n");
+				socket_close(socketAccepted);
+			} else {
+				connections_marta_accept(socketAccepted); // TODO, mover a thread? SI. hacer.
+			}
 			break;
 		}
 

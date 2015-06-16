@@ -14,10 +14,8 @@ void startMarta() {
 
 	printf("Me conecte con el fs :D\n");
 
-	// AHORA ESPERO ACCIONES DEL FS:
-	// MARTA DEBERIA TIRAR THREADS ACA
-	//marta_escucharAcciones(fsSocket);
 
+	// TEST PEDIR BLOQUES.
 	pedirBloquesArchivo(fsSocket);
 }
 

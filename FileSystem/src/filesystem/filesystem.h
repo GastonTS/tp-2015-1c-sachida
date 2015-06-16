@@ -4,6 +4,9 @@
 #include "../mongo/mongo_dir.h"
 #include "../mongo/mongo_file.h"
 #include "../mongo/mongo_node.h"
+#include <commons/log.h>
+
+extern t_log* mdfs_logger;
 
 #define FILESYSTEM_BLOCK_COPIES 3
 #define	NODE_BLOCK_SIZE	20 * 1024 * 1024
@@ -43,5 +46,7 @@ void filesystem_nodeIsDown(char *nodeName);
 void filesystem_addNode(char *nodeId, uint16_t blocksCount);
 
 char* filesystem_md5sum(file_t* file);
+
+dir_t* filesystem_resolveDirPath(char *path, char *startingDirId, char *startingPath, char *fullPath);
 
 #endif

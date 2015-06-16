@@ -23,7 +23,7 @@ void connections_marta_accept(int socketAccepted) {
 	pthread_t martaTh; // TODO , deberia ir global para terminarlo o q?
 
 	if (pthread_create(&martaTh, NULL, (void *) connections_marta_listenActions, NULL)) {
-		return; // -1; // TODO handle error
+		log_error(mdfs_logger, "Error while trying to create new thread: connections_marta_listenActions");
 	}
 }
 
@@ -34,7 +34,7 @@ void *connections_marta_listenActions(void *param) {
 	e_socket_status status = socket_recv_packet(martaSocket, &buffer, &sBuffer);
 
 	if (status != SOCKET_ERROR_NONE) {
-		return NULL; // TODO, esperamos que marta reconecte?
+		return NULL;
 	}
 
 	// TODO, va en hilo esto?..
@@ -60,6 +60,7 @@ bool connection_marta_sendFileBlocks(void *bufferReceived) {
 	memcpy(fileName, bufferReceived + sizeof(uint8_t) + sizeof(uint32_t), sFileName);
 	fileName[sFileName] = '\0';
 
+	log_info(mdfs_logger, "Marta requested the blocks of file %s", fileName);
 	file_t *file = filesystem_getFileByNameInDir(fileName, ROOT_DIR_ID); // TODO crear un funcion para resolver DIRS.
 
 	if (!file) {
@@ -67,7 +68,7 @@ bool connection_marta_sendFileBlocks(void *bufferReceived) {
 		return 0;
 	}
 
-	// |cantbloques|  cantCopias    |sizeNodeId|nodeId|blockIndex|
+	// |cantbloques [cantCopias [sizeNodeId|nodeId|blockIndex] ]
 	uint16_t blocksCount = list_size(file->blocks);
 	uint16_t blocksCountSerialized = htons(blocksCount);
 
