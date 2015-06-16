@@ -223,12 +223,13 @@ void recvOrder(int fd) {
 	socket_recv_packet(fd, &buffer, &sbuffer);
 	char order = '\0';
 	size_t sOrder = sizeof(char);
-
 	memcpy(&order, buffer, sOrder);
+
 	/* Map */
 	struct parms_threads parms_map;
-	parms_map.buffer = strdup(buffer + sOrder);
+	parms_map.buffer = (buffer + sOrder);
 	parms_map.tamanio = sOrder;
+
 	/* Reduce */
 	struct parms_threads parms_reduce;
 	parms_reduce.buffer = strdup(buffer + sOrder);
@@ -256,6 +257,7 @@ void atenderMapper(void* parametros) {
 	struct parms_threads *p = (struct parms_threads *)parametros;
 
 	log_info(logger, "Cree hilo mapper");
+
 	/* Desserializo el mensaje de Mapper de MaRTA */
 	desserializeMapOrder(p->buffer);
 	//CONECTARME AL NODO Y MANDARLE EL BLOQUE Y LOS DATOS DE MAP.PY
@@ -478,7 +480,7 @@ void desserializeMapOrder(void *buffer) {
 	uint16_t nodePort;
 	uint16_t numBlock;
 	char tempResultName[60];
-	log_info(logger,"buffer %s",buffer);
+
 	memcpy(&idMap, buffer, sIdMap);
 	memcpy(&snodeIP, buffer + sIdMap, sizeof(size_t));
 	nodeIP = malloc(snodeIP);
@@ -486,7 +488,7 @@ void desserializeMapOrder(void *buffer) {
 	memcpy(&nodePort, buffer + sIdMap + sizeof(size_t) + snodeIP, snodePort);
 	memcpy(&numBlock, buffer + sIdMap + sizeof(size_t) + snodeIP + snodePort, snumblock);
 	memcpy(tempResultName, buffer + sIdMap + sizeof(size_t) + snodeIP + snodePort + snumblock, stempName);
-	printf("memcopys");
+
 	idMap = ntohs(idMap);
 	nodePort = ntohs(nodePort);
 	numBlock = ntohs(numBlock);
