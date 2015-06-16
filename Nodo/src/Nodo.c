@@ -1,6 +1,18 @@
 #include "Nodo.h"
 #include "socket.h"
 
+typedef struct {
+	int puerto_fs;
+	int puerto_nodo;
+	char *ip_nodo;
+	char *ip_fs;
+	char *archivo_bin;
+	char *dir_tmp;
+	char *nodo_nuevo;
+} t_configNodo;
+
+t_configNodo *cfgNodo;
+
 void createNode();
 //void getFileContent();
 //void nodeMap(rutinaMap, int nroBloque);
@@ -13,12 +25,13 @@ uint8_t obtenerComando(char* paquete);
 uint16_t obtenerNumBlock(char* paquete);
 uint32_t obtenerSize(char* paquete);
 char* obtenerDatosBloque(char* paquete, uint32_t size);
+void freeNodo();
 
 //Le agregue los argumentos para que se pueda pasar el archivo de conf como parametro del main
 int main(int argc, char *argv[]) {
-
 	// op 1, bloque 21, leng 0001
-	char paquete[] = { 0b00000001, 0b00010101, 0b00000000, 0b00000001, 0b00000000, 0b00000000, 0b00000000, 0b01000110 };
+	char paquete[] = { 0b00000001, 0b00010101, 0b00000000, 0b00000001,
+			0b00000000, 0b00000000, 0b00000000, 0b01000110 };
 	printf("comand %d\n", obtenerComando(paquete));
 	printf("bloque %d\n", obtenerNumBlock(paquete));
 	uint32_t size = obtenerSize(paquete);
@@ -26,23 +39,34 @@ int main(int argc, char *argv[]) {
 	char *datosBloque = obtenerDatosBloque(paquete, size);
 	printf("comand %s\n", datosBloque);
 	free(datosBloque);
+	logger = log_create("Nodo.log", "Nodo", 1, log_level_from_string("TRACE"));
+
+	if (argc != 2) {
+		log_error(logger, "Missing config file");
+		freeNodo();
+		return EXIT_FAILURE;
+	}
+	if (!initConfig(argv[1])) {
+		log_error(logger, "Config failed");
+		freeNodo();
+		return EXIT_FAILURE;
+	}
+	printf("Levanto el archv de conf\n");
+	//freeNode();
 	return EXIT_SUCCESS;
 	//pthread_t conexionesJob;
 	//pthread_t conexionesNodo;
 	size_t packet_size;
 	//char* paquete;
-	if (argc != 2) {
-		printf("ERROR, la sintaxis del servidor es: ./Nodo.c archivo_configuracion \n");
-		return -1;
-	}
-	getInfoConf(argv[1]);
+	//initConfig(argv[1]);
+	//printf("Levanto el archv de conf");
 	/*Creo el logger parametros -->
 	 Nombre del archivo de log
 	 nombre del programa que crea el log
 	 se muestra el log por pantalla?
 	 nivel minimo de log */
 
-	logger = log_create("Log.txt", "Node", 1, log_level_from_string("DEBUG"));
+	//logger = log_create("Log.txt", "Node", 1, log_level_from_string("DEBUG"));
 	socket_fileSystem = conectarFileSystem();
 	//todo Ver bien si es necesaria esta funcion
 	createNode(); //creo que no es necesario el createNodo.
@@ -276,8 +300,9 @@ void createNode() {
 int conectarFileSystem() {
 	int descriptorFileSystem;
 	int handshakea;
-	descriptorFileSystem = socket_connect(ip_fs, puerto_fs);
-	handshakea = socket_handshake_to_server(descriptorFileSystem, HANDSHAKE_NODO, HANDSHAKE_FILESYSTEM);
+	descriptorFileSystem = socket_connect(cfgNodo->ip_fs, cfgNodo->puerto_fs);
+	handshakea = socket_handshake_to_server(descriptorFileSystem,
+			HANDSHAKE_NODO, HANDSHAKE_FILESYSTEM);
 	printf("derror %d", handshakea);
 	return descriptorFileSystem;
 	/*
@@ -333,14 +358,17 @@ char* getBloque(uint16_t nroBloque) {
 	size_t pagesize;
 	//Se abre el archivo para solo lectura
 
-	mapper = open(archivo_bin, O_RDONLY);
+	mapper = open(cfgNodo->archivo_bin, O_RDONLY);
 	pagesize = getpagesize();
 	size = size_of(mapper);
 	//size = 20;
 	//Trate size bytes a partir de la posicion pagesize*(nroBloque-1)
-	if ((mapeo = mmap( NULL, size, PROT_READ, MAP_SHARED, mapper, pagesize * (nroBloque - 1))) == MAP_FAILED) {
+	if ((mapeo = mmap( NULL, size, PROT_READ, MAP_SHARED, mapper,
+			pagesize * (nroBloque - 1))) == MAP_FAILED) {
 		//Si no se pudo ejecutar el MMAP, imprimir el error y abortar;
-		log_error(logger, "Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size", archivo_bin, size);
+		log_error(logger,
+				"Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size",
+				cfgNodo->archivo_bin, size);
 		//fprintf(stderr, "Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size", file_name, size, strerror(errno));
 		abort();
 	}
@@ -360,14 +388,17 @@ void setBloque(uint16_t nroBloque, char* string) {
 	int pagesize;
 	//Se abre el archivo para lectura y escritura
 
-	mapper = open(archivo_bin, O_WRONLY);
+	mapper = open(cfgNodo->archivo_bin, O_WRONLY);
 	pagesize = getpagesize();
 	//Size debe llegar a 20mb asi los bloques son de 20mb
 	size = size_of(mapper);
 	//Trate size bytes a partir de la posicion pagesize*(nroBloque-1)
-	if ((mapeo = mmap( NULL, size, PROT_READ, MAP_SHARED, mapper, pagesize * (nroBloque - 1))) == MAP_FAILED) {
+	if ((mapeo = mmap( NULL, size, PROT_READ, MAP_SHARED, mapper,
+			pagesize * (nroBloque - 1))) == MAP_FAILED) {
 		//Si no se pudo ejecutar el MMAP, imprimir el error y abortar;
-		log_error(logger, "Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size", archivo_bin, size);
+		log_error(logger,
+				"Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size",
+				cfgNodo->archivo_bin, size);
 		//fprintf(stderr, "Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size", file_name, size, strerror(errno));
 		abort();
 	}
@@ -409,20 +440,59 @@ void setBloque(uint16_t nroBloque, char* string) {
  return 0;
  }*/
 
-void getInfoConf(char* conf) {
-	t_config* config; //creamos la variable que va a ser el archivo de config
-	config = config_create(conf); //creamos el "objeto" archivo de config
-	strcpy(ip_fs, config_get_string_value(config, "IP_FS"));
-	puerto_fs = config_get_int_value(config, "PUERTO_FS");
-	//strcpy(ip_nodo,config_get_string_value(config, "IP_NODO"));
-	puerto_nodo = config_get_int_value(config, "PUERTO_NODO");
-	strcpy(archivo_bin, config_get_string_value(config, "ARCHIVO_BIN"));
-	//strcpy(dir_tmp,config_get_string_value(config,"DIR_TMP"));
-	//strcpy(nodo_nuevo,config_get_string_value(config,"NODO_NUEVO"));
-	printf("Extraccion correcta del archivo de configuracion");
+int initConfig(char* configFile) {
 
-	config_destroy(config); //destruimos el "objeto" archivo de config
+	t_config* _config;
+	int failure = 0;
+
+	int getConfigInt(char *property) {
+		if (config_has_property(_config, property)) {
+			return config_get_int_value(_config, property);
+		}
+
+		failure = 1;
+		log_error(logger, "Config not found for key %s", property);
+		return -1;
+	}
+
+	char* getCongifString(char *property) {
+		if (config_has_property(_config, property)) {
+			return config_get_string_value(_config, property);
+		}
+
+		failure = 1;
+		log_error(logger, "Config not found for key %s", property);
+		return "";
+	}
+
+	_config = config_create(configFile);
+
+	cfgNodo = malloc(sizeof(t_configNodo));
+
+	log_info(logger, "Loading config...");
+
+	cfgNodo->archivo_bin = strdup(getCongifString("ARCHIVO_BIN"));
+	cfgNodo->dir_tmp = strdup(getCongifString("DIR_TMP"));
+	cfgNodo->ip_fs = strdup(getCongifString("IP_FS"));
+	cfgNodo->ip_nodo = strdup(getCongifString("IP_NODO"));
+	cfgNodo->nodo_nuevo = strdup(getCongifString("NODO_NUEVO"));
+	cfgNodo->puerto_fs = getConfigInt("PUERTO_FS");
+	cfgNodo->puerto_nodo = getConfigInt("PUERTO_NODO");
+
+	if (!failure) {
+		log_info(logger, "Archivo bin: %s", cfgNodo->archivo_bin);
+		log_info(logger, "Dir temporal: %s", cfgNodo->dir_tmp);
+		log_info(logger, "FileSystem IP: %s", cfgNodo->ip_fs);
+		log_info(logger, "FileSystem Port: %d", cfgNodo->puerto_fs);
+		log_info(logger, "Node IP: %s", cfgNodo->ip_nodo);
+		log_info(logger, "Node Port: %d", cfgNodo->puerto_nodo);
+		log_info(logger, "New Node: %s", cfgNodo->nodo_nuevo);
+	}
+
+	config_destroy(_config);
+	return !failure;
 }
+
 /*
  * Obtiene todos los datos del archivo de configuracion y los guarda en variables
  * para que podamos utilizarlo a lo largo del programa
@@ -430,6 +500,11 @@ void getInfoConf(char* conf) {
  * 			 El archivo de configuracion se pasa por parametro cuando se realiza la
  * 			 ejecucion: ./Nodo.c "rutaArchivoConfig"
  */
+
+void freeNodo() {
+	free(cfgNodo);
+	log_destroy(logger);
+}
 
 size_t size_of(int fd) {
 	struct stat buf;
@@ -451,13 +526,16 @@ uint16_t obtenerNumBlock(char* paquete) {
 
 uint32_t obtenerSize(char* paquete) {
 	uint32_t size;
-	memcpy(&size, paquete + sizeof(uint8_t) + sizeof(uint16_t), sizeof(uint32_t));
+	memcpy(&size, paquete + sizeof(uint8_t) + sizeof(uint16_t),
+			sizeof(uint32_t));
 	return size;
 }
 
 char* obtenerDatosBloque(char* paquete, uint32_t size) {
 	char* packet = malloc(sizeof(char) * (size + 1));
-	memcpy(packet, paquete + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint32_t), size);
+	memcpy(packet,
+			paquete + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint32_t),
+			size);
 	packet[size] = '\0';
 	return packet;
 }

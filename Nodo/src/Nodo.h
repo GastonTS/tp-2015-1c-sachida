@@ -51,18 +51,10 @@ typedef struct {
 	char mensaje[16];
 } t_mensaje;
 
-
-int puerto_fs;
-int puerto_nodo;
-char ip_nodo[16];
-char ip_fs[16];
-char* archivo_bin;
-char* dir_tmp;
-char nodo_nuevo[2];
 t_log* logger;
 
 //METODOS
-void getInfoConf(char* conf);
+int initConfig(char* conf);
 
 char* getBloque(uint16_t nroBloque);
 
