@@ -91,6 +91,7 @@ node_t* node_create(uint16_t blocksCount) {
 	node_t* node = malloc(sizeof(node_t));
 	node->blocks = getByteArrayForBlocksCount(blocksCount);
 	node->blocksCount = blocksCount;
+	node->id = NULL;
 	return node;
 }
 

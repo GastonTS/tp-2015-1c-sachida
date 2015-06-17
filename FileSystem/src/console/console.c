@@ -15,9 +15,6 @@
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
 void readCommand(char *command);
-
-bool isCurrentRootDir();
-bool isRootDir(char *dirId);
 int isNull(char *parameter);
 
 void format();
@@ -128,12 +125,7 @@ int isNull(char *parameter) {
 		printf("You are missing one or more parameters.. \n");
 		return 1;
 	}
-
 	return 0;
-}
-
-bool isCurrentRootDir() {
-	return isRootDir(currentDirId);
 }
 
 // FUNCTIONS FOR EACH COMMAND ..
@@ -155,13 +147,19 @@ void diskFree() {
 void deleteResource(char **parameters) {
 	if (!isNull(parameters[1])) {
 		if (string_equals_ignore_case(parameters[1], "-r")) {
-			if (!isNull(parameters[2])) {
-				if (!filesystem_deleteDirByNameInDir(parameters[2], currentDirId)) {
-					printf("Cannot remove '%s': No such directory.\n", parameters[2]);
-				}
+			dir_t *dir = filesystem_resolveDirPath(parameters[2], currentDirId, currentDirPrompt, NULL);
+			if (dir) {
+				filesystem_deleteDir(dir);
+				dir_free(dir);
+			} else {
+				printf("Cannot remove '%s': No such directory.\n", parameters[2]);
 			}
 		} else {
-			if (!filesystem_deleteFileByNameInDir(parameters[1], currentDirId)) {
+			file_t *file = filesystem_resolveFilePath(parameters[1], currentDirId, currentDirPrompt);
+			if (file) {
+				filesystem_deleteFile(file);
+				file_free(file);
+			} else {
 				printf("Cannot remove '%s': No such file.\n", parameters[1]);
 			}
 		}
@@ -177,14 +175,13 @@ void moveResource(char *resource, char *destination) {
 			return;
 		}
 
-		dir_t *dirToMove = filesystem_getDirByNameInDir(resource, currentDirId);
+		dir_t *dirToMove = filesystem_resolveDirPath(resource, currentDirId, currentDirPrompt, NULL);
 		if (dirToMove) {
 			filesystem_moveDir(dirToMove, destinationDir->id);
 			dir_free(dirToMove);
 		} else {
 			// If couldn't find a dir, then try to find a file:
-
-			file_t *fileToMove = filesystem_getFileByNameInDir(resource, currentDirId);
+			file_t *fileToMove = filesystem_resolveFilePath(resource, currentDirId, currentDirPrompt);
 			if (fileToMove) {
 				filesystem_moveFile(fileToMove, destinationDir->id);
 				file_free(fileToMove);
@@ -213,18 +210,15 @@ void makeDir(char *dirName) {
 }
 
 void changeDir(char *dirName) {
-	if (!isNull(dirName)) {
-
-		char *newDirPrompt = malloc(sizeof(char) * 512);
-
-		dir_t *movedToDir = filesystem_resolveDirPath(dirName, currentDirId, currentDirPrompt, newDirPrompt);
-		if (movedToDir) {
-			strcpy(currentDirId, movedToDir->id);
-			strcpy(currentDirPrompt, newDirPrompt);
-			dir_free(movedToDir);
-		}
-
+	char *newDirPrompt;
+	dir_t *changeToDir = filesystem_resolveDirPath(dirName ? dirName : "/", currentDirId, currentDirPrompt, &newDirPrompt);
+	if (changeToDir) {
+		strcpy(currentDirId, changeToDir->id);
+		strcpy(currentDirPrompt, newDirPrompt);
 		free(newDirPrompt);
+		dir_free(changeToDir);
+	} else {
+		printf("cd %s: No such directory.\n", dirName);
 	}
 }
 
@@ -267,7 +261,7 @@ void copyFile(char **parameters) {
 			printf("Copying file '%s' to MDFS as '%s'\n", fileName, dest);
 
 			file_t *file = file_create();
-			file->name = strdup(dest);
+			file->name = strdup(dest); // TODO, use resolve here?
 			strcpy(file->parentId, currentDirId);
 			file->size = 0;
 
@@ -293,11 +287,13 @@ void copyFile(char **parameters) {
 
 void md5sum(char *fileName) {
 	if (!isNull(fileName)) {
-		file_t *file = filesystem_getFileByNameInDir(fileName, currentDirId);
+
+
+		file_t *file = filesystem_resolveFilePath(fileName, currentDirId, currentDirPrompt);
 		if (file) {
 			char *md5sum = filesystem_md5sum(file);
 			if (md5sum) {
-				printf("%s\t%s\n", md5sum, fileName);
+				printf("%s\t%s\n", md5sum, file->name);
 				free(md5sum);
 			} else {
 				printf("There was an error trying to get the MD5 of %s\n", fileName);

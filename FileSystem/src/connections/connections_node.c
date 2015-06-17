@@ -48,17 +48,18 @@ void connections_node_accept(int socketAccepted, char *clientIP) {
 	}
 
 	// NODE DESERIALZE ..
-
+	uint8_t isNewNode;
 	uint16_t blocksCount;
 	uint16_t sName;
 	char *nodeName;
 
-	memcpy(&blocksCount, buffer, sizeof(blocksCount));
+	memcpy(&isNewNode, buffer, sizeof(isNewNode));
+	memcpy(&blocksCount, buffer + sizeof(isNewNode), sizeof(blocksCount));
 	blocksCount = ntohs(blocksCount);
-	memcpy(&sName, buffer + sizeof(blocksCount), sizeof(sName));
+	memcpy(&sName, buffer + sizeof(isNewNode) + sizeof(blocksCount), sizeof(sName));
 	sName = ntohs(sName);
 	nodeName = malloc(sizeof(char) * (sName + 1));
-	memcpy(nodeName, buffer + sizeof(blocksCount) + sizeof(sName), sName);
+	memcpy(nodeName, buffer + sizeof(isNewNode) + sizeof(blocksCount) + sizeof(sName), sName);
 	nodeName[sName] = '\0';
 	free(buffer);
 	// ...
@@ -67,7 +68,7 @@ void connections_node_accept(int socketAccepted, char *clientIP) {
 	// TODO, ver en que usar la ip.
 	connections_node_setNodeSocket(nodeName, socketAccepted);
 
-	filesystem_addNode(nodeName, blocksCount);
+	filesystem_addNode(nodeName, blocksCount, (bool) isNewNode);
 
 	free(nodeName);
 }
