@@ -242,22 +242,62 @@ void copyFile(char **parameters) {
 	char *source = parameters[2];
 	char *dest = parameters[3];
 
+	char* getFileName(char *path) {
+		char *fileName;
+		char **dirNames = string_split(path, "/");
+		int i = 0;
+		while (dirNames[i]) {
+			fileName = dirNames[i];
+			i++;
+		}
+		fileName = strdup(fileName);
+		freeSplits(dirNames);
+
+		return fileName;
+	}
+
 	if (!isNull(option) && !isNull(source) && !isNull(dest)) {
 
 		if (string_equals_ignore_case(option, "-fromfs")) {
-			char *fileName;
-			char **dirNames = string_split(source, "/");
-			int i = 0;
-			while (dirNames[i]) {
-				fileName = dirNames[i];
-				i++;
-			}
-			printf("Copying file '%s' to MDFS as '%s'\n", fileName, dest);
+			char *localFileName = getFileName(source);
+
+			printf("Copying file '%s' from local filesystem to '%s'\n", localFileName, dest);
 
 			file_t *file = file_create();
-			file->name = strdup(dest); // TODO, use resolve here?
-			strcpy(file->parentId, currentDirId);
-			file->size = 0;
+
+			dir_t *dir = filesystem_resolveDirPath(dest, currentDirId, currentDirPrompt, NULL);
+			if (dir) {
+				file->name = strdup(localFileName);
+				strcpy(file->parentId, dir->id);
+				file->size = 0;
+				dir_free(dir);
+			} else {
+				char *destFileName = getFileName(dest);
+				if (strlen(destFileName) < strlen(dest)) {
+					char *pathToFolder = string_substring_until(dest, strlen(dest) - strlen(destFileName));
+					printf("PATH TO FOLDER %s \n", pathToFolder);
+					dir_t *dir = filesystem_resolveDirPath(pathToFolder, currentDirId, currentDirPrompt, NULL);
+					free(pathToFolder);
+					if (dir) {
+						file->name = strdup(destFileName);
+						strcpy(file->parentId, dir->id);
+						file->size = 0;
+						dir_free(dir);
+					} else {
+						printf("Cannot create file '%s': No such file or directory.\n", dest);
+						free(destFileName);
+						free(localFileName);
+						file_free(file);
+						return;
+					}
+				} else {
+					// There are no folders just a file in the current folder.
+					file->name = strdup(destFileName);
+					strcpy(file->parentId, currentDirId);
+					file->size = 0;
+				}
+				free(destFileName);
+			}
 
 			int result = filesystem_copyFileFromFS(source, file);
 			if (result == -1) {
@@ -270,8 +310,8 @@ void copyFile(char **parameters) {
 				printf("Cannot create file '%s': Something went wrong when trying to persist the information.\n", dest);
 			}
 
+			free(localFileName);
 			file_free(file);
-			freeSplits(dirNames);
 		} else if (string_equals_ignore_case(option, "-tofs")) {
 			// TODO
 			printf("Copia el archivo '%s' al FS: %s\n", source, dest);
@@ -283,7 +323,6 @@ void copyFile(char **parameters) {
 
 void md5sum(char *fileName) {
 	if (!isNull(fileName)) {
-
 
 		file_t *file = filesystem_resolveFilePath(fileName, currentDirId, currentDirPrompt);
 		if (file) {
