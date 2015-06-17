@@ -42,12 +42,43 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	freeNodo();
 	socket_fileSystem = conectarFileSystem();
+
+
+	uint8_t soyNuevoNodo = 0;
+	uint16_t cantBloques = 30; // Le voy a decir que tengo 10 bloques para usar.
+	char myName[] = "Nodo1"; // Le paso mi nombre.
+
+	uint16_t sName = strlen(myName);
+	size_t sBuffer = sizeof(soyNuevoNodo) + sizeof(cantBloques) + sizeof(sName) + sName;
+
+	uint16_t cantBloquesSerialized = htons(cantBloques);
+	uint16_t sNameSerialized = htons(sName);
+
+	void *pBuffer = malloc(sBuffer);
+	memcpy(pBuffer, &soyNuevoNodo, sizeof(soyNuevoNodo));
+	memcpy(pBuffer + sizeof(soyNuevoNodo), &cantBloquesSerialized, sizeof(cantBloques));
+	memcpy(pBuffer + sizeof(soyNuevoNodo) + sizeof(cantBloques), &sNameSerialized, sizeof(sName));
+	memcpy(pBuffer + sizeof(soyNuevoNodo) + sizeof(cantBloques) + sizeof(sName), &myName, sName);
+
+	socket_send_packet(socket_fileSystem, pBuffer, sBuffer);
+	free(pBuffer);
+
+	// Ahora armo todo para esperar a que el fs me mande datos.
+	printf("armo todo para esperar a que el FS mande datos: \n");
 	size_t packet_size;
-	char* paquete;
-	socket_recv_packet(socket_fileSystem, (void**) paquete, &packet_size);
-	uint8_t comando = obtenerComando(paquete);
+	void* paquete;
+	printf("Esperando a que el Fs mande un paquete: \n");
+	socket_recv_packet(socket_fileSystem, &paquete, &packet_size);
+	printf("Se recibieron los datos del fs \n");
+	printf("comand %d\n", obtenerComando(paquete));
+	printf("bloque %d\n", obtenerNumBlock(paquete));
+	uint32_t size = obtenerSize(paquete);
+	printf("size %d\n", size);
+	char *datosBloque = obtenerDatosBloque(paquete, size);
+	printf("datos bloque %s\n", datosBloque);
+	free(datosBloque);
+	/*uint8_t comando = obtenerComando(paquete);
 	uint16_t numBlock;
 	uint32_t pack_size;
 	char * buffer;
@@ -63,22 +94,14 @@ int main(int argc, char *argv[]) {
 		getBloque(numBlock);
 		break;
 		//default =  log_error("Log.txt", "Node",1,log_level_from_string("ERROR"));
-
 		//TODO ACA DEBERIAMOS HACER EL WHILE INFINITO ESPERANDO CONEXIONES Y PETICIONES
-		/*TODO QUILOMBO ....
-		 HAY QUE ABRIR UN THREAD PARA ESCUCHAR JOBS Y UNO PARA ESCUCHAR NODOS
-		 PORQUE?
-		 PORQUE DICE QUE TIENEN QUE PUEDEN CORRER EN PARALELO :)
+		//TODO HAY QUE ABRIR UN THREAD PARA ESCUCHAR JOBS Y UNO PARA ESCUCHAR NODOS(Paralelismo)		 //ptrhead_create(&conexionesJob,NULL,(void*)escucharJobs,NULL);
+		//pthread_create(&conexionesNodo,NULL,(void*)escucharNodos,NULL);
+		// TODO TODAS LAS FUNCIONES GETBLOQUE Y ESAS VAN ADENTRO DE LOS TRHEADS
 
-
-		 //ptrhead_create(&conexionesJob,NULL,(void*)escucharJobs,NULL);
-		 //pthread_create(&conexionesNodo,NULL,(void*)escucharNodos,NULL);
-
-
-		 // TODO TODAS LAS FUNCIONES GETBLOQUE Y ESAS VAN ADENTRO DE LOS TRHEADS
-		 */
+		freeNodo();
 		return EXIT_SUCCESS;
-	}
+	}*/
 	// op 1, bloque 21, leng 0001
 	/*char paquete[] = { 0b00000001, 0b00010101, 0b00000000, 0b00000001,
 			0b00000000, 0b00000000, 0b00000000, 0b01000110 };
@@ -228,113 +251,16 @@ void createNode() {
  return sock_escucha;
  }*/
 
-/*int escuchar_puerto(int sock_escucha)
- {
- socklen_t sin_size;
- struct sockaddr_in my_addr;
- struct sockaddr_in their_addr;
- t_mensaje mensaje;
-
- int size_mensaje = sizeof(t_mensaje);
- char* buffer;
-
- int new_socket;
- int numbytes;
-
- if((buffer = (char*) malloc (sizeof(char) * MAXDATASIZE)) == NULL)
- {
- log_error(logger,"Error al reservar memoria para el buffer de escuchar puerto");
- return -1;
- }
-
- my_addr.sin_port=htons(puerto_nodo);
- my_addr.sin_family=AF_INET;
- my_addr.sin_addr.s_addr=ip_nodo;
- memset(&(my_addr.sin_zero),0,8);
-
- sin_size=sizeof(struct sockaddr_in);
-
- if((new_socket=accept(sock_escucha,(struct sockaddr *)&their_addr,	&sin_size))==-1)
- {
- log_error(logger, "Error en funcion accept en escuchar puerto");
- return -1;
- }
-
- memset(buffer,'\0',MAXDATASIZE);
-
- if((numbytes=read(new_socket,buffer,size_mensaje))<=0)
- {
- log_error(logger, "Error en el read en escuchar puerto");
- close(new_socket);
- return -1;
- }
- //recibo el handshake
- memcpy(&mensaje,buffer,size_mensaje);
- if(mensaje.tipo == HANDSHAKE && mensaje.id_proceso == JOB)
- {
- log_info(logger, "conexion lograda con JOB");
- //atenderJob(new_socket);
- }
- else
- {
- log_error(logger,"no identifique quien se conecto");
- return -1;
- }
- return new_socket;
- }*/
 
 int conectarFileSystem() {
 	int descriptorFileSystem;
 	int handshakea;
 	descriptorFileSystem = socket_connect(cfgNodo->ip_fs, cfgNodo->puerto_fs);
 	handshakea = socket_handshake_to_server(descriptorFileSystem,
-			HANDSHAKE_NODO, HANDSHAKE_FILESYSTEM);
+			HANDSHAKE_FILESYSTEM,HANDSHAKE_NODO);
 	printf("derror %d", handshakea);
+	log_info(logger,"Conection sucessfully");
 	return descriptorFileSystem;
-	/*
-	 fileSystem.sin_family = AF_INET;
-	 fileSystem.sin_port = htons(puerto_fs);
-	 fileSystem.sin_addr.s_addr = inet_addr(ip_fs);
-	 memset(&(fileSystem.sin_zero),0,8);
-
-	 if(connect(sockfd,(struct sockaddr *)&fileSystem,sizeof(struct sockaddr))==-1){
-	 printf("error en el connect al FileSystem");
-	 exit(-1);
-	 }
-
-	 log_info(logger,"Se conecto al FileSystem correctamente");
-
-	 if((numbytes=recv(sockfd, buffer, SIZE_MSG,0))==-1){
-	 printf("Error en el recv handshake del fileSystem");
-	 exit(-1);
-	 }
-
-	 //Copio el mensaje que recibi en el buffer
-	 memcpy(&mensaje,buffer,SIZE_MSG);
-
-	 if((mensaje.id_proceso  == FILESYSTEM)&&(mensaje.tipo=HANDSHAKE))
-	 {
-	 log_info(logger, "Conexion Lograda con el FileSystem");
-	 }
-	 else
-	 {
-	 log_error(logger, "No recibi Handshake del FileSystem");
-	 exit(-1);
-	 }
-
-	 memset(buffer,'\0',MAXDATASIZE);
-
-	 mensaje.tipo = HANDSHAKEOK;
-	 mensaje.id_proceso = NODO;
-	 memcpy(buffer,&mensaje,SIZE_MSG);
-
-	 if((numbytes=send(sockfd,buffer,SIZE_MSG,0))<=0)
-	 {
-	 printf("Error en el send handshakeok al FileSystem");
-	 exit(-1);
-	 }
-	 free(buffer);
-	 return sockfd;*/
 }
 
 char* getBloque(uint16_t nroBloque) {
@@ -427,7 +353,6 @@ void setBloque(uint16_t nroBloque, char* string) {
  }*/
 
 int initConfig(char* configFile) {
-
 	t_config* _config;
 	int failure = 0;
 

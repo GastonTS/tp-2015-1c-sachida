@@ -1,0 +1,84 @@
+[INFO] 11:38:22:653 Servidor/(21661:21661): puerto: 5000
+[INFO] 11:38:22:708 Servidor/(21661:21661): Arranque
+[INFO] 11:38:22:764 Servidor/(21661:21661): Ando el listen
+[INFO] 11:39:32:322 Servidor/(21661:21661): Anduvo el acept
+[INFO] 11:48:10:185 Servidor/(21901:21901): puerto: 5000
+[INFO] 11:48:10:242 Servidor/(21901:21901): Arranque
+[INFO] 11:48:10:276 Servidor/(21901:21901): Ando el listen
+[INFO] 11:48:15:750 Servidor/(21901:21901): Anduvo el acept
+[INFO] 11:48:52:138 Servidor/(21911:21911): puerto: 5000
+[INFO] 11:48:52:142 Servidor/(21911:21911): Arranque
+[INFO] 11:48:52:146 Servidor/(21911:21911): Ando el listen
+[INFO] 11:48:54:836 Servidor/(21911:21911): Anduvo el acept
+[INFO] 11:51:58:66 Servidor/(21978:21978): puerto: 5000
+[INFO] 11:51:58:78 Servidor/(21978:21978): Arranque
+[INFO] 11:51:58:80 Servidor/(21978:21978): Ando el listen
+[INFO] 11:52:01:436 Servidor/(21978:21978): Anduvo el acept
+[INFO] 11:53:36:221 Servidor/(22013:22013): puerto: 5000
+[INFO] 11:53:36:445 Servidor/(22013:22013): Arranque
+[INFO] 11:53:36:515 Servidor/(22013:22013): Ando el listen
+[INFO] 11:53:41:571 Servidor/(22013:22013): Anduvo el acept
+[INFO] 11:56:14:266 Servidor/(22066:22066): puerto: 5000
+[INFO] 11:56:15:326 Servidor/(22066:22066): Arranque
+[INFO] 11:56:15:367 Servidor/(22066:22066): Ando el listen
+[INFO] 11:56:19:167 Servidor/(22066:22066): Anduvo el acept
+[INFO] 12:00:51:269 Servidor/(22112:22112): puerto: 5000
+[INFO] 12:00:51:325 Servidor/(22112:22112): Arranque
+[INFO] 12:00:51:371 Servidor/(22112:22112): Ando el listen
+[INFO] 12:04:06:897 Servidor/(22216:22216): puerto: 5000
+[INFO] 12:04:06:957 Servidor/(22216:22216): Arranque
+[INFO] 12:04:06:1 Servidor/(22216:22216): Ando el listen
+[INFO] 12:04:09:105 Servidor/(22216:22216): Anduvo el acept
+[INFO] 12:07:53:420 Servidor/(22242:22242): puerto: 5000
+[INFO] 12:07:53:478 Servidor/(22242:22242): Arranque
+[INFO] 12:07:53:509 Servidor/(22242:22242): Ando el listen
+[INFO] 12:07:56:530 Servidor/(22242:22242): Anduvo el acept
+[INFO] 12:21:21:775 Servidor/(22428:22428): puerto: 5000
+[INFO] 12:21:21:835 Servidor/(22428:22428): Arranque
+[INFO] 12:21:21:906 Servidor/(22428:22428): Ando el listen
+[INFO] 12:21:22:688 Servidor/(22428:22428): Anduvo el acept
+[INFO] 12:21:38:190 Servidor/(22430:22430): puerto: 5000
+[INFO] 12:21:39:312 Servidor/(22430:22430): Arranque
+[INFO] 12:21:39:380 Servidor/(22430:22430): Ando el listen
+[INFO] 12:21:46:33 Servidor/(22430:22430): Anduvo el acept
+[INFO] 12:25:43:605 Servidor/(22508:22508): puerto: 5000
+[INFO] 12:25:43:694 Servidor/(22508:22508): Arranque
+[INFO] 12:25:43:736 Servidor/(22508:22508): Ando el listen
+[INFO] 12:25:46:41 Servidor/(22508:22508): Anduvo el acept
+[INFO] 12:28:32:807 Servidor/(22588:22588): puerto: 5000
+[INFO] 12:28:32:888 Servidor/(22588:22588): Arranque
+[INFO] 12:28:32:908 Servidor/(22588:22588): Ando el listen
+[INFO] 12:28:37:214 Servidor/(22588:22588): Anduvo el acept
+[INFO] 12:39:41:810 Servidor/(22721:22721): puerto: 5000
+[INFO] 12:39:41:866 Servidor/(22721:22721): Arranque
+[INFO] 12:39:41:909 Servidor/(22721:22721): Ando el listen
+[INFO] 12:39:48:400 Servidor/(22721:22721): Anduvo el acept
+[INFO] 12:53:36:438 Servidor/(22879:22879): puerto: 5000
+[INFO] 12:53:36:495 Servidor/(22879:22879): Arranque
+[INFO] 12:53:36:520 Servidor/(22879:22879): Ando el listen
+[INFO] 12:53:40:627 Servidor/(22879:22879): Anduvo el acept
+[INFO] 12:55:35:59 Servidor/(22938:22938): puerto: 5000
+[INFO] 12:55:36:197 Servidor/(22938:22938): Arranque
+[INFO] 12:55:36:256 Servidor/(22938:22938): Ando el listen
+[INFO] 12:55:37:565 Servidor/(22938:22938): Anduvo el acept
+[INFO] 13:04:16:99 Servidor/(23115:23115): puerto: 5000
+[INFO] 13:04:17:177 Servidor/(23115:23115): Arranque
+[INFO] 13:04:17:214 Servidor/(23115:23115): Ando el listen
+[INFO] 13:04:21:819 Servidor/(23115:23115): Anduvo el acept
+[INFO] 13:10:07:140 Servidor/(23218:23218): puerto: 5000
+[INFO] 13:10:08:227 Servidor/(23218:23218): Arranque
+[INFO] 13:10:18:374 Servidor/(23218:23218): Conection sucessfully
+[INFO] 14:20:25:400 Servidor/(23995:23995): puerto: 5000
+[INFO] 14:20:25:454 Servidor/(23995:23995): Arranque
+[INFO] 14:20:31:248 Servidor/(23995:23995): Conection sucessfully
+[INFO] 14:20:31:254 Servidor/(23995:23995): levanto el nodo
+
+[INFO] 14:20:31:260 Servidor/(23995:23995): ahora trato de recibir
+
+[INFO] 14:22:08:819 Servidor/(24042:24042): puerto: 5000
+[INFO] 14:22:08:985 Servidor/(24042:24042): Arranque
+[INFO] 14:22:14:284 Servidor/(24042:24042): Conection sucessfully
+[INFO] 14:22:14:299 Servidor/(24042:24042): levanto el nodo
+
+[INFO] 14:22:14:313 Servidor/(24042:24042): ahora trato de recibir
+
