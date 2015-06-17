@@ -23,13 +23,21 @@ struct parms_threads{
 	size_t tamanio;
 };
 
+typedef struct{
+	uint16_t IdThread;
+	pthread_t Thread;
+} t_list_thread;
 
+t_list_thread* hiloMap;
+t_list_thread* hiloRed;
 t_configJob* cfgJob;
 t_list* list_archivos;
-t_list* list_mappers;
-t_list* list_reducers;
+t_list *list_mappers;
+t_list *list_reducers;
 pthread_t hilo_mapper;
 pthread_t hilo_reduce;
+uint16_t contMap;
+uint16_t contReduce;
 
 int initConfig(char* configFile);
 //void convertirListaArch(char* cadena,t_list* lista);
@@ -40,6 +48,7 @@ void confirmarMap();
 void atenderReducer(void* parametros);
 void confirmarReduce();
 void freeJob();
+void freeList();
 void serializeConfigMaRTA(int fd, bool combiner, char* files);
 void recvOrder(int fd);
 void desserializeMapOrder(void *buffer);
@@ -65,15 +74,23 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
+	contMap = 0;
+	contReduce = 0;
 	sock_marta = conectarMarta();
 
 	atenderMarta(sock_marta);
 
+	freeList();
 	freeJob();
 
 	return 1;
 }
 
+void freeList(){
+	list_destroy(list_mappers);
+	list_destroy(list_reducers);
+	list_destroy(list_archivos);
+}
 void freeJob() {
 	log_destroy(logger);
 	free(cfgJob->IP_MARTA);
@@ -236,11 +253,22 @@ void recvOrder(int fd) {
 	parms_reduce.tamanio = sbuffer - sOrder;
 
 	printf("\nRECVORDER: %c\n", order);
-	if (order == 'm')
-		pthread_create(&hilo_mapper, NULL, (void*) atenderMapper, &parms_map);
-	else if (order == 'r')
-		pthread_create(&hilo_reduce, NULL, (void*) atenderReducer, &parms_reduce);
-		//desserializeReduceOrder(buffer + sOrder, sbuffer - sOrder);
+	if (order == 'm'){
+		hiloMap = malloc(sizeof(t_list_thread));
+		//t_list_thread *hiloMap;
+		contMap++;
+		printf("aca");
+		hiloMap->IdThread = contMap;
+		hiloMap->Thread = pthread_create(&hilo_mapper, NULL, (void*) atenderMapper, &parms_map);
+		list_add(list_mappers,hiloMap);
+	}
+	else if (order == 'r'){
+		hiloRed = malloc(sizeof(t_list_thread));
+		contReduce++;
+		hiloRed->IdThread = contReduce;
+		hiloRed->Thread = pthread_create(&hilo_reduce, NULL, (void*) atenderReducer, &parms_reduce);
+		list_add(list_reducers,hiloRed);
+	}
 	else if (order == 'd') {
 		printf("\nDIE JOB\n");
 		free(buffer);
@@ -260,6 +288,7 @@ void atenderMapper(void* parametros) {
 
 	/* Desserializo el mensaje de Mapper de MaRTA */
 	desserializeMapOrder(p->buffer);
+
 	//CONECTARME AL NODO Y MANDARLE EL BLOQUE Y LOS DATOS DE MAP.PY
 
 	/*
