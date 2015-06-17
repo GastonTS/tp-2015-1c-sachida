@@ -42,8 +42,30 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	freeNodo();
 	socket_fileSystem = conectarFileSystem();
+	log_info(logger,"Conection sucessfully");
+
+	uint8_t soyNuevoNodo = 0;
+	uint16_t cantBloques = 30; // Le voy a decir que tengo 10 bloques para usar.
+	char myName[] = "Nodo1"; // Le paso mi nombre.
+
+	uint16_t sName = strlen(myName);
+	size_t sBuffer = sizeof(soyNuevoNodo) + sizeof(cantBloques) + sizeof(sName) + sName;
+
+	uint16_t cantBloquesSerialized = htons(cantBloques);
+	uint16_t sNameSerialized = htons(sName);
+
+	void *pBuffer = malloc(sBuffer);
+	memcpy(pBuffer, &soyNuevoNodo, sizeof(soyNuevoNodo));
+	memcpy(pBuffer + sizeof(soyNuevoNodo), &cantBloquesSerialized, sizeof(cantBloques));
+	memcpy(pBuffer + sizeof(soyNuevoNodo) + sizeof(cantBloques), &sNameSerialized, sizeof(sName));
+	memcpy(pBuffer + sizeof(soyNuevoNodo) + sizeof(cantBloques) + sizeof(sName), &myName, sName);
+
+	socket_send_packet(socket_fileSystem, pBuffer, sBuffer);
+	free(pBuffer);
+
+	// Ahora armo todo para esperar a que el fs me mande datos.
+
 	size_t packet_size;
 	char* paquete;
 	socket_recv_packet(socket_fileSystem, (void**) paquete, &packet_size);
@@ -77,6 +99,7 @@ int main(int argc, char *argv[]) {
 
 		 // TODO TODAS LAS FUNCIONES GETBLOQUE Y ESAS VAN ADENTRO DE LOS TRHEADS
 		 */
+		freeNodo();
 		return EXIT_SUCCESS;
 	}
 	// op 1, bloque 21, leng 0001
@@ -288,7 +311,7 @@ int conectarFileSystem() {
 	int handshakea;
 	descriptorFileSystem = socket_connect(cfgNodo->ip_fs, cfgNodo->puerto_fs);
 	handshakea = socket_handshake_to_server(descriptorFileSystem,
-			HANDSHAKE_NODO, HANDSHAKE_FILESYSTEM);
+			HANDSHAKE_FILESYSTEM,HANDSHAKE_NODO);
 	printf("derror %d", handshakea);
 	return descriptorFileSystem;
 	/*
