@@ -38,16 +38,13 @@ void upNode(char *node);
 void deleteNode(char *nodeName);
 void help();
 
-char *currentDirPrompt;
-char *currentDirId;
+char currentDirPrompt[1024];
+char currentDirId[ID_SIZE];
 
 void console_start() {
 	char **parameters;
-	char *command = malloc(sizeof(char) * 512);
+	char command[512];
 	int exit = 0;
-
-	currentDirPrompt = malloc(sizeof(char) * 512); // TODO.. change this.
-	currentDirId = malloc(ID_SIZE);
 
 	strcpy(currentDirPrompt, "/");
 	strcpy(currentDirId, ROOT_DIR_ID);
@@ -94,7 +91,6 @@ void console_start() {
 			} else if (string_equals_ignore_case(parameters[0], "help")) {
 				help();
 			} else if (string_equals_ignore_case(parameters[0], "exit")) {
-				printf("bye\n");
 				exit = 1;
 			} else if (string_equals_ignore_case(parameters[0], "\n")) {
 				// ignore enter
@@ -105,9 +101,7 @@ void console_start() {
 		}
 	} while (!exit);
 
-	free(command);
-	free(currentDirId);
-	free(currentDirPrompt);
+	printf("bye\n");
 }
 
 void readCommand(char *input) {
@@ -269,8 +263,10 @@ void copyFile(char **parameters) {
 			if (result == -1) {
 				printf("Cannot create file '%s': Directory or file already exists with that name.\n", dest);
 			} else if (result == -2) {
-				printf("Cannot create file '%s': There is not enough space to make all the copies.\n", dest);
+				printf("Cannot create file '%s': There is no file %s at local filesystem.\n", dest, source);
 			} else if (result == -3) {
+				printf("Cannot create file '%s': There is not enough space to make all the copies.\n", dest);
+			} else if (result == -4) {
 				printf("Cannot create file '%s': Something went wrong when trying to persist the information.\n", dest);
 			}
 

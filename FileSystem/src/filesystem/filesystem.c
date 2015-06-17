@@ -142,19 +142,23 @@ int filesystem_copyFileFromFS(char *route, file_t *file) {
 	size_t fileSize;
 
 	t_list *blocks = filesystem_getFSFileBlocks(route, &fileSize);
+	if (!blocks) {
+		return -2;
+	}
+
 	file->size = fileSize;
 
 	// TESTING ONLY printf("%s\n", filesystem_getMD5FromBlocks(blocks));
 	if (!filesystem_distributeBlocksToNodes(blocks, file)) {
 		list_destroy_and_destroy_elements(blocks, free);
-		return -2;
+		return -3;
 	}
 	list_destroy_and_destroy_elements(blocks, free);
 
 	if (!mongo_file_save(file)) {
 		// If for some reason, the file could not be saved in the db, then should destroy the blocks that were used for that file.
 		filesystem_deleteFile(file);
-		return -3;
+		return -4;
 	}
 
 	return 1;
@@ -427,11 +431,13 @@ char* filesystem_md5(char *str) {
 }
 
 t_list* filesystem_getFSFileBlocks(char *route, size_t *fileSize) {
-	struct stat stat;
 	int fd = open(route, O_RDONLY);
-// TODO  HANDLE ERROR.
+	if (fd == -1) {
+		return NULL;
+	}
 
 	//Get the size of the file.
+	struct stat stat;
 	fstat(fd, &stat);
 	*fileSize = stat.st_size;
 
@@ -548,7 +554,7 @@ bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 			mongo_node_updateBlocks(sendOperation->node);
 			// Create threads and do join later.
 			if (pthread_create(&(threads[count]), NULL, (void *) filesystem_sendBlockToNode, (void*) sendOperation)) {
-				return; // -1; // TODO error
+				log_error(mdfs_logger, "Error while trying to create new thread: filesystem_sendBlockToNode");
 			}
 			count++;
 		}
@@ -557,7 +563,6 @@ bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 
 		int i;
 		for (i = 0; i < count; i++) {
-			// TODO Por ahora solo esta hecho porque sino pierdo referencias en el medio.. una cagada.
 			pthread_join(threads[i], NULL);
 		}
 	}
@@ -600,7 +605,7 @@ void filesystem_nodeBlockSendOperation_free(nodeBlockSendOperation_t* nodeSendBl
  * pthread_mutex_t lock;
  void a() {
  if (pthread_mutex_init(&lock, NULL) != 0) {
- // TODO error.
+log_error(mdfs_logger, "Error while trying to create new mutex");
  return;
  }
 
