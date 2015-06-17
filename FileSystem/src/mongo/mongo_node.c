@@ -32,8 +32,6 @@ bool mongo_node_save(node_t *node) {
 
 	mongo_node_checkInit();
 
-	// TODO ? mongo_generateId(node->id);
-
 	return mongo_saveDoc(nodeCollection, node_getBSON(node));
 }
 

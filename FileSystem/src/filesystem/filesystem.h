@@ -43,10 +43,11 @@ bool filesystem_addDir(dir_t *dir);
 
 node_t* filesystem_getNodeById(char *nodeId);
 void filesystem_nodeIsDown(char *nodeName);
-void filesystem_addNode(char *nodeId, uint16_t blocksCount);
+void filesystem_addNode(char *nodeId, uint16_t blocksCount, bool isNewNode);
 
 char* filesystem_md5sum(file_t* file);
 
-dir_t* filesystem_resolveDirPath(char *path, char *startingDirId, char *startingPath, char *fullPath);
+file_t* filesystem_resolveFilePath(char *path, char *startingDirId, char *startingPath);
+dir_t* filesystem_resolveDirPath(char *path, char *startingDirId, char *startingPath, char **fullPath);
 
 #endif

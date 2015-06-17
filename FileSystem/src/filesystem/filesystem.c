@@ -89,16 +89,6 @@ t_list* filesystem_getFilesInDir(char *parentId) {
 	return mongo_file_getByParentId(parentId);
 }
 
-bool filesystem_deleteDirByNameInDir(char *dirName, char *parentId) {
-	dir_t *dir = filesystem_getDirByNameInDir(dirName, parentId);
-	if (dir) {
-		bool r = filesystem_deleteDir(dir);
-		dir_free(dir);
-		return r;
-	}
-	return 0;
-}
-
 bool filesystem_deleteDir(dir_t *dir) {
 	if (dir) {
 		void deleteChilds(char *parentId) {
@@ -112,18 +102,7 @@ bool filesystem_deleteDir(dir_t *dir) {
 		}
 
 		deleteChilds(dir->id);
-		mongo_dir_deleteById(dir->id);
-		return 1;
-	}
-	return 0;
-}
-
-bool filesystem_deleteFileByNameInDir(char *fileName, char *parentId) {
-	file_t *file = mongo_file_getByNameInDir(fileName, parentId);
-	if (file) {
-		bool r = filesystem_deleteFile(file);
-		file_free(file);
-		return r;
+		return mongo_dir_deleteById(dir->id);
 	}
 	return 0;
 }
@@ -131,7 +110,6 @@ bool filesystem_deleteFileByNameInDir(char *fileName, char *parentId) {
 bool filesystem_deleteFile(file_t *file) {
 	if (file) {
 		// Free nodes space
-
 		void listBlocks(t_list* blockCopies) {
 			void listBlockCopy(file_block_t *blockCopy) {
 				node_t *node = filesystem_getNodeById(blockCopy->nodeId);
@@ -143,8 +121,7 @@ bool filesystem_deleteFile(file_t *file) {
 		}
 		list_iterate(file->blocks, (void *) listBlocks);
 
-		mongo_file_deleteById(file->id);
-		return 1;
+		return mongo_file_deleteById(file->id);
 	}
 	return 0;
 }
@@ -165,19 +142,23 @@ int filesystem_copyFileFromFS(char *route, file_t *file) {
 	size_t fileSize;
 
 	t_list *blocks = filesystem_getFSFileBlocks(route, &fileSize);
+	if (!blocks) {
+		return -2;
+	}
+
 	file->size = fileSize;
 
 	// TESTING ONLY printf("%s\n", filesystem_getMD5FromBlocks(blocks));
 	if (!filesystem_distributeBlocksToNodes(blocks, file)) {
 		list_destroy_and_destroy_elements(blocks, free);
-		return -2;
+		return -3;
 	}
 	list_destroy_and_destroy_elements(blocks, free);
 
 	if (!mongo_file_save(file)) {
 		// If for some reason, the file could not be saved in the db, then should destroy the blocks that were used for that file.
 		filesystem_deleteFile(file);
-		return -3;
+		return -4;
 	}
 
 	return 1;
@@ -210,16 +191,16 @@ void filesystem_nodeIsDown(char *nodeId) {
 	}
 }
 
-void filesystem_addNode(char *nodeId, uint16_t blocksCount) {
+void filesystem_addNode(char *nodeId, uint16_t blocksCount, bool isNewNode) {
 	node_t *node = filesystem_getNodeById(nodeId);
+	log_info(mdfs_logger, "NODE (new: %s) connected. Name: %s . blocksCount %d", isNewNode ? "true" : "false", nodeId, blocksCount);
 	if (node) {
 		t_list *files = mongo_file_getFilesThatHaveNode(node->id);
-		// TODO: marcar los bloques del archivo como disponibles o que?.
+		// TODO: marcar los bloques del archivo como disponibles o que?. (chequear i es newnode o no)
 		list_destroy_and_destroy_elements(files, (void *) file_free);
 	} else {
 		// Nuevo nodo
 		// TODO
-		log_info(mdfs_logger, "New NODE connected. Name: %s . blocksCount %d", nodeId, blocksCount);
 		node = node_create(blocksCount);
 		node->id = strdup(nodeId);
 		mongo_node_save(node);
@@ -264,21 +245,72 @@ char* filesystem_md5sum(file_t* file) {
 	return md5str;
 }
 
-// Resolves a path like: folder/../folder/folder2/../.. and sets the fullPath in fullPath
-dir_t* filesystem_resolveDirPath(char *path, char *startingDirId, char *startingPath, char *fullPath) {
+/*
+ * Resolves a path for a file like: folder/../folder/folder2/../../FILE
+ */
+file_t* filesystem_resolveFilePath(char *path, char *startingDirId, char *startingPath) {
+	int i;
+	int lastSlashPos = -1;
+	char *fileName;
+
+	for (i = strlen(path) - 1; i >= 0; i--) {
+		if (path[i] == '/') {
+			lastSlashPos = i;
+			break;
+		}
+	}
+
+	dir_t *fileDir;
+	if (lastSlashPos != -1) {
+		char *fileDirPath = string_substring_until(path, lastSlashPos + 1);
+		fileDir = filesystem_resolveDirPath(fileDirPath, startingDirId, startingPath, NULL);
+		free(fileDirPath);
+		fileName = string_substring_from(path, lastSlashPos + 1);
+	} else {
+		if (isRootDirId(startingDirId)) {
+			fileDir = dir_create();
+			strcpy(fileDir->id, ROOT_DIR_ID);
+		} else {
+			fileDir = filesystem_getDirById(startingDirId);
+		}
+		fileName = strdup(path);
+	}
+
+	if (!fileDir) {
+		free(fileName);
+		return NULL;
+	}
+
+	file_t *file = filesystem_getFileByNameInDir(fileName, fileDir->id);
+	dir_free(fileDir);
+	free(fileName);
+
+	return file;
+}
+
+/*
+ * Resolves a path like: folder/../folder/folder2/../.. and sets the fullPath in fullPath
+ * The string fullPath is allocated using malloc.
+ */
+dir_t* filesystem_resolveDirPath(char *path, char *startingDirId, char *startingPath, char **fullPath) {
 	char **dirNames;
 	char *dirName;
 	int i = 0;
 
+	dir_t *currentDir;
+	dir_t *newDir;
+
 	char newFullPath[1024];
 
-	strcpy(newFullPath, startingPath);
+	if (path[0] == '/') {
+		strcpy(newFullPath, "/");
+		dirNames = string_split(path + 1, "/"); // Avoid the first slash
+	} else {
+		strcpy(newFullPath, startingPath);
+		dirNames = string_split(path, "/");
+	}
 
-	dirNames = string_split(path, "/");
-
-	dir_t *currentDir;
-
-	if (isRootDirId(startingDirId)) {
+	if (path[0] == '/' || isRootDirId(startingDirId)) {
 		currentDir = dir_create();
 		strcpy(currentDir->id, ROOT_DIR_ID);
 	} else {
@@ -299,19 +331,29 @@ dir_t* filesystem_resolveDirPath(char *path, char *startingDirId, char *starting
 					// Removes the last folder in the prompt
 					newFullPath[string_length(newFullPath) - string_length(currentDir->name) - 1] = '\0';
 
-					dir_free(currentDir);
-					currentDir = filesystem_getDirById(currentDir->parentId);
+					if (isRootDirId(currentDir->parentId)) {
+						dir_free(currentDir);
+						currentDir = dir_create();
+						strcpy(currentDir->id, ROOT_DIR_ID);
+					} else {
+						newDir = filesystem_getDirById(currentDir->parentId);
+						dir_free(currentDir);
+						currentDir = newDir;
+					}
 
 					if (isRootDir(currentDir)) {
 						strcat(newFullPath, "/");
 					}
 				}
+			} else if (strcmp(dirName, ".") == 0) {
+				// Do nothing, keep the same dir.
 			} else {
+				newDir = filesystem_getDirByNameInDir(dirName, currentDir->id);
 				dir_free(currentDir);
-				currentDir = filesystem_getDirByNameInDir(dirName, currentDir->id);
+				currentDir = newDir;
 
 				if (currentDir) {
-					if (!isRootDir(currentDir)) {
+					if (!isRootDirId(currentDir->parentId)) {
 						strcat(newFullPath, "/");
 					}
 					strcat(newFullPath, currentDir->name);
@@ -325,7 +367,7 @@ dir_t* filesystem_resolveDirPath(char *path, char *startingDirId, char *starting
 	}
 
 	if (fullPath) {
-		strcpy(fullPath, newFullPath);
+		*fullPath = strdup(newFullPath);
 	}
 
 	freeSplits(dirNames);
@@ -389,10 +431,13 @@ char* filesystem_md5(char *str) {
 }
 
 t_list* filesystem_getFSFileBlocks(char *route, size_t *fileSize) {
-	struct stat stat;
 	int fd = open(route, O_RDONLY);
+	if (fd == -1) {
+		return NULL;
+	}
 
 	//Get the size of the file.
+	struct stat stat;
 	fstat(fd, &stat);
 	*fileSize = stat.st_size;
 
@@ -407,11 +452,10 @@ t_list* filesystem_getFSFileBlocks(char *route, size_t *fileSize) {
 	int finished = 0;
 
 	void addBlock(int blockLength) {
-		buffer = malloc(sizeof(char) * NODE_BLOCK_SIZE); // TODO. poner blockLength (+1) tal vez? testear bien. con md5
+		buffer = malloc(blockLength + 1);
 		strncpy(buffer, startBlock, blockLength);
 		buffer[blockLength] = '\0';
 		list_add(blocks, buffer);
-		// TODO (es necesario??), fill the rest with \0
 	}
 
 	while (!finished) {
@@ -510,7 +554,7 @@ bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 			mongo_node_updateBlocks(sendOperation->node);
 			// Create threads and do join later.
 			if (pthread_create(&(threads[count]), NULL, (void *) filesystem_sendBlockToNode, (void*) sendOperation)) {
-				return; // -1; // TODO error
+				log_error(mdfs_logger, "Error while trying to create new thread: filesystem_sendBlockToNode");
 			}
 			count++;
 		}
@@ -519,7 +563,6 @@ bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 
 		int i;
 		for (i = 0; i < count; i++) {
-			// TODO Por ahora solo esta hecho porque sino pierdo referencias en el medio.. una cagada.
 			pthread_join(threads[i], NULL);
 		}
 	}
@@ -562,7 +605,7 @@ void filesystem_nodeBlockSendOperation_free(nodeBlockSendOperation_t* nodeSendBl
  * pthread_mutex_t lock;
  void a() {
  if (pthread_mutex_init(&lock, NULL) != 0) {
- // TODO error.
+log_error(mdfs_logger, "Error while trying to create new mutex");
  return;
  }
 

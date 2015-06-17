@@ -61,7 +61,7 @@ bool connection_marta_sendFileBlocks(void *bufferReceived) {
 	fileName[sFileName] = '\0';
 
 	log_info(mdfs_logger, "Marta requested the blocks of file %s", fileName);
-	file_t *file = filesystem_getFileByNameInDir(fileName, ROOT_DIR_ID); // TODO crear un funcion para resolver DIRS.
+	file_t *file = filesystem_resolveFilePath(fileName, ROOT_DIR_ID, "/");
 
 	if (!file) {
 		// TODO . Return that the is no such file to marta?

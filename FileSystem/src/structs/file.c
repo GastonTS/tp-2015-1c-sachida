@@ -121,9 +121,11 @@ file_block_t* file_block_getFileFromBSON(bson_t *doc) {
 
 	return fileBlock;
 }
+
 file_t* file_create() {
 	file_t* file = malloc(sizeof(file_t));
 	file->blocks = list_create();
+	file->name = NULL;
 	return file;
 }
 

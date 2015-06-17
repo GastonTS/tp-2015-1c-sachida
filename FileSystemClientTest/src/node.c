@@ -16,19 +16,21 @@ void startNodo() {
 
 	// Le mando mi info para que me levante como nodo.
 
+	uint8_t soyNuevoNodo = 0;
 	uint16_t cantBloques = 30; // Le voy a decir que tengo 10 bloques para usar.
 	char myName[] = "Nodo1"; // Le paso mi nombre.
 
 	uint16_t sName = strlen(myName);
-	size_t sBuffer = sizeof(cantBloques) + sizeof(sName) + sName;
+	size_t sBuffer = sizeof(soyNuevoNodo) + sizeof(cantBloques) + sizeof(sName) + sName;
 
 	uint16_t cantBloquesSerialized = htons(cantBloques);
 	uint16_t sNameSerialized = htons(sName);
 
 	void *buffer = malloc(sBuffer);
-	memcpy(buffer, &cantBloquesSerialized, sizeof(cantBloques));
-	memcpy(buffer + sizeof(cantBloques), &sNameSerialized, sizeof(sName));
-	memcpy(buffer + sizeof(cantBloques) + sizeof(sName), &myName, sName);
+	memcpy(buffer, &soyNuevoNodo, sizeof(soyNuevoNodo));
+	memcpy(buffer + sizeof(soyNuevoNodo), &cantBloquesSerialized, sizeof(cantBloques));
+	memcpy(buffer + sizeof(soyNuevoNodo) + sizeof(cantBloques), &sNameSerialized, sizeof(sName));
+	memcpy(buffer + sizeof(soyNuevoNodo) + sizeof(cantBloques) + sizeof(sName), &myName, sName);
 
 	socket_send_packet(fsSocket, buffer, sBuffer);
 
