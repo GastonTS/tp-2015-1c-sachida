@@ -19,28 +19,65 @@ void startFS() {
 	log_info(logger,"Conection sucessfully");
 
 	// Levanto el nodo
-	log_info(logger,"levanto el nodo\n");
+	log_info(logger,"levanto el nodo");
 	size_t sBuffer;
-	char *buffer;
-	log_info(logger,"ahora trato de recibir\n");
-	socket_recv_packet(nodeSocket, (void**) buffer, &sBuffer);
-	log_info(logger,"recibo\n");
+	void *buffer;
+	log_info(logger,"ahora trato de recibir");
+	socket_recv_packet(nodeSocket, &buffer, &sBuffer);
+	log_info(logger,"recibo");
 	free(buffer);
 
-	// AHORA ESPERO ACCIONES DEL FS:
-	// EL NODO DEBERIA TIRAR THREADS ACA
-	nodo_escucharAcciones(nodeSocket);
+	fs_enviarAcciones(nodeSocket);
 }
 
-void nodo_escucharAcciones(int fsSocket) {
-	while (1) {
-		void *buffer;
-		size_t sbuffer = 0;
-		printf("Waiting for FS instructions.\n");
-		socket_recv_packet(fsSocket, &buffer, &sbuffer); // TODO handlear el error
+uint8_t obtenerComando(char* paquete) {
+	uint8_t command;
+	memcpy(&command, paquete, sizeof(uint8_t));
+	return command;
+}
+
+uint16_t obtenerNumBlock(char* paquete) {
+	uint16_t numBlock;
+	memcpy(&numBlock, paquete + sizeof(uint8_t), sizeof(uint16_t));
+	return numBlock;
+}
+
+uint32_t obtenerSize(char* paquete) {
+	uint32_t size;
+	memcpy(&size, paquete + sizeof(uint8_t) + sizeof(uint16_t),
+			sizeof(uint32_t));
+	return size;
+}
+
+char* obtenerDatosBloque(char* paquete, uint32_t size) {
+	char* packet = malloc(sizeof(char) * (size + 1));
+	memcpy(packet,
+			paquete + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint32_t),
+			size);
+	packet[size] = '\0';
+	return packet;
+}
+
+
+
+void fs_enviarAcciones(int nodeSocket) {
+		char paquete[] = { 0b00000001, 0b00010101, 0b00000000, 0b00000001,
+				0b00000000, 0b00000000, 0b00000000, 0b01000110};
+		size_t sbuffer = sizeof(paquete);
+		char *buffer = malloc(sbuffer) ;
+		memcpy(buffer,paquete,sizeof(sbuffer) );
+		printf("Voy a enviar los datos al Nodo.\n");
+		printf("comand %d\n", obtenerComando(paquete));
+		printf("bloque %d\n", obtenerNumBlock(paquete));
+		uint32_t size = obtenerSize(paquete);
+		printf("len %d\n", size);
+		char *datosBloque = obtenerDatosBloque(paquete, size);
+		printf("comand %s\n", datosBloque);
+		socket_send_packet(nodeSocket, &buffer, sbuffer); // TODO handlear el error
+		printf("Se enviaron los datos al Nodo.\n");
 
 		//  DESERIALZE ..
-
+		/*
 		uint8_t command;
 		memcpy(&command, buffer, sizeof(uint8_t));
 
@@ -51,12 +88,11 @@ void nodo_escucharAcciones(int fsSocket) {
 			break;
 		case 2:
 			//getBloque
-			deserialzeGetBloque(buffer, fsSocket);
+			deserialzeGetBloque(buffer, nodeSocket);
 			break;
-		}
+		}*/
 
 		free(buffer);
-	}
 }
 
 void deserialzeSetBloque(void *buffer) {
