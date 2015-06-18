@@ -2,13 +2,13 @@
 #include "socket.h"
 
 typedef struct {
-	int puerto_fs;
-	int puerto_nodo;
+	uint16_t puerto_fs;
+	uint16_t puerto_nodo;
 	char *ip_nodo;
 	char *ip_fs;
 	char *archivo_bin;
 	char *dir_tmp;
-	char *nodo_nuevo;
+	uint16_t nodo_nuevo;
 } t_configNodo;
 
 t_configNodo *cfgNodo;
@@ -26,6 +26,9 @@ uint16_t obtenerNumBlock(char* paquete);
 uint32_t obtenerSize(char* paquete);
 char* obtenerDatosBloque(char* paquete, uint32_t size);
 void freeNodo();
+void nodo_escucharAcciones(int socket);
+void deserializeSetBlock(void *paquete);
+void deserializeGetBlock(void *paquete, int fsSocket);
 
 //Le agregue los argumentos para que se pueda pasar el archivo de conf como parametro del main
 int main(int argc, char *argv[]) {
@@ -44,62 +47,56 @@ int main(int argc, char *argv[]) {
 
 	socket_fileSystem = conectarFileSystem();
 
-
-	uint8_t soyNuevoNodo = 0;
 	uint16_t cantBloques = 30; // Le voy a decir que tengo 10 bloques para usar.
 	char myName[] = "Nodo1"; // Le paso mi nombre.
 
 	uint16_t sName = strlen(myName);
-	size_t sBuffer = sizeof(soyNuevoNodo) + sizeof(cantBloques) + sizeof(sName) + sName;
+	size_t sBuffer = sizeof( cfgNodo->nodo_nuevo) + sizeof(cantBloques) + sizeof(sName) + sName;
 
 	uint16_t cantBloquesSerialized = htons(cantBloques);
 	uint16_t sNameSerialized = htons(sName);
 
 	void *pBuffer = malloc(sBuffer);
-	memcpy(pBuffer, &soyNuevoNodo, sizeof(soyNuevoNodo));
-	memcpy(pBuffer + sizeof(soyNuevoNodo), &cantBloquesSerialized, sizeof(cantBloques));
-	memcpy(pBuffer + sizeof(soyNuevoNodo) + sizeof(cantBloques), &sNameSerialized, sizeof(sName));
-	memcpy(pBuffer + sizeof(soyNuevoNodo) + sizeof(cantBloques) + sizeof(sName), &myName, sName);
+	memcpy(pBuffer, &cfgNodo->nodo_nuevo, sizeof( cfgNodo->nodo_nuevo));
+	memcpy(pBuffer + sizeof( cfgNodo->nodo_nuevo), &cantBloquesSerialized, sizeof(cantBloques));
+	memcpy(pBuffer + sizeof( cfgNodo->nodo_nuevo) + sizeof(cantBloques), &sNameSerialized, sizeof(sName));
+	memcpy(pBuffer + sizeof( cfgNodo->nodo_nuevo) + sizeof(cantBloques) + sizeof(sName), &myName, sName);
 
 	socket_send_packet(socket_fileSystem, pBuffer, sBuffer);
 	free(pBuffer);
 
-	// Ahora armo todo para esperar a que el fs me mande datos.
-	printf("armo todo para esperar a que el FS mande datos: \n");
-	size_t packet_size;
-	void* paquete;
-	printf("Esperando a que el Fs mande un paquete: \n");
-	socket_recv_packet(socket_fileSystem, &paquete, &packet_size);
-	printf("Se recibieron %d bytes de %d del fs \n", sizeof(paquete), packet_size);
-	uint8_t comando = obtenerComando(paquete);
-	printf ("comando : %d", comando);
-	uint16_t numBlock;
-	uint32_t pack_size;
-	char * datosBloque;
-	switch (comando) {
-	case 1: //setBloque
-		numBlock = obtenerNumBlock(paquete);
-		pack_size = obtenerSize(paquete);
-		datosBloque = obtenerDatosBloque(paquete, pack_size);
-		setBloque(numBlock, datosBloque);
-	    free(datosBloque);
-		break;
-	case 2: //getBloque
-		numBlock = obtenerNumBlock(paquete);
-		getBloque(numBlock);
-		break;
-		//default =  log_error("Log.txt", "Node",1,log_level_from_string("ERROR"));
-		//TODO ACA DEBERIAMOS HACER EL WHILE INFINITO ESPERANDO CONEXIONES Y PETICIONES
-		//TODO HAY QUE ABRIR UN THREAD PARA ESCUCHAR JOBS Y UNO PARA ESCUCHAR NODOS(Paralelismo)
-		//ptrhead_create(&conexionesJob,NULL,(void*)escucharJobs,NULL);
-		//pthread_create(&conexionesNodo,NULL,(void*)escucharNodos,NULL);
-		// TODO TODAS LAS FUNCIONES GETBLOQUE Y ESAS VAN ADENTRO DE LOS TRHEADS
-		freeNodo();
-		return EXIT_SUCCESS;
-	}
+	nodo_escucharAcciones(socket_fileSystem);
 
 
 	return EXIT_SUCCESS;
+}
+
+void nodo_escucharAcciones(int socket) {
+	while (1) {
+		// Ahora armo todo para esperar a que el fs me mande datos.
+		printf("armo todo para esperar a que el FS mande datos: \n");
+		size_t packet_size;
+		void* paquete;
+		printf("Esperando a que el Fs mande un paquete: \n");
+		socket_recv_packet(socket, &paquete, &packet_size);
+		printf("Recive OK\n");
+		uint8_t comando = obtenerComando(paquete);
+		switch (comando) {
+		case 1: //setBloque
+			deserializeSetBlock(paquete);
+			break;
+		case 2: //getBloque
+			deserializeGetBlock(paquete, socket);
+			break;
+			//default =  log_error("Log.txt", "Node",1,log_level_from_string("ERROR"));
+			//TODO ACA DEBERIAMOS HACER EL WHILE INFINITO ESPERANDO CONEXIONES Y PETICIONES
+			//TODO HAY QUE ABRIR UN THREAD PARA ESCUCHAR JOBS Y UNO PARA ESCUCHAR NODOS(Paralelismo)
+			//ptrhead_create(&conexionesJob,NULL,(void*)escucharJobs,NULL);
+			//pthread_create(&conexionesNodo,NULL,(void*)escucharNodos,NULL);
+			// TODO TODAS LAS FUNCIONES GETBLOQUE Y ESAS VAN ADENTRO DE LOS TRHEADS
+			freeNodo();
+		}
+	}
 }
 
 // Almacenar los datos del FS y hacer Map y Reduce segun lo requerido por los Jobs
@@ -380,7 +377,7 @@ int initConfig(char* configFile) {
 	cfgNodo->dir_tmp = strdup(getCongifString("DIR_TMP"));
 	cfgNodo->ip_fs = strdup(getCongifString("IP_FS"));
 	cfgNodo->ip_nodo = strdup(getCongifString("IP_NODO"));
-	cfgNodo->nodo_nuevo = strdup(getCongifString("NODO_NUEVO"));
+	cfgNodo->nodo_nuevo = getConfigInt("NODO_NUEVO");
 	cfgNodo->puerto_fs = getConfigInt("PUERTO_FS");
 	cfgNodo->puerto_nodo = getConfigInt("PUERTO_NODO");
 
@@ -445,3 +442,26 @@ char* obtenerDatosBloque(char* paquete, uint32_t size) {
 	return packet;
 }
 
+void deserializeSetBlock(void *paquete) {
+	uint16_t numBlock;
+	uint32_t pack_size;
+	char * datosBloque;
+	numBlock = obtenerNumBlock(paquete);
+	pack_size = obtenerSize(paquete);
+	datosBloque = obtenerDatosBloque(paquete, pack_size);
+	setBloque(numBlock, datosBloque);
+    free(datosBloque);
+}
+
+
+void deserializeGetBlock(void *paquete, int fsSocket) {
+	uint16_t numBlock;
+	numBlock = obtenerNumBlock(paquete);
+	char *bloque = getBloque(numBlock);
+	e_socket_status status = socket_send_packet(fsSocket, bloque, strlen(bloque));
+
+	if (status != SOCKET_ERROR_NONE) {
+						// TODO, manejar el error.
+	}
+	free(bloque);
+}
