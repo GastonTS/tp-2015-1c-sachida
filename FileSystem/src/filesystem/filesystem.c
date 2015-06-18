@@ -18,7 +18,7 @@ bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file);
 void *filesystem_sendBlockToNode(void *param);
 nodeBlockSendOperation_t* filesystem_nodeBlockSendOperation_create(node_t *node, off_t blockIndex, char *block);
 void filesystem_nodeBlockSendOperation_free(nodeBlockSendOperation_t* nodeSendBlockOperation);
-bool nodeComparatorByBlocksFree(node_t *node, node_t *node2);
+bool filesystem_nodeComparatorByBlocksFree(node_t *node, node_t *node2);
 bool filesystem_isRootDirId(char *id);
 bool filesystem_isRootDir(dir_t *dir);
 
@@ -444,7 +444,7 @@ int filesystem_makeNewFileBlockCopy(file_t *file, uint16_t blockIndex) {
 		}
 
 		t_list *nodes = mongo_node_getAll();
-		list_sort(nodes, (void *) nodeComparatorByBlocksFree);
+		list_sort(nodes, (void *) filesystem_nodeComparatorByBlocksFree);
 
 		node_t *selectedNode = NULL;
 		void findCandidateNode(node_t *node) {
@@ -477,7 +477,6 @@ int filesystem_makeNewFileBlockCopy(file_t *file, uint16_t blockIndex) {
 				blockCopy->nodeId = strdup(selectedNode->id);
 				blockCopy->blockIndex = firstBlockFreeIndex;
 				list_add(blockCopies, blockCopy);
-				// TODO, update in mongo this block to add the copy.
 				mongo_file_addBlockCopyToFile(file->id, blockIndex, blockCopy);
 
 				list_destroy_and_destroy_elements(nodes, (void *) node_free);
@@ -496,6 +495,39 @@ int filesystem_makeNewFileBlockCopy(file_t *file, uint16_t blockIndex) {
 	return -4;
 }
 
+/*
+ * Deletes a copy for the block of the file selected
+ * Return codes:
+ * 	-1 -> Invalid block index
+ * 	-2 -> Invalid copy index
+ * 	-3 -> Passed null to file
+ * 	 1 -> Ok!
+ */
+int filesystem_deleteFileBlockCopy(file_t *file, uint16_t blockIndex, uint16_t copyIndex) {
+	if (file) {
+		if (blockIndex >= list_size(file->blocks)) {
+			return -1;
+		}
+		t_list *blockCopies = list_get(file->blocks, blockIndex);
+
+		if (copyIndex >= list_size(blockCopies)) {
+			return -2;
+		}
+		file_block_t *blockCopy = list_get(blockCopies, copyIndex);
+
+		mongo_file_deleteBlockCopy(file->id, blockIndex, blockCopy);
+
+		node_t *node = filesystem_getNodeById(blockCopy->nodeId);
+		if (node) {
+			node_setBlockFree(node, blockCopy->blockIndex);
+			mongo_node_updateBlocks(node);
+			node_free(node);
+		}
+		return 1;
+	}
+	return -3;
+}
+
 // PRIVATE
 
 bool filesystem_isRootDirId(char *id) {
@@ -507,7 +539,6 @@ bool filesystem_isRootDir(dir_t *dir) {
 }
 
 void filesystem_createLocalFileFromString(char *pathToFile, char *str) {
-
 	FILE *fp = fopen(pathToFile, "w");
 	fputs(str, fp);
 	fclose(fp);
@@ -621,7 +652,7 @@ char* filesystem_getMD5FromBlocks(t_list *blocks) {
 	return md5str;
 }
 
-bool nodeComparatorByBlocksFree(node_t *node, node_t *node2) {
+bool filesystem_nodeComparatorByBlocksFree(node_t *node, node_t *node2) {
 	return node_getBlocksFreeCount(node) > node_getBlocksFreeCount(node2);
 }
 
@@ -639,7 +670,7 @@ bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 		list_add(file->blocks, blockCopies);
 
 		// Sort to get the node that has more free space.
-		list_sort(nodes, (void *) nodeComparatorByBlocksFree);
+		list_sort(nodes, (void *) filesystem_nodeComparatorByBlocksFree);
 
 		int i;
 		for (i = 0; i < FILESYSTEM_BLOCK_COPIES; i++) {

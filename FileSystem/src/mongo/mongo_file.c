@@ -117,5 +117,19 @@ void mongo_file_addBlockCopyToFile(char *id, uint16_t blockIndex, file_block_t *
 	mongo_update(fileCollection, query, update);
 }
 
+void mongo_file_deleteBlockCopy(char *id, uint16_t blockIndex, file_block_t *fileBlockCopy) {
+	bson_t *query;
+	bson_t *update;
 
+	mongo_file_checkInit();
+
+	query = BCON_NEW("_id", BCON_UTF8(id));
+
+	char blockKey[128];
+	snprintf(blockKey, sizeof(blockKey), "blocks.%d", blockIndex);
+
+	update = BCON_NEW("$pull", "{", blockKey, BCON_DOCUMENT(file_block_getBSON(fileBlockCopy)), "}");
+
+	mongo_update(fileCollection, query, update);
+}
 

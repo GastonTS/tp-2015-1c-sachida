@@ -422,8 +422,40 @@ void copyBlock(char **parameters) {
 }
 
 void deleteBlock(char **parameters) {
-	if (!isNull(parameters[1])) {
-		printf("Borra el Bloque nro '%s'\n", parameters[1]);
+	char *fileName = parameters[1];
+	char *blockN = parameters[2];
+	char *copyN = parameters[3];
+
+	if (!isNull(fileName) && !isNull(blockN) && !isNull(copyN)) {
+		int blockNumber = getIntFromString(blockN);
+		if (blockNumber < 0) {
+			printf("Invalid blockNumber '%s'\n", blockN);
+			return;
+		}
+		int copyNumber = getIntFromString(copyN);
+		if (copyNumber < 0) {
+			printf("Invalid copyNumber '%s'\n", copyN);
+			return;
+		}
+
+		file_t *file = filesystem_resolveFilePath(fileName, currentDirId, currentDirPrompt);
+		if (file) {
+			printf("Deleting copy %d of the block %d from file '%s'\n", copyNumber, blockNumber, file->name);
+
+			int result = filesystem_deleteFileBlockCopy(file, blockNumber, copyNumber);
+
+			// TODO mostrar la nueva copia (nombre, index) (?)
+			if (result == 1) {
+				printf("Done: the copy has been deleted\n");
+			} else if (result == -1) {
+				printf("Aborting: The file '%s' does not have a blockNumber '%d'\n", file->name, blockNumber);
+			} else if (result == -2) {
+				printf("Aborting: The blockBumber '%d' does not have a copyNumber '%d'\n", blockNumber, copyNumber);
+			}
+			file_free(file);
+		} else {
+			printf("File '%s' not found.\n", fileName);
+		}
 	}
 }
 
@@ -451,24 +483,6 @@ int getIntFromString(char *string) {
 	}
 	return val;
 }
-
-/*
- *
- * Bueno, tiro la consulta entonces, no es compleja, aunque parezca largo todo lo que escriba. La consulta es de enunciado ya que no tuve tiempo de preguntar el sabado pasado. Las operaciones sobre bloques desde la consola del FS, como son especificamente? Les comento lo que yo entiendo y diganme si esta ok o corrijanme.
- 1- Mostrar bloque: Se pasa un archivo y un nro de bloque y se muestra las copias de ese bloque por pantalla, indicando el nodo y nro bloque dentro de ese nodo
- 2- Copiar bloque: Se le pasa un archivo y un nro de bloque y se genera una nueva copia en un nodo (siempre respetando el balance de los mismos y que no se repita la misma copia en el mismo nodo)
- 3- Borrar bloque: Este es el que mas dudas me genera, que se hace? Se borran TODAS las copias de un bloque dado? Si es asi, el archivo quedaria como no disponible.
- 1.- y el contenido
- queremos ver lo que hay dentro
- 2.- en este punto hay un debate enérgico interno
- en principio es exactamente como decís vos
- lo que se está debatiendo es el tema de si un archivo soporta más de tres copias de bloque
- en principio venía por el lado de si tenés un nodo caído, copiás un bloque a otro lado de una copia que esté funcionando
- 3.- borrarías una copia. es el análogo a copiar bloque
- el opuesto quise decir
- Habian dicho que en vez de20mb por pantalla los mandes a un archivo
-
- */
 
 void help() {
 	printf("Valid commands:\n\n");

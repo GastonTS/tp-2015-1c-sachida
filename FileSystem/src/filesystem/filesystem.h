@@ -52,5 +52,6 @@ dir_t* filesystem_resolveDirPath(char *path, char *startingDirId, char *starting
 
 int filesystem_saveFileBlockToFile(file_t *file, uint16_t blockIndex, char *pathToFile);
 int filesystem_makeNewFileBlockCopy(file_t *file, uint16_t blockIndex);
+int filesystem_deleteFileBlockCopy(file_t *file, uint16_t blockIndex, uint16_t copyIndex);
 
 #endif
