@@ -105,11 +105,13 @@ void node_free_blocks(node_t *node) {
 }
 
 void node_free(node_t *node) {
-	if (node->id) {
-		free(node->id);
+	if (node) {
+		if (node->id) {
+			free(node->id);
+		}
+		node_free_blocks(node);
+		free(node);
 	}
-	node_free_blocks(node);
-	free(node);
 }
 
 t_bitarray* getByteArrayForBlocksCount(uint16_t count) {

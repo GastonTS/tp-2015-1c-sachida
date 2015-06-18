@@ -18,7 +18,7 @@ void startNodo() {
 
 	uint8_t soyNuevoNodo = 0;
 	uint16_t cantBloques = 30; // Le voy a decir que tengo 10 bloques para usar.
-	char myName[] = "Nodo1"; // Le paso mi nombre.
+	char myName[] = "Node4"; // Le paso mi nombre.
 
 	uint16_t sName = strlen(myName);
 	size_t sBuffer = sizeof(soyNuevoNodo) + sizeof(cantBloques) + sizeof(sName) + sName;

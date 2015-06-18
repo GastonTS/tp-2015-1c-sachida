@@ -16,6 +16,8 @@ typedef struct {
 	uint16_t blockIndex;
 } file_block_t;
 
+bson_t* file_block_getBSON(file_block_t *fileBlock);
+
 bson_t* file_getBSON(file_t *file);
 file_t* file_getFileFromBSON(const bson_t *doc);
 

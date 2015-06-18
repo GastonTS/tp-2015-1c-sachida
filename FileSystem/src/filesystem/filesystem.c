@@ -9,6 +9,7 @@
 
 #include "../connections/connections_node.h"
 
+void filesystem_createLocalFileFromString(char *pathToFile, char *str);
 bool filesystem_canCreateResource(char *resourceName, char *parentId);
 char* filesystem_md5(char *str);
 t_list* filesystem_getFSFileBlocks(char *route, size_t *fileSize);
@@ -17,8 +18,9 @@ bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file);
 void *filesystem_sendBlockToNode(void *param);
 nodeBlockSendOperation_t* filesystem_nodeBlockSendOperation_create(node_t *node, off_t blockIndex, char *block);
 void filesystem_nodeBlockSendOperation_free(nodeBlockSendOperation_t* nodeSendBlockOperation);
-bool isRootDirId(char *id);
-bool isRootDir(dir_t *dir);
+bool nodeComparatorByBlocksFree(node_t *node, node_t *node2);
+bool filesystem_isRootDirId(char *id);
+bool filesystem_isRootDir(dir_t *dir);
 
 t_log* mdfs_logger;
 
@@ -267,7 +269,7 @@ file_t* filesystem_resolveFilePath(char *path, char *startingDirId, char *starti
 		free(fileDirPath);
 		fileName = string_substring_from(path, lastSlashPos + 1);
 	} else {
-		if (isRootDirId(startingDirId)) {
+		if (filesystem_isRootDirId(startingDirId)) {
 			fileDir = dir_create();
 			strcpy(fileDir->id, ROOT_DIR_ID);
 		} else {
@@ -310,7 +312,7 @@ dir_t* filesystem_resolveDirPath(char *path, char *startingDirId, char *starting
 		dirNames = string_split(path, "/");
 	}
 
-	if (path[0] == '/' || isRootDirId(startingDirId)) {
+	if (path[0] == '/' || filesystem_isRootDirId(startingDirId)) {
 		currentDir = dir_create();
 		strcpy(currentDir->id, ROOT_DIR_ID);
 	} else {
@@ -327,11 +329,11 @@ dir_t* filesystem_resolveDirPath(char *path, char *startingDirId, char *starting
 
 		if (strcmp(dirName, "") != 0) {
 			if (strcmp(dirName, "..") == 0) {
-				if (!isRootDir(currentDir)) {
+				if (!filesystem_isRootDir(currentDir)) {
 					// Removes the last folder in the prompt
 					newFullPath[string_length(newFullPath) - string_length(currentDir->name) - 1] = '\0';
 
-					if (isRootDirId(currentDir->parentId)) {
+					if (filesystem_isRootDirId(currentDir->parentId)) {
 						dir_free(currentDir);
 						currentDir = dir_create();
 						strcpy(currentDir->id, ROOT_DIR_ID);
@@ -341,7 +343,7 @@ dir_t* filesystem_resolveDirPath(char *path, char *startingDirId, char *starting
 						currentDir = newDir;
 					}
 
-					if (isRootDir(currentDir)) {
+					if (filesystem_isRootDir(currentDir)) {
 						strcat(newFullPath, "/");
 					}
 				}
@@ -353,7 +355,7 @@ dir_t* filesystem_resolveDirPath(char *path, char *startingDirId, char *starting
 				currentDir = newDir;
 
 				if (currentDir) {
-					if (!isRootDirId(currentDir->parentId)) {
+					if (!filesystem_isRootDirId(currentDir->parentId)) {
 						strcat(newFullPath, "/");
 					}
 					strcat(newFullPath, currentDir->name);
@@ -375,14 +377,140 @@ dir_t* filesystem_resolveDirPath(char *path, char *startingDirId, char *starting
 	return currentDir;
 }
 
+/*
+ * Saves the contents of a block of the file selected
+ * Return codes:
+ * 	-1 -> Invalid block index
+ * 	-2 -> All nodes are down for this block
+ * 	-3 -> Passed null to file
+ * 	 1 -> Ok!
+ */
+
+int filesystem_saveFileBlockToFile(file_t *file, uint16_t blockIndex, char *pathToFile) {
+	if (file) {
+		if (blockIndex >= list_size(file->blocks)) {
+			return -1;
+		}
+		t_list *blockCopies = list_get(file->blocks, blockIndex);
+
+		int found = 0;
+		void listBlockCopy(file_block_t *blockCopy) {
+			if (!found) {
+				char *block = connections_node_getBlock(blockCopy);
+				if (block) {
+					found = 1;
+					filesystem_createLocalFileFromString(pathToFile, block);
+					free(block);
+				}
+			}
+		}
+		list_iterate(blockCopies, (void*) listBlockCopy);
+
+		if (!found) {
+			return -2;
+		}
+
+		return 1;
+	}
+	return -3;
+}
+
+/*
+ * Makes a new copy for the block of the file selected
+ * Return codes:
+ * 	-1 -> Invalid block index
+ * 	-2 -> All nodes are down for this block
+ * 	-3 -> No free nodes to do the copy
+ * 	-4 -> Passed null to file
+ * 	 1 -> Ok!
+ */
+int filesystem_makeNewFileBlockCopy(file_t *file, uint16_t blockIndex) {
+	if (file) {
+		if (blockIndex >= list_size(file->blocks)) {
+			return -1;
+		}
+		t_list *blockCopies = list_get(file->blocks, blockIndex);
+
+		char *block = NULL;
+		void listBlockCopy(file_block_t *blockCopy) {
+			if (!block) {
+				block = connections_node_getBlock(blockCopy);
+			}
+		}
+		list_iterate(blockCopies, (void*) listBlockCopy);
+
+		if (!block) {
+			return -2;
+		}
+
+		t_list *nodes = mongo_node_getAll();
+		list_sort(nodes, (void *) nodeComparatorByBlocksFree);
+
+		node_t *selectedNode = NULL;
+		void findCandidateNode(node_t *node) {
+			if (!selectedNode) {
+				int found = 0;
+				void listBlockCopy(file_block_t *blockCopy) {
+					if (strcmp(blockCopy->nodeId, node->id) == 0) {
+						found = 1;
+					}
+				}
+				list_iterate(blockCopies, (void*) listBlockCopy);
+				if (!found) {
+					selectedNode = node;
+				}
+			}
+		}
+		list_iterate(nodes, (void *) findCandidateNode);
+
+		if (selectedNode) {
+			off_t firstBlockFreeIndex = node_getFirstFreeBlock(selectedNode);
+
+			if (firstBlockFreeIndex != -1) {
+				nodeBlockSendOperation_t *nodeBlockSendOperation = filesystem_nodeBlockSendOperation_create(selectedNode, firstBlockFreeIndex, block);
+				filesystem_sendBlockToNode((void *) nodeBlockSendOperation);
+
+				node_setBlockUsed(selectedNode, firstBlockFreeIndex);
+				mongo_node_updateBlocks(selectedNode);
+
+				file_block_t *blockCopy = file_block_create();
+				blockCopy->nodeId = strdup(selectedNode->id);
+				blockCopy->blockIndex = firstBlockFreeIndex;
+				list_add(blockCopies, blockCopy);
+				// TODO, update in mongo this block to add the copy.
+				mongo_file_addBlockCopyToFile(file->id, blockIndex, blockCopy);
+
+				list_destroy_and_destroy_elements(nodes, (void *) node_free);
+				return 1;
+			} else {
+				list_destroy_and_destroy_elements(nodes, (void *) node_free);
+				log_error(mdfs_logger, "There are no nodes to do the copy!");
+				return -3;
+			}
+		} else {
+			list_destroy_and_destroy_elements(nodes, (void *) node_free);
+			log_error(mdfs_logger, "There are no nodes to do the copy!");
+			return -3;
+		}
+	}
+	return -4;
+}
+
 // PRIVATE
 
-bool isRootDirId(char *id) {
+bool filesystem_isRootDirId(char *id) {
 	return string_equals_ignore_case(id, ROOT_DIR_ID);
 }
 
-bool isRootDir(dir_t *dir) {
-	return isRootDirId(dir->id);
+bool filesystem_isRootDir(dir_t *dir) {
+	return filesystem_isRootDirId(dir->id);
+}
+
+void filesystem_createLocalFileFromString(char *pathToFile, char *str) {
+
+	FILE *fp = fopen(pathToFile, "w");
+	fputs(str, fp);
+	fclose(fp);
 }
 
 bool filesystem_canCreateResource(char *resourceName, char *parentId) {
@@ -402,11 +530,9 @@ bool filesystem_canCreateResource(char *resourceName, char *parentId) {
 }
 
 char* filesystem_md5(char *str) {
-	char FILE_NAME[] = "/tmp/mdfs_md5tmp";
+	char FILE_NAME[] = "/tmp/MDFS_md5tmp";
 
-	FILE *fp = fopen(FILE_NAME, "w");
-	fputs(str, fp);
-	fclose(fp);
+	filesystem_createLocalFileFromString(FILE_NAME, str);
 
 	FILE *md5pipe = NULL;
 	size_t size = 7 + strlen(FILE_NAME) + 1;
@@ -495,15 +621,15 @@ char* filesystem_getMD5FromBlocks(t_list *blocks) {
 	return md5str;
 }
 
+bool nodeComparatorByBlocksFree(node_t *node, node_t *node2) {
+	return node_getBlocksFreeCount(node) > node_getBlocksFreeCount(node2);
+}
+
 bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 	bool success = 1;
 
 	t_list *nodes = mongo_node_getAll();
 	t_list *sendOperations = list_create();
-
-	bool nodeComparator(node_t *node, node_t *node2) {
-		return node_getBlocksFreeCount(node) > node_getBlocksFreeCount(node2);
-	}
 
 	void createSendOperations(char *block) {
 		if (!success) {
@@ -513,7 +639,7 @@ bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 		list_add(file->blocks, blockCopies);
 
 		// Sort to get the node that has more free space.
-		list_sort(nodes, (void *) nodeComparator);
+		list_sort(nodes, (void *) nodeComparatorByBlocksFree);
 
 		int i;
 		for (i = 0; i < FILESYSTEM_BLOCK_COPIES; i++) {
@@ -579,7 +705,7 @@ void *filesystem_sendBlockToNode(void *param) {
 	nodeBlockSendOperation_t* sendOperation = (nodeBlockSendOperation_t*) param;
 
 	log_info(mdfs_logger, "Sending block to node %s , blockIndex %d", sendOperation->node->id, sendOperation->blockIndex);
-	// TODO . connections_sendBlockToNode(sendOperation);
+	// TODO what happens if fails? :O. connections_sendBlockToNode(sendOperation);
 
 	filesystem_nodeBlockSendOperation_free(sendOperation);
 
@@ -605,7 +731,7 @@ void filesystem_nodeBlockSendOperation_free(nodeBlockSendOperation_t* nodeSendBl
  * pthread_mutex_t lock;
  void a() {
  if (pthread_mutex_init(&lock, NULL) != 0) {
-log_error(mdfs_logger, "Error while trying to create new mutex");
+ log_error(mdfs_logger, "Error while trying to create new mutex");
  return;
  }
 

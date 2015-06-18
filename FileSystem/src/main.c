@@ -20,9 +20,9 @@ int main(void) {
 
 
 	filesystem_initialize();
-	//connections_initialize(fsConnectionsConfig);
+	connections_initialize(fsConnectionsConfig);
 	console_start();
-	//connections_shutdown();
+	connections_shutdown();
 	filesystem_shutdown();
 
 	config_free(fsConnectionsConfig);

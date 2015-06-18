@@ -50,4 +50,7 @@ char* filesystem_md5sum(file_t* file);
 file_t* filesystem_resolveFilePath(char *path, char *startingDirId, char *startingPath);
 dir_t* filesystem_resolveDirPath(char *path, char *startingDirId, char *startingPath, char **fullPath);
 
+int filesystem_saveFileBlockToFile(file_t *file, uint16_t blockIndex, char *pathToFile);
+int filesystem_makeNewFileBlockCopy(file_t *file, uint16_t blockIndex);
+
 #endif

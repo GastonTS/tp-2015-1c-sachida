@@ -16,6 +16,7 @@
 
 void readCommand(char *command);
 int isNull(char *parameter);
+int getIntFromString(char *string);
 
 void format();
 void diskFree();
@@ -31,9 +32,10 @@ void listResources();
 void printNodeStatus(char *nodeName);
 void md5sum(char *fileName);
 
-void seeBlock(char *block);
-void deleteBlock(char *block);
-void copyBlock(char* block);
+void saveBlockContents(char **parameters);
+void deleteBlock(char **parameters);
+void copyBlock(char **parameters);
+
 void upNode(char *node);
 void deleteNode(char *nodeName);
 void help();
@@ -78,12 +80,12 @@ void console_start() {
 				copyFile(parameters);
 			} else if (string_equals_ignore_case(parameters[0], "nodestat")) {
 				printNodeStatus(parameters[1]);
-			} else if (string_equals_ignore_case(parameters[0], "seeBlock")) {
-				seeBlock(parameters[1]);
-			} else if (string_equals_ignore_case(parameters[0], "deleteBlock")) {
-				deleteBlock(parameters[1]);
-			} else if (string_equals_ignore_case(parameters[0], "copyBlock")) {
-				copyBlock(parameters[1]);
+			} else if (string_equals_ignore_case(parameters[0], "catb")) {
+				saveBlockContents(parameters);
+			} else if (string_equals_ignore_case(parameters[0], "cpb")) {
+				copyBlock(parameters);
+			} else if (string_equals_ignore_case(parameters[0], "rmb")) {
+				deleteBlock(parameters);
 			} else if (string_equals_ignore_case(parameters[0], "upNode")) {
 				upNode(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "rmn")) {
@@ -275,7 +277,6 @@ void copyFile(char **parameters) {
 				char *destFileName = getFileName(dest);
 				if (strlen(destFileName) < strlen(dest)) {
 					char *pathToFolder = string_substring_until(dest, strlen(dest) - strlen(destFileName));
-					printf("PATH TO FOLDER %s \n", pathToFolder);
 					dir_t *dir = filesystem_resolveDirPath(pathToFolder, currentDirId, currentDirPrompt, NULL);
 					free(pathToFolder);
 					if (dir) {
@@ -343,7 +344,6 @@ void md5sum(char *fileName) {
 void printNodeStatus(char *nodeName) {
 	if (!isNull(nodeName)) {
 		node_t *node = filesystem_getNodeById(nodeName);
-
 		if (node) {
 			node_printBlocksStatus(node);
 			node_free(node);
@@ -353,23 +353,77 @@ void printNodeStatus(char *nodeName) {
 	}
 }
 
-void seeBlock(char *block) {
-	if (!isNull(block)) {
-		// TODO
-		printf("Vee el Bloque nro '%s'\n", block);
+void saveBlockContents(char **parameters) {
+	char *fileName = parameters[1];
+	char *blockN = parameters[2];
+
+	if (!isNull(fileName) && !isNull(blockN)) {
+		int blockNumber = getIntFromString(blockN);
+		if (blockNumber < 0) {
+			printf("Invalid blockNumber '%s'\n", blockN);
+			return;
+		}
+
+		file_t *file = filesystem_resolveFilePath(fileName, currentDirId, currentDirPrompt);
+		if (file) {
+			printf("Getting block %d from file '%s'\n", blockNumber, file->name);
+
+			char tempFileName[512];
+			snprintf(tempFileName, sizeof(tempFileName), "/tmp/MDFS_FILE_BLOCK_%s__%d", file->name, blockNumber);
+			int result = filesystem_saveFileBlockToFile(file, blockNumber, tempFileName);
+
+			// TODO mostrar las copias (nombre, index)
+			if (result == 1) {
+				printf("Done: A file at the local filesystem named '%s' has been saved with the contents.\n", tempFileName);
+			} else if (result == -1) {
+				printf("Aborting: The file '%s' does not have a blockNumber '%d'\n", file->name, blockNumber);
+			} else if (result == -2) {
+				printf("Aborting: The blockNumber '%d' is unavailable because all node copies are down.\n", blockNumber);
+			}
+			file_free(file);
+		} else {
+			printf("File '%s' not found.\n", fileName);
+		}
 	}
 }
 
-void deleteBlock(char *block) {
-	if (!isNull(block)) {
-		printf("Borra el Bloque nro '%s'\n", block);
+void copyBlock(char **parameters) {
+	char *fileName = parameters[1];
+	char *blockN = parameters[2];
+
+	if (!isNull(fileName) && !isNull(blockN)) {
+		int blockNumber = getIntFromString(blockN);
+		if (blockNumber < 0) {
+			printf("Invalid blockNumber '%s'\n", blockN);
+			return;
+		}
+
+		file_t *file = filesystem_resolveFilePath(fileName, currentDirId, currentDirPrompt);
+		if (file) {
+			printf("Making a new copy of the block %d from file '%s'\n", blockNumber, file->name);
+
+			int result = filesystem_makeNewFileBlockCopy(file, blockNumber);
+
+			// TODO mostrar la nueva copia (nombre, index)
+			if (result == 1) {
+				printf("Done: A new copy has been made\n");
+			} else if (result == -1) {
+				printf("Aborting: The file '%s' does not have a blockNumber '%d'\n", file->name, blockNumber);
+			} else if (result == -2) {
+				printf("Aborting: The blockNumber '%d' is unavailable because all node copies are down.\n", blockNumber);
+			} else if (result == -3) {
+				printf("Aborting: There is no node candidate to make the copy.\n");
+			}
+			file_free(file);
+		} else {
+			printf("File '%s' not found.\n", fileName);
+		}
 	}
 }
 
-void copyBlock(char *block) {
-	if (!isNull(block)) {
-		// TODO
-		printf("Copia el Bloque nro '%s'\n", block);
+void deleteBlock(char **parameters) {
+	if (!isNull(parameters[1])) {
+		printf("Borra el Bloque nro '%s'\n", parameters[1]);
 	}
 }
 
@@ -388,6 +442,34 @@ void deleteNode(char *nodeName) {
 	}
 }
 
+int getIntFromString(char *string) {
+	char *stringTail = string;
+	errno = 0;
+	unsigned long val = strtoul(string, &stringTail, 10);
+	if (errno != 0 || string == stringTail || *stringTail != 0) {
+		return -1;
+	}
+	return val;
+}
+
+/*
+ *
+ * Bueno, tiro la consulta entonces, no es compleja, aunque parezca largo todo lo que escriba. La consulta es de enunciado ya que no tuve tiempo de preguntar el sabado pasado. Las operaciones sobre bloques desde la consola del FS, como son especificamente? Les comento lo que yo entiendo y diganme si esta ok o corrijanme.
+ 1- Mostrar bloque: Se pasa un archivo y un nro de bloque y se muestra las copias de ese bloque por pantalla, indicando el nodo y nro bloque dentro de ese nodo
+ 2- Copiar bloque: Se le pasa un archivo y un nro de bloque y se genera una nueva copia en un nodo (siempre respetando el balance de los mismos y que no se repita la misma copia en el mismo nodo)
+ 3- Borrar bloque: Este es el que mas dudas me genera, que se hace? Se borran TODAS las copias de un bloque dado? Si es asi, el archivo quedaria como no disponible.
+ 1.- y el contenido
+ queremos ver lo que hay dentro
+ 2.- en este punto hay un debate enérgico interno
+ en principio es exactamente como decís vos
+ lo que se está debatiendo es el tema de si un archivo soporta más de tres copias de bloque
+ en principio venía por el lado de si tenés un nodo caído, copiás un bloque a otro lado de una copia que esté funcionando
+ 3.- borrarías una copia. es el análogo a copiar bloque
+ el opuesto quise decir
+ Habian dicho que en vez de20mb por pantalla los mandes a un archivo
+
+ */
+
 void help() {
 	printf("Valid commands:\n\n");
 	printf("\t format\t\t\t\t Formats MDFS\n");
@@ -398,19 +480,22 @@ void help() {
 	printf("\t mv <dir> <dest>\t\t Moves the dir named <dir> to the dir named <dir>\n");
 	printf("\t mkdir <dir>\t\t\t Makes a new dir in the current dir named <dir>\n");
 	printf("\t ll\t\t\t\t Lists all the files and dirs in the current dir\n");
+
 	printf("\t md5sum <file>\t\t\t Gets the MD5 check sum of the file named <file>\n");
 	printf("\t cp -tofs <file> <dest>\t\t Copies the file <file> from the MDFS to the local FileSystem at <dest>\n");
 	printf("\t cp -fromfs <file> <dest>\t Copies the file <file> from the local FileSystem to the MDFS at <dest>\n");
 
 	printf("\t nodestat <nodename>\t\t Prints the status (blocks usage) of the node named <nodename>\n");
 
+	printf("\t catb <file> <blockN>\t\t Gets contents of the block number <blockN> (zero-based) of the file <file> and saves it to a temp file\n");
+	printf("\t cpb <file> <blockN>\t\t Makes a new copy (in a different node) of the block number <blockN> (zero-based) of the file <file>\n");
+	printf("\t rmb <file> <blockN> <copyN>\t Deletes the copy <copyN> (zero-based) of the block number <blockN> (zero-based) of the file <file>\n");
+
 	printf("\t help\t\t\t\t Prints Help (this message)\n");
 	printf("\t exit\t\t\t\t Exits the MDFS\n\n");
 
 	printf("\n\n CHECK:\n");
-	printf("catb block		Muestra el bloque block\n");
-	printf("rmb <block>		Borra el bloque block\n");
-	printf("cpb <block>		Copia el bloque block\n");
+
 	printf("mkn <node>		Agrega el nodo node\n");
 	printf("rmn <node>		Borra el nodo node\n");
 }
