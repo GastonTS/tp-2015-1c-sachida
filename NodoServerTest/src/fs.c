@@ -61,21 +61,15 @@ char* obtenerDatosBloque(char* paquete, uint32_t size) {
 
 
 void fs_enviarAcciones(int nodeSocket) {
-		char paquete[] = { 0b00000001, 0b00010101, 0b00000000, 0b00000001,
-				0b00000000, 0b00000000, 0b00000000, 0b01000110};
+		// op 1, bloque 21, leng 0002, bloque FF
+		char paquete[] = { 0b00000010, 0b00010101, 0b00000000, 0b00000010,
+				0b00000000, 0b00000000, 0b00000000, 0b01000110,0b01000110};
 		size_t sbuffer = sizeof(paquete);
 		char *buffer = malloc(sbuffer) ;
-		memcpy(buffer,paquete,sizeof(sbuffer) );
-		printf("Voy a enviar los datos al Nodo.\n");
-		printf("comand %d\n", obtenerComando(paquete));
-		printf("bloque %d\n", obtenerNumBlock(paquete));
+		memcpy(buffer,paquete,sbuffer );
 		uint32_t size = obtenerSize(paquete);
-		printf("len %d\n", size);
-		char *datosBloque = obtenerDatosBloque(paquete, size);
-		printf("comand %s\n", datosBloque);
-		socket_send_packet(nodeSocket, &buffer, sbuffer); // TODO handlear el error
-		printf("Se enviaron los datos al Nodo.\n");
-
+		socket_send_packet(nodeSocket, buffer, sbuffer); // TODO handlear el error
+		printf("Se enviaron %d bytes de %d al Nodo.\n", sizeof(buffer), sbuffer);
 		//  DESERIALZE ..
 		/*
 		uint8_t command;
