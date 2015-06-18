@@ -24,6 +24,12 @@
 #include <commons/bitarray.h>
 #include <signal.h>
 #include <pthread.h>///hilos
+#include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+
 
 #define BACKLOG 2 /* El número de conexiones permitidas */
 #define MAXDATASIZE 100 //Cantidad maxima de datos que puedo mandar de un socket a otro

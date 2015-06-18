@@ -8,6 +8,7 @@
 #include "structs/Job.h"
 #include "utils/socket.h"
 
+
 typedef struct {
 	uint16_t PUERTO_MARTA;
 	char* IP_MARTA;
@@ -46,21 +47,30 @@ pthread_t hilo_reduce;
 uint16_t contMap;
 uint16_t contReduce;
 
+/* Estructuras */
 int initConfig(char* configFile);
+void freeCfg();
+void freeThreadMap(t_map* map);
 //void convertirListaArch(char* cadena,t_list* lista);
+
+/* MaRTA */
 int conectarMarta();
 void atenderMarta(int socketMarta);
 void atenderMapper(void* parametros);
 void confirmarMap();
 void atenderReducer(void* parametros);
 void confirmarReduce();
-void freeCfg();
-void freeThreadMap(t_map* map);
+
 void serializeConfigMaRTA(int fd, bool combiner, char* files);
 void recvOrder(int fd);
 t_map* desserializeMapOrder(void *buffer);
 void desserializeTempToList(t_list *temporals, void *buffer, size_t *sbuffer);
 void desserializeReduceOrder(void *buffer, size_t sbuffer);
+
+/* Nodo */
+void serializeMap(int sock, t_map* map);
+char* getMapRoutine(char* pathFile);
+
 
 int main(int argc, char *argv[]) {
 
@@ -79,13 +89,12 @@ int main(int argc, char *argv[]) {
 
 	contMap = 0;
 	contReduce = 0;
-	sock_marta = conectarMarta();
 
-	atenderMarta(sock_marta);
+	if((sock_marta = conectarMarta() >= 0)){
+		atenderMarta(sock_marta);;
+	}
 
-	freeList();
-	freeJob();
-
+	freeCfg();
 	return 1;
 }
 
@@ -114,6 +123,7 @@ int conectarMarta() {
 		return EXIT_FAILURE;
 	}
 
+	log_info(logger,"Handshake MaRTA: %d",handshake);
 	return sock_marta;
 }
 
@@ -122,7 +132,7 @@ void atenderMarta(int socketMarta) {
 
 	/* Mando el Config a MaRTA */
 	serializeConfigMaRTA(sock_marta, cfgJob->COMBINER, cfgJob->LIST_ARCHIVOS);
-
+	log_info(logger,"SerializeConfigMaRTA OK");
 	while (1) {
 		/*Recibo Orden de Map o Reduce */
 		recvOrder(sock_marta);
@@ -157,7 +167,7 @@ void recvOrder(int fd) {
 	char order = '\0';
 	size_t sOrder = sizeof(char);
 	memcpy(&order, buffer, sOrder);
-
+	log_info(logger,"recOrder");
 	/* Map */
 	struct parms_threads parms_map;
 	parms_map.buffer = (buffer + sOrder);
@@ -170,6 +180,7 @@ void recvOrder(int fd) {
 
 	printf("\nRECVORDER: %c\n", order);
 	if (order == 'm'){
+		log_info(logger,"Map Recived");
 		pthread_create(&hilo_mapper, NULL, (void*) atenderMapper, &parms_map);
 		/*
 		hiloMap = malloc(sizeof(t_list_thread));
@@ -211,14 +222,13 @@ void atenderMapper(void* parametros) {
 	map = desserializeMapOrder(p->buffer);
 
 
-
 	/* Me conecto al Nodo */
 
 	int hand_nodo;
 	int sock_nodo;
 	int ret_val = 0;
 
-	if ((sock_nodo = socket_connect(map.ip_nodo, map.port_nodo)) < 0) {
+	if ((sock_nodo = socket_connect(map->ip_nodo, map->port_nodo)) < 0) {
 		log_error(logger, "Error al conectar con Nodo %d", sock_nodo);
 		freeThreadMap(map);
 		pthread_exit(&ret_val);
@@ -226,7 +236,7 @@ void atenderMapper(void* parametros) {
 
 	log_info(logger, "Coneccion con MaRTA: %d", sock_nodo);
 
-	hand_nodo = socket_hand_nodo_to_server(sock_nodo, HANDSHAKE_NODO, HANDSHAKE_JOB);
+	hand_nodo = socket_handshake_to_server(sock_nodo, HANDSHAKE_NODO, HANDSHAKE_JOB);
 	if (!hand_nodo) {
 		log_error(logger,"Error en hand_nodo con Nodo %d", hand_nodo);
 		freeThreadMap(map);
@@ -234,6 +244,7 @@ void atenderMapper(void* parametros) {
 	}
 
 	/* Serializo y mando datos */
+
 
 }
 
@@ -257,6 +268,10 @@ void atenderReducer(void* parametros) {
 void confirmarReduce() {
 
 }
+
+//**********************************************************************************//
+//									PAQUETES MaRTA 									//
+//**********************************************************************************//
 
 //***********************************MAP********************************************//
 t_map* desserializeMapOrder(void *buffer) {
@@ -288,18 +303,17 @@ t_map* desserializeMapOrder(void *buffer) {
 
 	map = malloc(sizeof(t_map));
 	map->idJob = idMap;
-	map->ip_nodo = nodeIP;
+	map->ip_nodo = strdup(nodeIP);
 	map->port_nodo = nodePort;
 	map->numBlock = numBlock;
 	map->tempResultName = strdup(tempResultName);
 
 
-	//Test TODO: Adaptar a las estructuras de Job
 	printf("\nID: %d\n", map->idJob);
 	printf("IP:  %s  \n", map->ip_nodo);
 	printf("PUERTO: %d\n", map->port_nodo);
 	printf("NUMBLOCK: %d\n", map->numBlock);
-	printf("%s\n", tempResultName);
+	printf("%s\n", map->tempResultName);
 	fflush(stdout);
 	free(nodeIP);
 	return(map);
@@ -374,9 +388,45 @@ void desserializeReduceOrder(void *buffer, size_t sbuffer) {
 //End
 }
 
+//**********************************************************************************//
+//									PAQUETES NODO 									//
+//**********************************************************************************//
+
+//**********************************Send Map Nodo************************************//
+
+void serializeMap(int sock_nodo, t_map* map){
+	char order = 'm';
+	size_t sOrder = sizeof(char);
+	size_t sBlock = sizeof(uint16_t);
+	char* fileMap;
+	size_t sTempName = strlen(map->tempResultName);
+
+	/* Obtenemos binario de File Map */
+	fileMap = getMapRoutine(cfgJob->MAPPER);
+	size_t sfileMap = strlen(fileMap);
+
+	uint16_t numBlock = htons(map->numBlock);
+
+	/* Armo el paquete y lo mando */
+
+
+	size_t sbuffer = sOrder + sBlock + sfileMap + sTempName;
+	void* buffer = malloc(sbuffer);
+	buffer = memset(buffer, '\0', sbuffer);
+	memcpy(buffer, &order, sOrder);
+	memcpy(buffer + sOrder, &numBlock, sBlock);
+	memcpy(buffer + sOrder + sBlock, fileMap, sfileMap);
+	memcpy(buffer + sOrder + sBlock + sfileMap, map->tempResultName, sTempName);
+
+	socket_send_packet(sock_nodo,buffer,sbuffer);
+	free(fileMap);
+	free(buffer);
+
+}
+
 
 //**********************************************************************************//
-//									PAQUETES MaRTA									//
+//									ESTRUCTURAS  									//
 //**********************************************************************************//
 
 //**********************************Free Job****************************************//
@@ -394,6 +444,7 @@ void freeCfg() {
 //**********************************Free Thread Map****************************************//
 void freeThreadMap(t_map* map){
 	free(map->ip_nodo);
+	free(map->tempResultName);
 	free(map);
 }
 
@@ -446,4 +497,31 @@ int initConfig(char* configFile) {
 
 	config_destroy(_config);
 	return !failure;
+}
+
+
+/*******************************Get Map Routine*************************************/
+char* getMapRoutine(char* pathFile){
+	int mapper;
+	char* mapeo;
+	int size;
+
+		/* Get size of File */
+		int size_of(int fd){
+			struct stat buf;
+			fstat(fd, &buf);
+			return buf.st_size;
+		}
+
+	mapper = open (pathFile, O_RDONLY);
+	size = size_of(mapper);
+	if( (mapeo = mmap( NULL, size, PROT_READ, MAP_SHARED, mapper,0)) == MAP_FAILED){
+		//Si no se pudo ejecutar el MMAP, imprimir el error y abortar;
+		fprintf(stderr, "Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size", pathFile, size, strerror(errno));
+		abort();
+	}
+	//Se unmapea , y se cierrra el archivo
+	//munmap( mapeo, size );
+	close(mapper);
+	return mapeo;
 }
