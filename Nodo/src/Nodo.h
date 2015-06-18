@@ -51,7 +51,7 @@ typedef struct {
 	char mensaje[16];
 } t_mensaje;
 
-t_log* logger;
+t_log* nodeLogger;
 
 //METODOS
 int initConfig(char* conf);

@@ -32,15 +32,16 @@ void deserializeGetBlock(void *paquete, int fsSocket);
 
 //Le agregue los argumentos para que se pueda pasar el archivo de conf como parametro del main
 int main(int argc, char *argv[]) {
-	logger = log_create("Nodo.log", "Nodo", 1, log_level_from_string("TRACE"));
+	nodeLogger = log_create("Nodo.log", "Nodo", 1,
+			log_level_from_string("TRACE"));
 
 	if (argc != 2) {
-		log_error(logger, "Missing config file");
+		log_error(nodeLogger, "Missing config file");
 		freeNodo();
 		return EXIT_FAILURE;
 	}
 	if (!initConfig(argv[1])) {
-		log_error(logger, "Config failed");
+		log_error(nodeLogger, "Config failed");
 		freeNodo();
 		return EXIT_FAILURE;
 	}
@@ -51,32 +52,37 @@ int main(int argc, char *argv[]) {
 	char myName[] = "Nodo1"; // Le paso mi nombre.
 
 	uint16_t sName = strlen(myName);
-	size_t sBuffer = sizeof( cfgNodo->nodo_nuevo) + sizeof(cantBloques) + sizeof(sName) + sName;
+	size_t sBuffer = sizeof(cfgNodo->nodo_nuevo) + sizeof(cantBloques)
+			+ sizeof(sName) + sName;
 
 	uint16_t cantBloquesSerialized = htons(cantBloques);
 	uint16_t sNameSerialized = htons(sName);
 
 	void *pBuffer = malloc(sBuffer);
-	memcpy(pBuffer, &cfgNodo->nodo_nuevo, sizeof( cfgNodo->nodo_nuevo));
-	memcpy(pBuffer + sizeof( cfgNodo->nodo_nuevo), &cantBloquesSerialized, sizeof(cantBloques));
-	memcpy(pBuffer + sizeof( cfgNodo->nodo_nuevo) + sizeof(cantBloques), &sNameSerialized, sizeof(sName));
-	memcpy(pBuffer + sizeof( cfgNodo->nodo_nuevo) + sizeof(cantBloques) + sizeof(sName), &myName, sName);
+	memcpy(pBuffer, &cfgNodo->nodo_nuevo, sizeof(cfgNodo->nodo_nuevo));
+	memcpy(pBuffer + sizeof(cfgNodo->nodo_nuevo), &cantBloquesSerialized,
+			sizeof(cantBloques));
+	memcpy(pBuffer + sizeof(cfgNodo->nodo_nuevo) + sizeof(cantBloques),
+			&sNameSerialized, sizeof(sName));
+	memcpy(
+			pBuffer + sizeof(cfgNodo->nodo_nuevo) + sizeof(cantBloques)
+					+ sizeof(sName), &myName, sName);
 
 	socket_send_packet(socket_fileSystem, pBuffer, sBuffer);
 	free(pBuffer);
 
 	nodo_escucharAcciones(socket_fileSystem);
-
-
+	freeNodo();
 	return EXIT_SUCCESS;
 }
 
 void nodo_escucharAcciones(int socket) {
-	while (1) {
-		// Ahora armo todo para esperar a que el fs me mande datos.
-		printf("armo todo para esperar a que el FS mande datos: \n");
+	int ciclo = 2;
+	while (ciclo > 0) {
 		size_t packet_size;
 		void* paquete;
+		// Ahora armo todo para esperar a que el fs me mande datos.
+		printf("armo todo para esperar a que el FS mande datos: \n");
 		printf("Esperando a que el Fs mande un paquete: \n");
 		socket_recv_packet(socket, &paquete, &packet_size);
 		printf("Recive OK\n");
@@ -88,14 +94,18 @@ void nodo_escucharAcciones(int socket) {
 		case 2: //getBloque
 			deserializeGetBlock(paquete, socket);
 			break;
+		default:
+			log_error(nodeLogger, "No es un comando válido");
+			break;
 			//default =  log_error("Log.txt", "Node",1,log_level_from_string("ERROR"));
 			//TODO ACA DEBERIAMOS HACER EL WHILE INFINITO ESPERANDO CONEXIONES Y PETICIONES
 			//TODO HAY QUE ABRIR UN THREAD PARA ESCUCHAR JOBS Y UNO PARA ESCUCHAR NODOS(Paralelismo)
 			//ptrhead_create(&conexionesJob,NULL,(void*)escucharJobs,NULL);
 			//pthread_create(&conexionesNodo,NULL,(void*)escucharNodos,NULL);
 			// TODO TODAS LAS FUNCIONES GETBLOQUE Y ESAS VAN ADENTRO DE LOS TRHEADS
-			freeNodo();
 		}
+		free(paquete);
+		ciclo--;
 	}
 }
 
@@ -235,86 +245,84 @@ void createNode() {
  return sock_escucha;
  }*/
 
-
 int conectarFileSystem() {
 	int descriptorFileSystem;
 	int handshakea;
 	descriptorFileSystem = socket_connect(cfgNodo->ip_fs, cfgNodo->puerto_fs);
 	handshakea = socket_handshake_to_server(descriptorFileSystem,
-			HANDSHAKE_FILESYSTEM,HANDSHAKE_NODO);
+	HANDSHAKE_FILESYSTEM, HANDSHAKE_NODO);
 	printf("derror %d", handshakea);
-	log_info(logger,"Conection sucessfully");
+	log_info(nodeLogger, "Conection sucessfully");
 	return descriptorFileSystem;
 }
 
 char* getBloque(uint16_t nroBloque) {
 	printf("llego al getBLoque\n");
 	printf("numero de bloque : %d\n", nroBloque);
-	char* hola;
-	return hola;
+	return "hola";
 	/*int mapper;
-	char* mapeo;
-	size_t size;
-	size_t pagesize;
-	//Se abre el archivo para solo lectura
+	 char* mapeo;
+	 size_t size;
+	 size_t pagesize;
+	 //Se abre el archivo para solo lectura
 
-	mapper = open(cfgNodo->archivo_bin, O_RDONLY);
-	pagesize = getpagesize();
-	size = size_of(mapper);
-	//size = 20;
-	//Trate size bytes a partir de la posicion pagesize*(nroBloque-1)
-	if ((mapeo = mmap( NULL, size, PROT_READ, MAP_SHARED, mapper,
-			pagesize * (nroBloque - 1))) == MAP_FAILED) {
-		//Si no se pudo ejecutar el MMAP, imprimir el error y abortar;
-		log_error(logger,
-				"Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size",
-				cfgNodo->archivo_bin, size);
-		//fprintf(stderr, "Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size", file_name, size, strerror(errno));
-		abort();
-	}
-	log_info(logger, "Tamaño del archivo: %d\n", size);
-	//printf ("Tamaño del archivo: %d\nContenido:'%s'\n", size, mapeo);
+	 mapper = open(cfgNodo->archivo_bin, O_RDONLY);
+	 pagesize = getpagesize();
+	 size = size_of(mapper);
+	 //size = 20;
+	 //Trate size bytes a partir de la posicion pagesize*(nroBloque-1)
+	 if ((mapeo = mmap( NULL, size, PROT_READ, MAP_SHARED, mapper,
+	 pagesize * (nroBloque - 1))) == MAP_FAILED) {
+	 //Si no se pudo ejecutar el MMAP, imprimir el error y abortar;
+	 log_error(logger,
+	 "Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size",
+	 cfgNodo->archivo_bin, size);
+	 //fprintf(stderr, "Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size", file_name, size, strerror(errno));
+	 abort();
+	 }
+	 log_info(logger, "Tamaño del archivo: %d\n", size);
+	 //printf ("Tamaño del archivo: %d\nContenido:'%s'\n", size, mapeo);
 
-	//Se unmapea , y se cierrra el archivo
-	munmap(mapeo, size);
-	close(mapper);
-	return mapeo;*/
+	 //Se unmapea , y se cierrra el archivo
+	 munmap(mapeo, size);
+	 close(mapper);
+	 return mapeo;*/
 }
 
 void setBloque(uint16_t nroBloque, char* string) {
 	printf("llego al setBLoque\n");
 	printf("numero de bloque : %d\n", nroBloque);
-	printf("el string : %s\n",string);
+	printf("el string : %s\n", string);
 	/*
-	int mapper;
-	char* mapeo;
-	int size;
-	int pagesize;
-	//Se abre el archivo para lectura y escritura
+	 int mapper;
+	 char* mapeo;
+	 int size;
+	 int pagesize;
+	 //Se abre el archivo para lectura y escritura
 
-	mapper = open(cfgNodo->archivo_bin, O_WRONLY);
-	pagesize = getpagesize();
-	//Size debe llegar a 20mb asi los bloques son de 20mb
-	size = size_of(mapper);
-	//Trate size bytes a partir de la posicion pagesize*(nroBloque-1)
-	if ((mapeo = mmap( NULL, size, PROT_READ, MAP_SHARED, mapper,
-			pagesize * (nroBloque - 1))) == MAP_FAILED) {
-		//Si no se pudo ejecutar el MMAP, imprimir el error y abortar;
-		log_error(logger,
-				"Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size",
-				cfgNodo->archivo_bin, size);
-		//fprintf(stderr, "Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size", file_name, size, strerror(errno));
-		abort();
-	}
-	//Aca se tiene que mandar lo que tiene string adentro de mapeo.
-	// TODO . fputs(pagesize * (nroBloque - 1), mapeo);
-	//Se unmapea , y se cierrra el archivo
-	munmap(mapeo, size);
-	close(mapper);
+	 mapper = open(cfgNodo->archivo_bin, O_WRONLY);
+	 pagesize = getpagesize();
+	 //Size debe llegar a 20mb asi los bloques son de 20mb
+	 size = size_of(mapper);
+	 //Trate size bytes a partir de la posicion pagesize*(nroBloque-1)
+	 if ((mapeo = mmap( NULL, size, PROT_READ, MAP_SHARED, mapper,
+	 pagesize * (nroBloque - 1))) == MAP_FAILED) {
+	 //Si no se pudo ejecutar el MMAP, imprimir el error y abortar;
+	 log_error(logger,
+	 "Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size",
+	 cfgNodo->archivo_bin, size);
+	 //fprintf(stderr, "Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size", file_name, size, strerror(errno));
+	 abort();
+	 }
+	 //Aca se tiene que mandar lo que tiene string adentro de mapeo.
+	 // TODO . fputs(pagesize * (nroBloque - 1), mapeo);
+	 //Se unmapea , y se cierrra el archivo
+	 munmap(mapeo, size);
+	 close(mapper);
 
-	//Recibe un buffer de datos,despues con el puntero que me devuelve el mmap modifico el archivo mapeado, primero busco puntero[ j ]=\0 y lo saco,
-	// relleno los espacios que falten hasta el nuevo bloque y remplazo el puntero[ j ]=datos[a] ,agrego el \0 y cierro el mmap.
-	*/
+	 //Recibe un buffer de datos,despues con el puntero que me devuelve el mmap modifico el archivo mapeado, primero busco puntero[ j ]=\0 y lo saco,
+	 // relleno los espacios que falten hasta el nuevo bloque y remplazo el puntero[ j ]=datos[a] ,agrego el \0 y cierro el mmap.
+	 */
 }
 
 /*void getFileContent(){
@@ -355,7 +363,7 @@ int initConfig(char* configFile) {
 		}
 
 		failure = 1;
-		log_error(logger, "Config not found for key %s", property);
+		log_error(nodeLogger, "Config not found for key %s", property);
 		return -1;
 	}
 
@@ -365,13 +373,13 @@ int initConfig(char* configFile) {
 		}
 
 		failure = 1;
-		log_error(logger, "Config not found for key %s", property);
+		log_error(nodeLogger, "Config not found for key %s", property);
 		return "";
 	}
 
 	_config = config_create(configFile);
 	cfgNodo = malloc(sizeof(t_configNodo));
-	log_info(logger, "Loading config...");
+	log_info(nodeLogger, "Loading config...");
 
 	cfgNodo->archivo_bin = strdup(getCongifString("ARCHIVO_BIN"));
 	cfgNodo->dir_tmp = strdup(getCongifString("DIR_TMP"));
@@ -382,13 +390,13 @@ int initConfig(char* configFile) {
 	cfgNodo->puerto_nodo = getConfigInt("PUERTO_NODO");
 
 	if (!failure) {
-		log_info(logger, "Archivo bin: %s", cfgNodo->archivo_bin);
-		log_info(logger, "Dir temporal: %s", cfgNodo->dir_tmp);
-		log_info(logger, "FileSystem IP: %s", cfgNodo->ip_fs);
-		log_info(logger, "FileSystem Port: %d", cfgNodo->puerto_fs);
-		log_info(logger, "Node IP: %s", cfgNodo->ip_nodo);
-		log_info(logger, "Node Port: %d", cfgNodo->puerto_nodo);
-		log_info(logger, "New Node: %s", cfgNodo->nodo_nuevo);
+		log_info(nodeLogger, "Archivo bin: %s", cfgNodo->archivo_bin);
+		log_info(nodeLogger, "Dir temporal: %s", cfgNodo->dir_tmp);
+		log_info(nodeLogger, "FileSystem IP: %s", cfgNodo->ip_fs);
+		log_info(nodeLogger, "FileSystem Port: %d", cfgNodo->puerto_fs);
+		log_info(nodeLogger, "Node IP: %s", cfgNodo->ip_nodo);
+		log_info(nodeLogger, "Node Port: %d", cfgNodo->puerto_nodo);
+		log_info(nodeLogger, "New Node: %d", cfgNodo->nodo_nuevo);
 	}
 
 	config_destroy(_config);
@@ -404,8 +412,20 @@ int initConfig(char* configFile) {
  */
 
 void freeNodo() {
+	if (cfgNodo->archivo_bin) {
+		free(cfgNodo->archivo_bin);
+	}
+	if (cfgNodo->dir_tmp) {
+		free(cfgNodo->dir_tmp);
+	}
+	if (cfgNodo->ip_fs) {
+		free(cfgNodo->ip_fs);
+	}
+	if (cfgNodo->ip_nodo) {
+		free(cfgNodo->ip_nodo);
+	}
 	free(cfgNodo);
-	log_destroy(logger);
+	log_destroy(nodeLogger);
 }
 
 size_t size_of(int fd) {
@@ -450,18 +470,17 @@ void deserializeSetBlock(void *paquete) {
 	pack_size = obtenerSize(paquete);
 	datosBloque = obtenerDatosBloque(paquete, pack_size);
 	setBloque(numBlock, datosBloque);
-    free(datosBloque);
+	free(datosBloque);
 }
-
 
 void deserializeGetBlock(void *paquete, int fsSocket) {
 	uint16_t numBlock;
 	numBlock = obtenerNumBlock(paquete);
 	char *bloque = getBloque(numBlock);
-	e_socket_status status = socket_send_packet(fsSocket, bloque, strlen(bloque));
+	e_socket_status status = socket_send_packet(fsSocket, bloque,
+			strlen(bloque));
 
 	if (status != SOCKET_ERROR_NONE) {
-						// TODO, manejar el error.
+		// TODO, manejar el error.
 	}
-	free(bloque);
 }
