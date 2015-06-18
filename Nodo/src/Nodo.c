@@ -70,24 +70,19 @@ int main(int argc, char *argv[]) {
 	void* paquete;
 	printf("Esperando a que el Fs mande un paquete: \n");
 	socket_recv_packet(socket_fileSystem, &paquete, &packet_size);
-	printf("Se recibieron los datos del fs \n");
-	printf("comand %d\n", obtenerComando(paquete));
-	printf("bloque %d\n", obtenerNumBlock(paquete));
-	uint32_t size = obtenerSize(paquete);
-	printf("size %d\n", size);
-	char *datosBloque = obtenerDatosBloque(paquete, size);
-	printf("datos bloque %s\n", datosBloque);
-	free(datosBloque);
-	/*uint8_t comando = obtenerComando(paquete);
+	printf("Se recibieron %d bytes de %d del fs \n", sizeof(paquete), packet_size);
+	uint8_t comando = obtenerComando(paquete);
+	printf ("comando : %d", comando);
 	uint16_t numBlock;
 	uint32_t pack_size;
-	char * buffer;
+	char * datosBloque;
 	switch (comando) {
 	case 1: //setBloque
 		numBlock = obtenerNumBlock(paquete);
 		pack_size = obtenerSize(paquete);
-		buffer = obtenerDatosBloque(paquete, pack_size);
-		setBloque(numBlock, buffer);
+		datosBloque = obtenerDatosBloque(paquete, pack_size);
+		setBloque(numBlock, datosBloque);
+	    free(datosBloque);
 		break;
 	case 2: //getBloque
 		numBlock = obtenerNumBlock(paquete);
@@ -95,23 +90,15 @@ int main(int argc, char *argv[]) {
 		break;
 		//default =  log_error("Log.txt", "Node",1,log_level_from_string("ERROR"));
 		//TODO ACA DEBERIAMOS HACER EL WHILE INFINITO ESPERANDO CONEXIONES Y PETICIONES
-		//TODO HAY QUE ABRIR UN THREAD PARA ESCUCHAR JOBS Y UNO PARA ESCUCHAR NODOS(Paralelismo)		 //ptrhead_create(&conexionesJob,NULL,(void*)escucharJobs,NULL);
+		//TODO HAY QUE ABRIR UN THREAD PARA ESCUCHAR JOBS Y UNO PARA ESCUCHAR NODOS(Paralelismo)
+		//ptrhead_create(&conexionesJob,NULL,(void*)escucharJobs,NULL);
 		//pthread_create(&conexionesNodo,NULL,(void*)escucharNodos,NULL);
 		// TODO TODAS LAS FUNCIONES GETBLOQUE Y ESAS VAN ADENTRO DE LOS TRHEADS
-
 		freeNodo();
 		return EXIT_SUCCESS;
-	}*/
-	// op 1, bloque 21, leng 0001
-	/*char paquete[] = { 0b00000001, 0b00010101, 0b00000000, 0b00000001,
-			0b00000000, 0b00000000, 0b00000000, 0b01000110 };
-	printf("comand %d\n", obtenerComando(paquete));
-	printf("bloque %d\n", obtenerNumBlock(paquete));
-	uint32_t size = obtenerSize(paquete);
-	printf("len %d\n", size);
-	char *datosBloque = obtenerDatosBloque(paquete, size);
-	printf("comand %s\n", datosBloque);
-	free(datosBloque);*/
+	}
+
+
 	return EXIT_SUCCESS;
 }
 
@@ -264,7 +251,11 @@ int conectarFileSystem() {
 }
 
 char* getBloque(uint16_t nroBloque) {
-	int mapper;
+	printf("llego al getBLoque\n");
+	printf("numero de bloque : %d\n", nroBloque);
+	char* hola;
+	return hola;
+	/*int mapper;
 	char* mapeo;
 	size_t size;
 	size_t pagesize;
@@ -290,10 +281,14 @@ char* getBloque(uint16_t nroBloque) {
 	//Se unmapea , y se cierrra el archivo
 	munmap(mapeo, size);
 	close(mapper);
-	return mapeo;
+	return mapeo;*/
 }
 
 void setBloque(uint16_t nroBloque, char* string) {
+	printf("llego al setBLoque\n");
+	printf("numero de bloque : %d\n", nroBloque);
+	printf("el string : %s\n",string);
+	/*
 	int mapper;
 	char* mapeo;
 	int size;
@@ -320,8 +315,9 @@ void setBloque(uint16_t nroBloque, char* string) {
 	munmap(mapeo, size);
 	close(mapper);
 
-	/*Recibe un buffer de datos,despues con el puntero que me devuelve el mmap modifico el archivo mapeado, primero busco puntero[ j ]=\0 y lo saco,
-	 * relleno los espacios que falten hasta el nuevo bloque y remplazo el puntero[ j ]=datos[a] ,agrego el \0 y cierro el mmap.*/
+	//Recibe un buffer de datos,despues con el puntero que me devuelve el mmap modifico el archivo mapeado, primero busco puntero[ j ]=\0 y lo saco,
+	// relleno los espacios que falten hasta el nuevo bloque y remplazo el puntero[ j ]=datos[a] ,agrego el \0 y cierro el mmap.
+	*/
 }
 
 /*void getFileContent(){
