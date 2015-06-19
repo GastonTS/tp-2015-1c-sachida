@@ -1,7 +1,7 @@
 #include "jobClient.h"
 
 void startJob() {
-	t_port jobPORT = 5015;
+	t_port jobPORT = 5002;
 	char *nodeIp;
 	int nodeSocket;
 	logger = log_create("Log.txt", "Servidor", 1,
@@ -11,7 +11,7 @@ void startJob() {
 	int jobSocket = socket_listen(jobPORT);
 	nodeSocket = socket_accept_and_get_ip(jobSocket, &nodeIp);
 	free(nodeIp);
-	int hand = socket_handshake_to_client(nodeSocket, HANDSHAKE_FILESYSTEM,
+	int hand = socket_handshake_to_client(nodeSocket, HANDSHAKE_JOB,
 			HANDSHAKE_NODO);
 	if (!hand) {
 		printf("Error al conectar el job con el Nodo\n");
@@ -51,5 +51,4 @@ void job_enviarAcciones(int nodeSocket) {
 	socket_close(nodeSocket);
 	printf("Send OK\n"); // TODO handlear el error
 	free(bufferG);
-	sleep(5);
 }

@@ -52,5 +52,4 @@ void fs_enviarAcciones(int nodeSocket) {
 	socket_close(nodeSocket);
 	printf("Send OK\n"); // TODO handlear el error
 	free(bufferG);
-	sleep(5);
 }
