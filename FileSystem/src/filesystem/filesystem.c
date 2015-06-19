@@ -664,7 +664,7 @@ t_list* filesystem_getFSFileBlocks(char *route, size_t *fileSize) {
 					i = j + 1;
 					break;
 				}
-			} // TODO, que pasa si la linea supera el maximo tamaño del buffer?
+			} // TODO que pasa si la linea supera el maximo tamaño del buffer?
 		}
 	}
 
@@ -674,7 +674,7 @@ t_list* filesystem_getFSFileBlocks(char *route, size_t *fileSize) {
 }
 
 char* filesystem_getAllFileContent(file_t *file) {
-	// TODO, mover a thread?..
+	// TODO MOVER A THREAD
 	//pthread_t getBlockThread[list_size(file->blocks)];
 	//int thCount = 0;
 	bool found = 0;

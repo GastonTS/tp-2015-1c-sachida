@@ -23,7 +23,7 @@ void connections_shutdown() {
 	connections_node_shutdown();
 	connections_marta_shutdown();
 
-	exitConnections = 1; // TODO , ver bien como hacer esto..
+	exitConnections = 1; // TODO TEMA CONNECTIONS ver bien como hacer esto..
 	pthread_join(listenerThread, NULL);
 }
 
@@ -34,18 +34,18 @@ void *connections_listenerThread(void *param) {
 
 	while (!exitConnections) {
 		char *clientIP;
-		socketAccepted = socket_accept_and_get_ip(socketListener, &clientIP); // TODO. se queda clavado acá el exit, como corto esto??
+		socketAccepted = socket_accept_and_get_ip(socketListener, &clientIP); // TODO TEMA CONNECTIONS se queda clavado acá el exit, como corto esto??
 
 		switch (socket_handshake_to_client(socketAccepted, HANDSHAKE_FILESYSTEM, HANDSHAKE_MARTA | HANDSHAKE_NODO)) {
 		case HANDSHAKE_NODO:
-			connections_node_accept(socketAccepted, clientIP); // TODO, mover a thread? SI. hacer.
+			connections_node_accept(socketAccepted, clientIP); // TODO MOVER A THREAD
 			break;
 		case HANDSHAKE_MARTA:
 			if (connections_node_getActiveConnectedCount() < config->minNodesCount) {
 				log_info(mdfs_logger, "Marta connected but rejected because minimum nodes count was not reached\n");
 				socket_close(socketAccepted);
 			} else {
-				connections_marta_accept(socketAccepted); // TODO, mover a thread? SI. hacer.
+				connections_marta_accept(socketAccepted); // TODO MOVER A THREAD
 			}
 			break;
 		}

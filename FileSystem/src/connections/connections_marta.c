@@ -21,7 +21,7 @@ void connections_marta_shutdown() {
 void connections_marta_accept(int socketAccepted) {
 	martaSocket = socketAccepted;
 
-	pthread_t martaTh; // TODO , deberia ir global para terminarlo o q?
+	pthread_t martaTh; // TODO TEMA CONNECTIONS, deberia ir global para terminarlo o q?
 
 	if (pthread_create(&martaTh, NULL, (void *) connections_marta_listenActions, NULL)) {
 		log_error(mdfs_logger, "Error while trying to create new thread: connections_marta_listenActions");
@@ -38,7 +38,6 @@ void *connections_marta_listenActions(void *param) {
 		return NULL;
 	}
 
-	// TODO, va en hilo esto?..
 	uint8_t command;
 	memcpy(&command, buffer, sizeof(uint8_t));
 
@@ -65,7 +64,7 @@ bool connection_marta_sendFileBlocks(void *bufferReceived) {
 	file_t *file = filesystem_resolveFilePath(fileName, ROOT_DIR_ID, "/");
 
 	if (!file) {
-		// TODO . Return that the is no such file to marta?
+		// TODO  Return code =  that the is no such file to marta?
 		return 0;
 	}
 

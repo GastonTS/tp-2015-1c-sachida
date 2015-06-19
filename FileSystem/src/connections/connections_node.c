@@ -24,44 +24,43 @@ void connections_node_shutdown() {
 }
 
 int connections_node_getNodeSocket(char *nodeId) {
-	// TODO, mutex por nodo? o en el sendoperation.
+	// TODO MUTEX por nodo
 	int *nodeSocket = dictionary_get(activeNodesSockets, nodeId);
 	return (nodeSocket ? *nodeSocket : -1);
 }
 
 void connections_node_setNodeSocket(char *nodeId, int socket) {
-	// TODO mutex
+	// TODO MUTEX
 	int *socketAcceptedPtr = malloc(sizeof(int));
 	*socketAcceptedPtr = socket;
 	dictionary_put(standbyNodesSockets, nodeId, socketAcceptedPtr);
 }
 
 void connections_node_activateNode(char *nodeId) {
-	// TODO mutex ..
-	int *standbySocketPtr = (int *)dictionary_remove(standbyNodesSockets, nodeId);
+	// TODO MUTEX ..
+	int *standbySocketPtr = (int *) dictionary_remove(standbyNodesSockets, nodeId);
 	if (standbySocketPtr) {
 		dictionary_put(activeNodesSockets, nodeId, standbySocketPtr);
 	}
 }
 
 void connections_node_deactivateNode(char *nodeId) {
-	// TODO mutex ..
-	int *activeSocketPtr = (int *)dictionary_remove(activeNodesSockets, nodeId);
+	// TODO MUTEX ..
+	int *activeSocketPtr = (int *) dictionary_remove(activeNodesSockets, nodeId);
 	if (activeSocketPtr) {
 		dictionary_put(standbyNodesSockets, nodeId, activeSocketPtr);
 	}
 }
 
 int connections_node_getActiveConnectedCount() {
-	// TODO mutex
+	// TODO MUTEX
 	return dictionary_size(activeNodesSockets);
 }
 
 bool connections_node_isActiveNode(char *nodeId) {
-	// TODO mutex, chequear este caso especifo porque llama al otro que usa mutex sin haberlo liberado..
+	// TODO MUTEX, chequear este caso especifo porque llama al otro que usa mutex sin haberlo liberado..
 	return connections_node_getNodeSocket(nodeId) != -1;
 }
-
 
 void connections_node_accept(int socketAccepted, char *clientIP) {
 
@@ -91,7 +90,7 @@ void connections_node_accept(int socketAccepted, char *clientIP) {
 	// ...
 
 	//  Save the socket as a reference to this node.
-	// TODO, ver en que usar la ip.
+	// TODO ver en que usar la ip. ( EL NODO TIENE QUE MANDAR PUERTO DE LISTEN.. )
 	connections_node_setNodeSocket(nodeName, socketAccepted);
 
 	log_info(mdfs_logger, "New node connected (new: %s). Name: %s . blocksCount %d", isNewNode ? "true" : "false", nodeName, blocksCount);
