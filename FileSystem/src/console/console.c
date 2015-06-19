@@ -29,15 +29,15 @@ void makeDir(char *dirName);
 void changeDir(char *dirName);
 void listResources();
 
-void printNodeStatus(char *nodeName);
 void md5sum(char *fileName);
-
 void saveBlockContents(char **parameters);
 void deleteBlock(char **parameters);
 void copyBlock(char **parameters);
 
-void upNode(char *node);
-void deleteNode(char *nodeName);
+void enableNode(char *node);
+void disableNode(char *nodeName);
+void printNodeStatus(char *nodeName);
+
 void help();
 
 char currentDirPrompt[1024];
@@ -78,18 +78,18 @@ void console_start() {
 				md5sum(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "cp")) {
 				copyFile(parameters);
-			} else if (string_equals_ignore_case(parameters[0], "nodestat")) {
-				printNodeStatus(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "catb")) {
 				saveBlockContents(parameters);
 			} else if (string_equals_ignore_case(parameters[0], "cpb")) {
 				copyBlock(parameters);
 			} else if (string_equals_ignore_case(parameters[0], "rmb")) {
 				deleteBlock(parameters);
-			} else if (string_equals_ignore_case(parameters[0], "upNode")) {
-				upNode(parameters[1]);
-			} else if (string_equals_ignore_case(parameters[0], "rmn")) {
-				deleteNode(parameters[1]);
+			} else if (string_equals_ignore_case(parameters[0], "nodestat")) {
+				printNodeStatus(parameters[1]);
+			} else if (string_equals_ignore_case(parameters[0], "enablen")) {
+				enableNode(parameters[1]);
+			} else if (string_equals_ignore_case(parameters[0], "disablen")) {
+				disableNode(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "help")) {
 				help();
 			} else if (string_equals_ignore_case(parameters[0], "exit")) {
@@ -314,8 +314,20 @@ void copyFile(char **parameters) {
 			free(localFileName);
 			file_free(file);
 		} else if (string_equals_ignore_case(option, "-tofs")) {
-			// TODO
-			printf("Copia el archivo '%s' al FS: %s\n", source, dest);
+			file_t *file = filesystem_resolveFilePath(source, currentDirId, currentDirPrompt);
+			if (file) {
+				printf("Copying file '%s' to local filesystem to '%s'\n", source, dest);
+				int result = filesystem_saveFileToLocalFS(file, dest);
+
+				if (result == 1) {
+					printf("Done: A file at the local filesystem named '%s' has been saved with the contents.\n", dest);
+				} else if (result == -1) {
+					printf("Aborting: The file '%s' is unavailable because some block couldn't be found in any active node.\n", file->name);
+				}
+				file_free(file);
+			} else {
+				printf("File '%s' not found.\n", source);
+			}
 		} else {
 			printf("Invalid option '%s' \n", option);
 		}
@@ -332,23 +344,11 @@ void md5sum(char *fileName) {
 				printf("%s\t%s\n", md5sum, file->name);
 				free(md5sum);
 			} else {
-				printf("There was an error trying to get the MD5 of %s\n", fileName);
+				printf("There was an error trying to get the MD5 of %s (Maybe the file is unavailable)\n", fileName);
 			}
 			file_free(file);
 		} else {
 			printf("File '%s' not found.\n", fileName);
-		}
-	}
-}
-
-void printNodeStatus(char *nodeName) {
-	if (!isNull(nodeName)) {
-		node_t *node = filesystem_getNodeById(nodeName);
-		if (node) {
-			node_printBlocksStatus(node);
-			node_free(node);
-		} else {
-			printf("Node '%s' does not exist.\n", nodeName);
 		}
 	}
 }
@@ -370,7 +370,7 @@ void saveBlockContents(char **parameters) {
 
 			char tempFileName[512];
 			snprintf(tempFileName, sizeof(tempFileName), "/tmp/MDFS_FILE_BLOCK_%s__%d", file->name, blockNumber);
-			int result = filesystem_saveFileBlockToFile(file, blockNumber, tempFileName);
+			int result = filesystem_saveFileBlockToLocalFS(file, blockNumber, tempFileName);
 
 			// TODO mostrar las copias (nombre, index)
 			if (result == 1) {
@@ -459,18 +459,39 @@ void deleteBlock(char **parameters) {
 	}
 }
 
-void upNode(char *node) {
-	if (!isNull(node)) {
-		// TODO
-		printf("Agrega el nodo '%s'\n", node);
+void printNodeStatus(char *nodeName) {
+	if (!isNull(nodeName)) {
+		node_t *node = filesystem_getNodeById(nodeName);
+		if (node) {
+			node_printBlocksStatus(node);
+			node_free(node);
+		} else {
+			printf("Node '%s' does not exist.\n", nodeName);
+		}
 	}
 }
 
-void deleteNode(char *nodeName) {
+void enableNode(char *nodeName) {
 	if (!isNull(nodeName)) {
-		// TODO
-		printf("Borra el nodo '%s'\n", nodeName);
-		filesystem_nodeIsDown(nodeName);
+		node_t *node = filesystem_getNodeById(nodeName);
+		if (node) {
+			filesystem_activateNode(node);
+			node_free(node);
+		} else {
+			printf("Node '%s' does not exist.\n", nodeName);
+		}
+	}
+}
+
+void disableNode(char *nodeName) {
+	if (!isNull(nodeName)) {
+		node_t *node = filesystem_getNodeById(nodeName);
+		if (node) {
+			filesystem_deactivateNode(node);
+			node_free(node);
+		} else {
+			printf("Node '%s' does not exist.\n", nodeName);
+		}
 	}
 }
 
@@ -499,18 +520,16 @@ void help() {
 	printf("\t cp -tofs <file> <dest>\t\t Copies the file <file> from the MDFS to the local FileSystem at <dest>\n");
 	printf("\t cp -fromfs <file> <dest>\t Copies the file <file> from the local FileSystem to the MDFS at <dest>\n");
 
-	printf("\t nodestat <nodename>\t\t Prints the status (blocks usage) of the node named <nodename>\n");
-
 	printf("\t catb <file> <blockN>\t\t Gets contents of the block number <blockN> (zero-based) of the file <file> and saves it to a temp file\n");
 	printf("\t cpb <file> <blockN>\t\t Makes a new copy (in a different node) of the block number <blockN> (zero-based) of the file <file>\n");
 	printf("\t rmb <file> <blockN> <copyN>\t Deletes the copy <copyN> (zero-based) of the block number <blockN> (zero-based) of the file <file>\n");
 
+	printf("\t enablen <node>\t\t\t Activates the currently connected node named <node>\n");
+	printf("\t disablen <node>\t\t Deactivates the currently connected node named <node>\n");
+	printf("\t nodestat <nodename>\t\t Prints the status (blocks usage) of the node named <nodename>\n");
+
 	printf("\t help\t\t\t\t Prints Help (this message)\n");
 	printf("\t exit\t\t\t\t Exits the MDFS\n\n");
 
-	printf("\n\n CHECK:\n");
-
-	printf("mkn <node>		Agrega el nodo node\n");
-	printf("rmn <node>		Borra el nodo node\n");
 }
 

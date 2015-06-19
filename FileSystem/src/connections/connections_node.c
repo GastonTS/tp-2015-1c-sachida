@@ -6,10 +6,12 @@
 int connections_node_getNodeSocket(char *nodeId);
 void connections_node_setNodeSocket(char *nodeId, int socket);
 
-t_dictionary *nodesSockets;
+t_dictionary *activeNodesSockets;
+t_dictionary *standbyNodesSockets;
 
 void connections_node_initialize() {
-	nodesSockets = dictionary_create();
+	activeNodesSockets = dictionary_create();
+	standbyNodesSockets = dictionary_create();
 }
 
 void connections_node_shutdown() {
@@ -17,25 +19,49 @@ void connections_node_shutdown() {
 		socket_close(*nodeSocket);
 		free(nodeSocket);
 	}
-	dictionary_destroy_and_destroy_elements(nodesSockets, (void*) desconectNode);
+	dictionary_destroy_and_destroy_elements(activeNodesSockets, (void*) desconectNode);
+	dictionary_destroy_and_destroy_elements(standbyNodesSockets, (void*) desconectNode);
 }
 
 int connections_node_getNodeSocket(char *nodeId) {
 	// TODO, mutex por nodo? o en el sendoperation.
-	int *nodeSocket = dictionary_get(nodesSockets, nodeId);
+	int *nodeSocket = dictionary_get(activeNodesSockets, nodeId);
 	return (nodeSocket ? *nodeSocket : -1);
 }
 
 void connections_node_setNodeSocket(char *nodeId, int socket) {
+	// TODO mutex
 	int *socketAcceptedPtr = malloc(sizeof(int));
 	*socketAcceptedPtr = socket;
-	dictionary_put(nodesSockets, nodeId, socketAcceptedPtr);
+	dictionary_put(standbyNodesSockets, nodeId, socketAcceptedPtr);
 }
 
-int connections_node_getConnectedCount() {
-	// TODO mutex
-	return dictionary_size(nodesSockets);
+void connections_node_activateNode(char *nodeId) {
+	// TODO mutex ..
+	int *standbySocketPtr = (int *)dictionary_remove(standbyNodesSockets, nodeId);
+	if (standbySocketPtr) {
+		dictionary_put(activeNodesSockets, nodeId, standbySocketPtr);
+	}
 }
+
+void connections_node_deactivateNode(char *nodeId) {
+	// TODO mutex ..
+	int *activeSocketPtr = (int *)dictionary_remove(activeNodesSockets, nodeId);
+	if (activeSocketPtr) {
+		dictionary_put(standbyNodesSockets, nodeId, activeSocketPtr);
+	}
+}
+
+int connections_node_getActiveConnectedCount() {
+	// TODO mutex
+	return dictionary_size(activeNodesSockets);
+}
+
+bool connections_node_isActiveNode(char *nodeId) {
+	// TODO mutex, chequear este caso especifo porque llama al otro que usa mutex sin haberlo liberado..
+	return connections_node_getNodeSocket(nodeId) != -1;
+}
+
 
 void connections_node_accept(int socketAccepted, char *clientIP) {
 
@@ -68,6 +94,7 @@ void connections_node_accept(int socketAccepted, char *clientIP) {
 	// TODO, ver en que usar la ip.
 	connections_node_setNodeSocket(nodeName, socketAccepted);
 
+	log_info(mdfs_logger, "New node connected (new: %s). Name: %s . blocksCount %d", isNewNode ? "true" : "false", nodeName, blocksCount);
 	filesystem_addNode(nodeName, blocksCount, (bool) isNewNode);
 
 	free(nodeName);

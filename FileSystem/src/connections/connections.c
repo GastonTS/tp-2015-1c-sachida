@@ -41,8 +41,8 @@ void *connections_listenerThread(void *param) {
 			connections_node_accept(socketAccepted, clientIP); // TODO, mover a thread? SI. hacer.
 			break;
 		case HANDSHAKE_MARTA:
-			if (connections_node_getConnectedCount() < config->minNodesCount) {
-				log_info(mdfs_logger, "Marta connected but rejected\n");
+			if (connections_node_getActiveConnectedCount() < config->minNodesCount) {
+				log_info(mdfs_logger, "Marta connected but rejected because minimum nodes count was not reached\n");
 				socket_close(socketAccepted);
 			} else {
 				connections_marta_accept(socketAccepted); // TODO, mover a thread? SI. hacer.

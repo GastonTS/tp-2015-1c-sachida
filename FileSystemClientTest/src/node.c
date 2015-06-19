@@ -110,5 +110,5 @@ void deserialzeGetBloque(void *buffer, int fsSocket) {
 char* getBloque(uint16_t numBlock) {
 	printf("----------GET BLOQUE-----------\nObtengo el bloque numero %d\n----------------------------\n", numBlock);
 	fflush(stdout);
-	return strdup("Este es el bloque");
+	return strdup("Este es el bloque\n");
 }

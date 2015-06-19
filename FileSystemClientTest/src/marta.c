@@ -47,7 +47,7 @@ void marta_escucharAcciones(int fsSocket) {
 void pedirBloquesArchivo(int fsSocket) {
 
 	uint8_t command = 1; // Comando para pedir los bloques del archivo.
-	char archivo[] = "aa";
+	char archivo[] = "a";
 	uint32_t sArchivo = strlen(archivo);
 
 	size_t sBuffer = sizeof(command) + sizeof(sArchivo) + sArchivo;
@@ -75,19 +75,21 @@ void pedirBloquesArchivo(int fsSocket) {
 	void *bufferOffset = buffer + sizeof(blocksCount);
 
 	printf("Bloques de %s . Tiene %d bloques \n", archivo, blocksCount);
-	int i;
-	for (i = 0; i < blocksCount; i++) {
+	fflush(stdout);
+	int fileBlockNumber;
+	for (fileBlockNumber = 0; fileBlockNumber < blocksCount; fileBlockNumber++) {
 		uint16_t copyesCount;
 		memcpy(&copyesCount, bufferOffset, sizeof(copyesCount));
 		copyesCount = ntohs(copyesCount);
 		bufferOffset += sizeof(copyesCount);
 
-		printf("\tBloque nro %d. Tiene %d copias \n", i, copyesCount);
+		printf("\t|----> Bloque nro %d. Tiene %d copias \n", fileBlockNumber, copyesCount);
+		fflush(stdout);
 		int j;
 		for (j = 0; j < copyesCount; j++) {
 			uint32_t sNodeId;
 			char *nodeId;
-			uint16_t blockNumber;
+			uint16_t nodeBlockNumber;
 
 			memcpy(&sNodeId, bufferOffset, sizeof(sNodeId));
 			sNodeId = ntohl(sNodeId);
@@ -98,15 +100,18 @@ void pedirBloquesArchivo(int fsSocket) {
 			nodeId[sNodeId] = '\0';
 			bufferOffset += sNodeId;
 
-			memcpy(&blockNumber, bufferOffset, sizeof(blockNumber));
-			blockNumber = ntohs(blockNumber);
-			bufferOffset += sizeof(blockNumber);
+			memcpy(&nodeBlockNumber, bufferOffset, sizeof(nodeBlockNumber));
+			nodeBlockNumber = ntohs(nodeBlockNumber);
+			bufferOffset += sizeof(nodeBlockNumber);
 
 			// TODO, aca guardar en una estructura, o usarlo, nose.
-			printf("\t\t Nodo: %s . Bloque nro: %d \n", nodeId, blockNumber);
+			printf("\t|\t|---->  Nodo: %s . Bloque nro: %d \n", nodeId, nodeBlockNumber);
+			fflush(stdout);
 			free(nodeId);
 		}
 	}
+	printf("---------------------------------------------------------\n");
+	fflush(stdout);
 
 	free(buffer);
 }

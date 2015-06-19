@@ -1,3 +1,4 @@
+#include "connections_node.h"
 #include "connections_marta.h"
 #include "connections.h"
 #include "../filesystem/filesystem.h"
@@ -78,30 +79,42 @@ bool connection_marta_sendFileBlocks(void *bufferReceived) {
 	size_t sBuffer = sizeof(blocksCount);
 
 	void listBlocks(t_list* blockCopies) {
+		uint16_t copyesCount = 0;
+		void *blockCopiesBuffer = NULL;
+		size_t sBlockCopiesBuffer = 0;
+
 		void listBlockCopy(file_block_t *blockCopy) {
-			uint32_t sNode = strlen(blockCopy->nodeId);
-			size_t sBlockCopy = sizeof(sNode) + sNode + sizeof(blockCopy->blockIndex);
-			buffer = realloc(buffer, sBuffer + sBlockCopy);
+			if (connections_node_isActiveNode(blockCopy->nodeId)) {
+				copyesCount++;
 
-			uint32_t sNodeSerialized = htonl(sNode);
-			uint16_t blockIndexSerialized = htons(blockCopy->blockIndex);
+				uint32_t sNode = strlen(blockCopy->nodeId);
+				size_t sBlockCopy = sizeof(sNode) + sNode + sizeof(blockCopy->blockIndex);
+				blockCopiesBuffer = realloc(blockCopiesBuffer, sBlockCopiesBuffer + sBlockCopy);
 
-			memcpy(buffer + sBuffer, &sNodeSerialized, sizeof(sNode));
-			memcpy(buffer + sBuffer + sizeof(sNode), blockCopy->nodeId, sNode);
-			memcpy(buffer + sBuffer + sizeof(sNode) + sNode, &blockIndexSerialized, sizeof(blockCopy->blockIndex));
+				uint32_t sNodeSerialized = htonl(sNode);
+				uint16_t blockIndexSerialized = htons(blockCopy->blockIndex);
 
-			sBuffer += sBlockCopy;
+				memcpy(blockCopiesBuffer + sBlockCopiesBuffer, &sNodeSerialized, sizeof(sNode));
+				memcpy(blockCopiesBuffer + sBlockCopiesBuffer + sizeof(sNode), blockCopy->nodeId, sNode);
+				memcpy(blockCopiesBuffer + sBlockCopiesBuffer + sizeof(sNode) + sNode, &blockIndexSerialized, sizeof(blockCopy->blockIndex));
+
+				sBlockCopiesBuffer += sBlockCopy;
+			}
 		}
 
-		uint16_t copyesCount = list_size(blockCopies);
+		list_iterate(blockCopies, (void *) listBlockCopy);
+
 		uint16_t copyesCountSerialized = htons(copyesCount);
 
 		buffer = realloc(buffer, sBuffer + sizeof(copyesCount));
-
 		memcpy(buffer + sBuffer, &copyesCountSerialized, sizeof(copyesCount));
 		sBuffer += sizeof(copyesCount);
 
-		list_iterate(blockCopies, (void *) listBlockCopy);
+		buffer = realloc(buffer, sBuffer + sBlockCopiesBuffer);
+		memcpy(buffer + sBuffer, blockCopiesBuffer, sBlockCopiesBuffer);
+		sBuffer += sBlockCopiesBuffer;
+
+		free(blockCopiesBuffer);
 	}
 	list_iterate(file->blocks, (void *) listBlocks);
 	file_free(file);

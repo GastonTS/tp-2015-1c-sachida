@@ -8,7 +8,7 @@
 
 extern t_log* mdfs_logger;
 
-#define FILESYSTEM_BLOCK_COPIES 3
+#define FILESYSTEM_BLOCK_COPIES 1
 #define	NODE_BLOCK_SIZE	20 * 1024 * 1024
 
 // Holds an operation to be done. ALL POINTERS ARE FREED BY OTHERS. (maybe? wtf)
@@ -42,16 +42,18 @@ int filesystem_copyFileFromFS(char *route, file_t *file);
 bool filesystem_addDir(dir_t *dir);
 
 node_t* filesystem_getNodeById(char *nodeId);
-void filesystem_nodeIsDown(char *nodeName);
 void filesystem_addNode(char *nodeId, uint16_t blocksCount, bool isNewNode);
+void filesystem_deactivateNode(node_t *node);
+void filesystem_activateNode(node_t *node);
 
 char* filesystem_md5sum(file_t* file);
 
 file_t* filesystem_resolveFilePath(char *path, char *startingDirId, char *startingPath);
 dir_t* filesystem_resolveDirPath(char *path, char *startingDirId, char *startingPath, char **fullPath);
 
-int filesystem_saveFileBlockToFile(file_t *file, uint16_t blockIndex, char *pathToFile);
+int filesystem_saveFileBlockToLocalFS(file_t *file, uint16_t blockIndex, char *pathToFile);
 int filesystem_makeNewFileBlockCopy(file_t *file, uint16_t blockIndex);
 int filesystem_deleteFileBlockCopy(file_t *file, uint16_t blockIndex, uint16_t copyIndex);
+int filesystem_saveFileToLocalFS(file_t *file, char *pathToFile);
 
 #endif
