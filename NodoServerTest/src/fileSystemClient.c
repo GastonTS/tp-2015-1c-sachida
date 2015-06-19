@@ -1,4 +1,4 @@
-#include "fs.h"
+#include "fileSystemClient.h"
 
 void startFS() {
 	//char Node_IP[] = "127.0.0.1";
@@ -8,18 +8,18 @@ void startFS() {
 	logger = log_create("Log.txt", "Servidor", 1,
 			log_level_from_string("DEBUG"));
 	log_info(logger, "File System port: %d", fsPORT);
-	log_info(logger, "Listening connections");
+	log_info(logger, "File System listening connections");
 	int fsSocket = socket_listen(fsPORT);
 	nodeSocket = socket_accept_and_get_ip(fsSocket, &nodeIp);
 	free(nodeIp);
 	int hand = socket_handshake_to_client(nodeSocket, HANDSHAKE_FILESYSTEM,
 			HANDSHAKE_NODO);
 	if (!hand) {
-		printf("Error al conectar con el Nodo\n");
+		printf("Error al conectar el File System con el Nodo\n");
 		return;
 	}
 
-	log_info(logger, "Conection sucessfully");
+	log_info(logger, "File System Conection sucessfully");
 
 	// Levanto el nodo
 	size_t sBuffer;
@@ -52,5 +52,5 @@ void fs_enviarAcciones(int nodeSocket) {
 	socket_close(nodeSocket);
 	printf("Send OK\n"); // TODO handlear el error
 	free(bufferG);
-
+	sleep(5);
 }

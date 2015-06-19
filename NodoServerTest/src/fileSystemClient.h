@@ -8,11 +8,5 @@
 void startFS();
 void fs_enviarAcciones(int nodeSocket);
 
-void deserialzeSetBloque(void *buffer);
-void setBloque(uint16_t numBlock, char *blockData);
-
-void deserialzeGetBloque(void *buffer, int fsSocket);
-char* getBloque(uint16_t numBlock);
-
 t_log* logger;
 
