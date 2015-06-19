@@ -90,7 +90,8 @@ int main(int argc, char *argv[]) {
 	contMap = 0;
 	contReduce = 0;
 
-	if((sock_marta = conectarMarta() >= 0)){
+	if((sock_marta = conectarMarta()) >= 0){
+		log_info(logger,"sock_marta: %d",sock_marta);
 		atenderMarta(sock_marta);;
 	}
 
@@ -123,7 +124,6 @@ int conectarMarta() {
 		return EXIT_FAILURE;
 	}
 
-	log_info(logger,"Handshake MaRTA: %d",handshake);
 	return sock_marta;
 }
 
@@ -154,7 +154,6 @@ void serializeConfigMaRTA(int fd, bool combiner, char* stringFiles) {
 	combiner = htons(combiner);
 	memcpy(buffer, &combiner, scombiner);
 	memcpy((buffer + scombiner), stringFiles, filesLength);
-
 	socket_send_packet(fd, buffer, sbuffer);
 	free(buffer);
 }
@@ -191,6 +190,7 @@ void recvOrder(int fd) {
 		*/
 	}
 	else if (order == 'r'){
+		log_info(logger,"Reduce Recived");
 		pthread_create(&hilo_reduce, NULL, (void*) atenderReducer, &parms_reduce);
 		/*
 		hiloRed = malloc(sizeof(t_list_thread));
@@ -234,7 +234,7 @@ void atenderMapper(void* parametros) {
 		pthread_exit(&ret_val);
 	}
 
-	log_info(logger, "Coneccion con MaRTA: %d", sock_nodo);
+	log_info(logger, "Coneccion con Nodo: %d", sock_nodo);
 
 	hand_nodo = socket_handshake_to_server(sock_nodo, HANDSHAKE_NODO, HANDSHAKE_JOB);
 	if (!hand_nodo) {

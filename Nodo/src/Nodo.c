@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
 }
 
 void nodo_escucharAcciones(int socket) {
-	int ciclo = 2;
+	int ciclo = 4;
 	while (ciclo > 0) {
 		size_t packet_size;
 		void* paquete;
@@ -127,6 +127,7 @@ void createNode() {
 }
 
 /*void escucharJobs(){
+
  fd_set read_fds;
  fd_set master;
  int fdmax;
@@ -202,7 +203,8 @@ void createNode() {
  }
  log_destroy(logger);
  return;
- }*/
+ }
+*/
 
 /*void escucharNodos(){}*/
 
@@ -255,6 +257,17 @@ int conectarFileSystem() {
 	log_info(nodeLogger, "Conection sucessfully");
 	return descriptorFileSystem;
 }
+
+ int conectarJob() {
+ 	int descriptorFileSystem;
+ 	int handshakea;
+ 	descriptorFileSystem = socket_connect(cfgNodo->ip_fs, cfgNodo->puerto_fs);
+ 	handshakea = socket_handshake_to_server(descriptorFileSystem,
+ 	HANDSHAKE_FILESYSTEM, HANDSHAKE_NODO);
+ 	printf("derror %d", handshakea);
+ 	log_info(nodeLogger, "Conection sucessfully");
+ 	return descriptorFileSystem;
+ }
 
 char* getBloque(uint16_t nroBloque) {
 	printf("llego al getBLoque\n");

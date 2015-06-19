@@ -1,4 +1,4 @@
-NAME=FileSystemClientTest
+NAME=NodoServerTest
 LIBS= -lcommons -lpthread
 MODS=-Wall -MMD -MP
 CC=gcc -g
