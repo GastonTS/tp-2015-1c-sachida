@@ -204,6 +204,7 @@ void filesystem_addNode(char *nodeId, uint16_t blocksCount, bool isNewNode) {
 			list_iterate(files, (void *) listFiles);
 
 			// Finally, format the node:
+			// TODO if the node changes the blocksCount it fucks all this shit ! (maybe create a new instance)
 			formatNode(node);
 
 			// Free files
@@ -540,6 +541,7 @@ int filesystem_saveFileToLocalFS(file_t *file, char *pathToFile) {
 		}
 
 		filesystem_createLocalFileFromString(pathToFile, fileBuffer);
+		free(fileBuffer);
 		return 1;
 	}
 	return -2;

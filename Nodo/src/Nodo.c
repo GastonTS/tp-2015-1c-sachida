@@ -8,7 +8,7 @@ typedef struct {
 	char *ip_fs;
 	char *archivo_bin;
 	char *dir_tmp;
-	uint16_t nodo_nuevo;
+	uint8_t nodo_nuevo;
 } t_configNodo;
 
 t_configNodo *cfgNodo;
@@ -32,8 +32,7 @@ void deserializeGetBlock(void *paquete, int fsSocket);
 
 //Le agregue los argumentos para que se pueda pasar el archivo de conf como parametro del main
 int main(int argc, char *argv[]) {
-	nodeLogger = log_create("Nodo.log", "Nodo", 1,
-			log_level_from_string("TRACE"));
+	nodeLogger = log_create("Nodo.log", "Nodo", 1, log_level_from_string("TRACE"));
 
 	if (argc != 2) {
 		log_error(nodeLogger, "Missing config file");
@@ -48,25 +47,21 @@ int main(int argc, char *argv[]) {
 
 	socket_fileSystem = conectarFileSystem();
 
+	// TODO, esto no vendria de config?
 	uint16_t cantBloques = 30; // Le voy a decir que tengo 10 bloques para usar.
 	char myName[] = "Nodo1"; // Le paso mi nombre.
 
 	uint16_t sName = strlen(myName);
-	size_t sBuffer = sizeof(cfgNodo->nodo_nuevo) + sizeof(cantBloques)
-			+ sizeof(sName) + sName;
+	size_t sBuffer = sizeof(cfgNodo->nodo_nuevo) + sizeof(cantBloques) + sizeof(sName) + sName;
 
 	uint16_t cantBloquesSerialized = htons(cantBloques);
 	uint16_t sNameSerialized = htons(sName);
 
 	void *pBuffer = malloc(sBuffer);
 	memcpy(pBuffer, &cfgNodo->nodo_nuevo, sizeof(cfgNodo->nodo_nuevo));
-	memcpy(pBuffer + sizeof(cfgNodo->nodo_nuevo), &cantBloquesSerialized,
-			sizeof(cantBloques));
-	memcpy(pBuffer + sizeof(cfgNodo->nodo_nuevo) + sizeof(cantBloques),
-			&sNameSerialized, sizeof(sName));
-	memcpy(
-			pBuffer + sizeof(cfgNodo->nodo_nuevo) + sizeof(cantBloques)
-					+ sizeof(sName), &myName, sName);
+	memcpy(pBuffer + sizeof(cfgNodo->nodo_nuevo), &cantBloquesSerialized, sizeof(cantBloques));
+	memcpy(pBuffer + sizeof(cfgNodo->nodo_nuevo) + sizeof(cantBloques), &sNameSerialized, sizeof(sName));
+	memcpy(pBuffer + sizeof(cfgNodo->nodo_nuevo) + sizeof(cantBloques) + sizeof(sName), &myName, sName);
 
 	socket_send_packet(socket_fileSystem, pBuffer, sBuffer);
 	free(pBuffer);
@@ -204,7 +199,7 @@ void createNode() {
  log_destroy(logger);
  return;
  }
-*/
+ */
 
 /*void escucharNodos(){}*/
 
@@ -258,16 +253,16 @@ int conectarFileSystem() {
 	return descriptorFileSystem;
 }
 
- int conectarJob() {
- 	int descriptorFileSystem;
- 	int handshakea;
- 	descriptorFileSystem = socket_connect(cfgNodo->ip_fs, cfgNodo->puerto_fs);
- 	handshakea = socket_handshake_to_server(descriptorFileSystem,
- 	HANDSHAKE_FILESYSTEM, HANDSHAKE_NODO);
- 	printf("derror %d", handshakea);
- 	log_info(nodeLogger, "Conection sucessfully");
- 	return descriptorFileSystem;
- }
+int conectarJob() {
+	int descriptorFileSystem;
+	int handshakea;
+	descriptorFileSystem = socket_connect(cfgNodo->ip_fs, cfgNodo->puerto_fs);
+	handshakea = socket_handshake_to_server(descriptorFileSystem,
+	HANDSHAKE_FILESYSTEM, HANDSHAKE_NODO);
+	printf("derror %d", handshakea);
+	log_info(nodeLogger, "Conection sucessfully");
+	return descriptorFileSystem;
+}
 
 char* getBloque(uint16_t nroBloque) {
 	printf("llego al getBLoque\n");
@@ -456,21 +451,20 @@ uint8_t obtenerComando(char* paquete) {
 uint16_t obtenerNumBlock(char* paquete) {
 	uint16_t numBlock;
 	memcpy(&numBlock, paquete + sizeof(uint8_t), sizeof(uint16_t));
+	numBlock = htons(numBlock);
 	return numBlock;
 }
 
 uint32_t obtenerSize(char* paquete) {
 	uint32_t size;
-	memcpy(&size, paquete + sizeof(uint8_t) + sizeof(uint16_t),
-			sizeof(uint32_t));
+	memcpy(&size, paquete + sizeof(uint8_t) + sizeof(uint16_t), sizeof(uint32_t));
+	size = ntohl(size);
 	return size;
 }
 
 char* obtenerDatosBloque(char* paquete, uint32_t size) {
 	char* packet = malloc(sizeof(char) * (size + 1));
-	memcpy(packet,
-			paquete + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint32_t),
-			size);
+	memcpy(packet, paquete + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint32_t), size);
 	packet[size] = '\0';
 	return packet;
 }
@@ -490,8 +484,7 @@ void deserializeGetBlock(void *paquete, int fsSocket) {
 	uint16_t numBlock;
 	numBlock = obtenerNumBlock(paquete);
 	char *bloque = getBloque(numBlock);
-	e_socket_status status = socket_send_packet(fsSocket, bloque,
-			strlen(bloque));
+	e_socket_status status = socket_send_packet(fsSocket, bloque, strlen(bloque));
 
 	if (status != SOCKET_ERROR_NONE) {
 		// TODO, manejar el error.
