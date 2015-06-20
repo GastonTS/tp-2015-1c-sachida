@@ -3,9 +3,11 @@
 
 typedef struct {
 	uint16_t puerto_fs;
+	uint16_t puerto_job;
 	uint16_t puerto_nodo;
 	char *ip_nodo;
 	char *ip_fs;
+	char *ip_job;
 	char *archivo_bin;
 	char *dir_tmp;
 	uint8_t nodo_nuevo;
@@ -20,7 +22,9 @@ void createNode();
 size_t size_of(int fd);
 size_t fileSize;
 int conectarFileSystem();
+int conectarJob();
 int socket_fileSystem;
+int socket_job;
 uint8_t obtenerComando(char* paquete);
 uint16_t obtenerNumBlock(char* paquete);
 uint32_t obtenerSize(char* paquete);
@@ -61,7 +65,8 @@ int main(int argc, char *argv[]) {
 		close(fd);
 	}
 
-	socket_fileSystem = conectarFileSystem();
+	//socket_fileSystem = conectarFileSystem();
+	socket_job = conectarJob();
 
 	// TODO, esto no vendria de config?
 
@@ -79,22 +84,22 @@ int main(int argc, char *argv[]) {
 	memcpy(pBuffer + sizeof(cfgNodo->nodo_nuevo) + sizeof(cantBloques), &sNameSerialized, sizeof(sName));
 	memcpy(pBuffer + sizeof(cfgNodo->nodo_nuevo) + sizeof(cantBloques) + sizeof(sName), &myName, sName);
 
-	socket_send_packet(socket_fileSystem, pBuffer, sBuffer);
+	//socket_send_packet(socket_fileSystem, pBuffer, sBuffer);
+	socket_send_packet(socket_job, pBuffer, sBuffer);
 	free(pBuffer);
 
-	nodo_escucharAcciones(socket_fileSystem);
+	//nodo_escucharAcciones(socket_fileSystem);
+	nodo_escucharAcciones(socket_job);
 	freeNodo();
 	return EXIT_SUCCESS;
 }
 
 void nodo_escucharAcciones(int socket) {
-	int ciclo = 4;
-	while (ciclo > 0) {
+	while (1) {
 		size_t packet_size;
 		void* paquete;
 		// Ahora armo todo para esperar a que el fs me mande datos.
-		printf("armo todo para esperar a que el FS mande datos: \n");
-		printf("Esperando a que el Fs mande un paquete: \n");
+		printf("armo todo para esperar a que el cliente mande datos: \n");
 		socket_recv_packet(socket, &paquete, &packet_size);
 		printf("Recive OK\n");
 		uint8_t comando = obtenerComando(paquete);
@@ -116,7 +121,6 @@ void nodo_escucharAcciones(int socket) {
 			// TODO TODAS LAS FUNCIONES GETBLOQUE Y ESAS VAN ADENTRO DE LOS TRHEADS
 		}
 		free(paquete);
-		ciclo--;
 	}
 }
 
@@ -269,13 +273,14 @@ int conectarFileSystem() {
 
 // TODO el job se conecta al nodo mepa eh... hay que poner un listening.
 int conectarJob() {
-	int descriptorFileSystem;
+	int descriptorJob;
 	int handshakea;
-	descriptorFileSystem = socket_connect(cfgNodo->ip_fs, cfgNodo->puerto_fs);
-	handshakea = socket_handshake_to_server(descriptorFileSystem, HANDSHAKE_FILESYSTEM, HANDSHAKE_NODO);
+	descriptorJob = socket_connect(cfgNodo->ip_job, cfgNodo->puerto_job);
+	handshakea = socket_handshake_to_server(descriptorJob,
+	HANDSHAKE_JOB, HANDSHAKE_NODO);
 	printf("derror %d", handshakea);
 	log_info(nodeLogger, "Conection sucessfully");
-	return descriptorFileSystem;
+	return descriptorJob;
 }
 
 void sendBloque(uint16_t nroBloque, int fsSocket) {
@@ -440,15 +445,19 @@ int initConfig(char* configFile) {
 	cfgNodo->dir_tmp = strdup(getCongifString("DIR_TMP"));
 	cfgNodo->ip_fs = strdup(getCongifString("IP_FS"));
 	cfgNodo->ip_nodo = strdup(getCongifString("IP_NODO"));
+	cfgNodo->ip_job = strdup(getCongifString("IP_JOB"));
 	cfgNodo->nodo_nuevo = getConfigInt("NODO_NUEVO");
 	cfgNodo->puerto_fs = getConfigInt("PUERTO_FS");
 	cfgNodo->puerto_nodo = getConfigInt("PUERTO_NODO");
+	cfgNodo->puerto_job = getConfigInt("PUERTO_JOB");
 
 	if (!failure) {
 		log_info(nodeLogger, "Archivo bin: %s", cfgNodo->archivo_bin);
 		log_info(nodeLogger, "Dir temporal: %s", cfgNodo->dir_tmp);
 		log_info(nodeLogger, "FileSystem IP: %s", cfgNodo->ip_fs);
 		log_info(nodeLogger, "FileSystem Port: %d", cfgNodo->puerto_fs);
+		log_info(nodeLogger, "Job IP: %s", cfgNodo->ip_job);
+		log_info(nodeLogger, "Job Port: %d", cfgNodo->puerto_job);
 		log_info(nodeLogger, "Node IP: %s", cfgNodo->ip_nodo);
 		log_info(nodeLogger, "Node Port: %d", cfgNodo->puerto_nodo);
 		log_info(nodeLogger, "New Node: %d", cfgNodo->nodo_nuevo);
@@ -478,6 +487,9 @@ void freeNodo() {
 	}
 	if (cfgNodo->ip_nodo) {
 		free(cfgNodo->ip_nodo);
+	}
+	if (cfgNodo->ip_job) {
+		free(cfgNodo->ip_job);
 	}
 	free(cfgNodo);
 	log_destroy(nodeLogger);
