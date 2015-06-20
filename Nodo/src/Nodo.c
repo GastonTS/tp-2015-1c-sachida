@@ -45,10 +45,26 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
+	uint16_t cantBloques = 30; // Le voy a decir que tengo 10 bloques para usar.
+
+	//if (cfgNodo->nodo_nuevo) {
+	if (1) {
+		int fd = open("/home/utnso/block", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+		if (fd == -1) {
+			return -1; // TODO handlear.
+		}
+
+		lseek(fd, BLOCK_SIZE * cantBloques, SEEK_SET);
+		write(fd, "", 1);
+		lseek(fd, 0, SEEK_SET);
+
+		close(fd);
+	}
+
 	socket_fileSystem = conectarFileSystem();
 
 	// TODO, esto no vendria de config?
-	uint16_t cantBloques = 30; // Le voy a decir que tengo 10 bloques para usar.
+
 	char myName[] = "Nodo1"; // Le paso mi nombre.
 
 	uint16_t sName = strlen(myName);
@@ -262,10 +278,30 @@ int conectarJob() {
 	return descriptorFileSystem;
 }
 
-char* getBloque(uint16_t nroBloque) {
-	printf("llego al getBLoque\n");
+void sendBloque(uint16_t nroBloque, int fsSocket) {
+	printf("llego al sendBloque\n");
 	printf("numero de bloque : %d\n", nroBloque);
-	return "hola";
+
+	int fd = open("/home/utnso/block", O_RDONLY);
+	if (fd == -1) {
+		printf("ERROR OPEN\n");
+		return; // TODO handlear.
+	}
+
+	char *blockStr = (char *) mmap(0, BLOCK_SIZE, PROT_READ, MAP_PRIVATE, fd, nroBloque * BLOCK_SIZE);
+	//blockStr[BLOCK_SIZE] = '\0';
+	printf("strlen %d\n", strlen(blockStr));
+
+	e_socket_status status = socket_send_packet(fsSocket, blockStr, strlen(blockStr));
+
+	printf("STATUS %d\n", status);
+	if (status != SOCKET_ERROR_NONE) {
+		// TODO, manejar el error.
+	}
+
+	munmap(blockStr, BLOCK_SIZE);
+	close(fd);
+
 	/*int mapper;
 	 char* mapeo;
 	 size_t size;
@@ -298,7 +334,20 @@ char* getBloque(uint16_t nroBloque) {
 void setBloque(uint16_t nroBloque, char* string) {
 	printf("llego al setBLoque\n");
 	printf("numero de bloque : %d\n", nroBloque);
-	printf("el string : %s\n", string);
+
+	int fd = open("/home/utnso/block", O_RDWR);
+	if (fd == -1) {
+		printf("ERROR OPEN\n");
+		return; // TODO handlear.
+	}
+
+	char *blockStr = (char *) mmap(0, BLOCK_SIZE, PROT_WRITE, MAP_SHARED, fd, nroBloque * BLOCK_SIZE);
+
+	memcpy(blockStr, string, strlen(string) + 1);
+
+	munmap(blockStr, BLOCK_SIZE);
+	close(fd);
+
 	/*
 	 int mapper;
 	 char* mapeo;
@@ -481,10 +530,5 @@ void deserializeSetBlock(void *paquete) {
 void deserializeGetBlock(void *paquete, int fsSocket) {
 	uint16_t numBlock;
 	numBlock = obtenerNumBlock(paquete);
-	char *bloque = getBloque(numBlock);
-	e_socket_status status = socket_send_packet(fsSocket, bloque, strlen(bloque));
-
-	if (status != SOCKET_ERROR_NONE) {
-		// TODO, manejar el error.
-	}
+	sendBloque(numBlock, fsSocket);
 }

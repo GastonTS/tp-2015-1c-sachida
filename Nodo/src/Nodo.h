@@ -1,10 +1,3 @@
-/*
- * Nodo.h
- *
- *  Created on: 1/6/2015
- *      Author: utnso
- */
-
 #ifndef NODO_H_
 #define NODO_H_
 
@@ -34,7 +27,6 @@
 //Variables y tipos de datos
 #define BACKLOG 2 /* El número de conexiones permitidas */
 #define MAXDATASIZE 100 //Cantidad maxima de datos que puedo mandar de un socket a otro
-#define SIZE_BLOQUE 20 //Bloques de 20 MB en espacio de datos
 #define CANT_BLOQUES 50 //Cantidad de bloques en espacio de datos
 #define SIZE_MSG sizeof(t_mensaje)
 #define HANDSHAKE 100
@@ -43,6 +35,9 @@
 #define FILESYSTEM 200
 #define JOB 300
 #define NODO 400
+
+
+#define	BLOCK_SIZE	20 * 1024 * 1024 // 20 MB de bloques
 
 typedef struct {
 	int tipo;

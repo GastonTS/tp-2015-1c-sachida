@@ -574,6 +574,7 @@ bool filesystem_isRootDir(dir_t *dir) {
 }
 
 void filesystem_createLocalFileFromString(char *pathToFile, char *str) {
+	// TODO usar mmap?
 	FILE *fp = fopen(pathToFile, "w");
 	if (str) {
 		fputs(str, fp);
@@ -671,6 +672,7 @@ t_list* filesystem_getFSFileBlocks(char *route, size_t *fileSize) {
 	}
 
 	munmap(fileStr, *fileSize);
+	close(fd);
 
 	return blocks;
 }
