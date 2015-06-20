@@ -243,22 +243,20 @@ void createNode() {
  }*/
 
 int conectarFileSystem() {
-	int descriptorFileSystem;
-	int handshakea;
-	descriptorFileSystem = socket_connect(cfgNodo->ip_fs, cfgNodo->puerto_fs);
-	handshakea = socket_handshake_to_server(descriptorFileSystem,
-	HANDSHAKE_FILESYSTEM, HANDSHAKE_NODO);
-	printf("derror %d", handshakea);
+	int descriptorFileSystem = socket_connect(cfgNodo->ip_fs, cfgNodo->puerto_fs);
+	if (HANDSHAKE_FILESYSTEM != socket_handshake_to_server(descriptorFileSystem, HANDSHAKE_FILESYSTEM, HANDSHAKE_NODO)) {
+		return -1;
+	}
 	log_info(nodeLogger, "Conection sucessfully");
 	return descriptorFileSystem;
 }
 
+// TODO el job se conecta al nodo mepa eh... hay que poner un listening.
 int conectarJob() {
 	int descriptorFileSystem;
 	int handshakea;
 	descriptorFileSystem = socket_connect(cfgNodo->ip_fs, cfgNodo->puerto_fs);
-	handshakea = socket_handshake_to_server(descriptorFileSystem,
-	HANDSHAKE_FILESYSTEM, HANDSHAKE_NODO);
+	handshakea = socket_handshake_to_server(descriptorFileSystem, HANDSHAKE_FILESYSTEM, HANDSHAKE_NODO);
 	printf("derror %d", handshakea);
 	log_info(nodeLogger, "Conection sucessfully");
 	return descriptorFileSystem;
