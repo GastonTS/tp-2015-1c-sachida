@@ -5,7 +5,11 @@ void startMarta() {
 	int FS_PORT = 5000;
 
 	printf("Cliente MARTA\n");
-	int fsSocket = socket_connect(FS_IP, FS_PORT);
+	int fsSocket = -1;
+	while (0 > fsSocket) {
+		fsSocket = socket_connect(FS_IP, FS_PORT);
+	}
+
 	int hand = socket_handshake_to_server(fsSocket, HANDSHAKE_FILESYSTEM, HANDSHAKE_MARTA);
 	if (!hand) {
 		printf("Error al conectar con el FS\n");
@@ -14,9 +18,13 @@ void startMarta() {
 
 	printf("Me conecte con el fs :D\n");
 
-
 	// TEST PEDIR BLOQUES.
 	pedirBloquesArchivo(fsSocket);
+
+	while(1) {
+		//printf("KEEPS CONNECTED");
+	}
+	printf("STATUS CLOSE %d\n", socket_close(fsSocket));
 }
 
 void marta_escucharAcciones(int fsSocket) {
@@ -47,7 +55,7 @@ void marta_escucharAcciones(int fsSocket) {
 void pedirBloquesArchivo(int fsSocket) {
 
 	uint8_t command = 1; // Comando para pedir los bloques del archivo.
-	char archivo[] = "a";
+	char archivo[] = "b";
 	uint32_t sArchivo = strlen(archivo);
 
 	size_t sBuffer = sizeof(command) + sizeof(sArchivo) + sArchivo;
@@ -66,8 +74,12 @@ void pedirBloquesArchivo(int fsSocket) {
 	// Espero repuesta:
 
 	size_t sbuffer = 0;
-	socket_recv_packet(fsSocket, &buffer, &sbuffer); // TODO handlear el error
+	e_socket_status status = socket_recv_packet(fsSocket, &buffer, &sbuffer); // TODO handlear el error
 
+	if (status != SOCKET_ERROR_NONE) {
+		// TODO, disconnected from server.
+		return;
+	}
 	uint16_t blocksCount;
 	memcpy(&blocksCount, buffer, sizeof(blocksCount));
 	blocksCount = ntohs(blocksCount);

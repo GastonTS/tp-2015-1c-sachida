@@ -11,43 +11,58 @@ bool connection_marta_sendFileBlocks(void *bufferReceived);
 int martaSocket;
 
 void connections_marta_initialize() {
-
+	martaSocket = -1;
 }
 
 void connections_marta_shutdown() {
-
+	socket_close(martaSocket);
 }
 
 void connections_marta_accept(int socketAccepted) {
+	if (martaSocket != -1) {
+		log_error(mdfs_logger, "Marta tried to connect but rejected because there was another Marta connected");
+		socket_close(socketAccepted);
+		return;
+	}
+
+	pthread_t martaTh;
 	martaSocket = socketAccepted;
-
-	pthread_t martaTh; // TODO TEMA CONNECTIONS, deberia ir global para terminarlo o q?
-
 	if (pthread_create(&martaTh, NULL, (void *) connections_marta_listenActions, NULL)) {
 		log_error(mdfs_logger, "Error while trying to create new thread: connections_marta_listenActions");
 	}
+	pthread_detach(martaTh);
 }
 
 void *connections_marta_listenActions(void *param) {
+	int exit = 0;
 
-	void *buffer;
-	size_t sBuffer = 0;
-	e_socket_status status = socket_recv_packet(martaSocket, &buffer, &sBuffer);
+	while (!exit) {
+		void *buffer = NULL;
+		size_t sBuffer = 0;
 
-	if (status != SOCKET_ERROR_NONE) {
-		return NULL;
+		e_socket_status status = socket_recv_packet(martaSocket, &buffer, &sBuffer);
+
+		if (status != SOCKET_ERROR_NONE) {
+			exit = 1;
+		} else {
+			uint8_t command;
+			memcpy(&command, buffer, sizeof(uint8_t));
+
+			switch (command) {
+			case MARTA_COMMAND_GET_FILE_BLOCKS:
+				if (!connection_marta_sendFileBlocks(buffer)) {
+					exit = 1;
+				}
+				break;
+			}
+		}
+
+		if (buffer) {
+			free(buffer);
+		}
 	}
-
-	uint8_t command;
-	memcpy(&command, buffer, sizeof(uint8_t));
-
-	switch (command) {
-	case MARTA_COMMAND_GET_FILE_BLOCKS:
-		connection_marta_sendFileBlocks(buffer);
-		break;
-	}
-
-	free(buffer);
+	socket_close(martaSocket);
+	martaSocket = -1;
 	return NULL;
 }
 
@@ -56,16 +71,17 @@ bool connection_marta_sendFileBlocks(void *bufferReceived) {
 	memcpy(&sFileName, bufferReceived + sizeof(uint8_t), sizeof(uint32_t));
 	sFileName = ntohl(sFileName);
 
-	char *fileName = malloc(sizeof(char) * (sFileName + 1));
-	memcpy(fileName, bufferReceived + sizeof(uint8_t) + sizeof(uint32_t), sFileName);
-	fileName[sFileName] = '\0';
+	char *filePathName = malloc(sizeof(char) * (sFileName + 1));
+	memcpy(filePathName, bufferReceived + sizeof(uint8_t) + sizeof(uint32_t), sFileName);
+	filePathName[sFileName] = '\0';
 
-	log_info(mdfs_logger, "Marta requested the blocks of file %s", fileName);
-	file_t *file = filesystem_resolveFilePath(fileName, ROOT_DIR_ID, "/");
+	log_info(mdfs_logger, "Marta requested the blocks of file %s", filePathName);
+	file_t *file = filesystem_resolveFilePath(filePathName, ROOT_DIR_ID, "/");
+
+	free(filePathName);
 
 	if (!file) {
-		// TODO  Return code =  that the is no such file to marta?
-		return 0;
+		return 1;
 	}
 
 	// |cantbloques [cantCopias [sizeNodeId|nodeId|blockIndex] ]

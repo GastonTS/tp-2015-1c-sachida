@@ -13,63 +13,42 @@
 //									SOCKETS											//
 //**********************************************************************************//
 
-typedef struct sockaddr_in t_sockaddr_in;
-typedef struct sockaddr* p_sockaddr;
-
-int socket_setoption(int fd) { //Setea el tiempo para reintentar algo por ese fd
-	struct timeval timeout;
-	timeout.tv_sec = 10;
-	timeout.tv_usec = 0; //microsegundos
-	if (0 > setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (char *) &timeout, sizeof(timeout)))
-		return SOCKET_ERROR_TIMEOUT_RECV;
-
-	if (0 > setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, (char *) &timeout, sizeof(timeout)))
-		return SOCKET_ERROR_TIMEOUT_SEND;
-
-	return SOCKET_ERROR_NONE;
-}
-
-static p_sockaddr _getaddr(const char* ip, t_port port) { //Consigue un struct sockaddr* en base a un ip y un puerto
-	t_sockaddr_in* addr = malloc(sizeof(t_sockaddr_in));
-	addr->sin_family = AF_INET;
-	addr->sin_port = htons(port);
-	if (ip) { //Si mando una ip, consigue el ip de ese dominio con gethostbyname
-		struct hostent* host = gethostbyname(ip);
-		if (!host)
-			return NULL;
-		addr->sin_addr = *((struct in_addr *) host->h_addr);
-		//free(host); free(ip); NO HACER: double free or corruption porque se usa en los demas
-	} else { //Si no manda una ip, pongo la de la maquina local
-		addr->sin_addr.s_addr = INADDR_ANY;
-		memset(&(addr->sin_zero), '\0', 8);
-	}
-	return (p_sockaddr) addr;
-}
-
-static p_sockaddr _getlocaladdr(t_port port) {
-	return _getaddr(NULL, port); //llama la anterior para la maquina local
+void socket_set_port_string(t_port port, char *portStr) {
+	sprintf(portStr, "%d", port);
 }
 
 int socket_listen(t_port port) {
-	//Prepara el file descriptor
-	int fd = socket(AF_INET, SOCK_STREAM, PF_UNSPEC);
-	if (0 > fd)
+
+	struct addrinfo hints;
+	struct addrinfo *serverInfo;
+
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_UNSPEC;		// No importa si uso IPv4 o IPv6
+	hints.ai_flags = AI_PASSIVE;		// Asigna el address del localhost: 127.0.0.1
+	hints.ai_socktype = SOCK_STREAM;	// Indica que usaremos el protocolo TCP
+
+	char portStr[10];
+	socket_set_port_string(port, portStr);
+	getaddrinfo(NULL, portStr, &hints, &serverInfo);
+
+	int fd = socket(serverInfo->ai_family, serverInfo->ai_socktype, serverInfo->ai_protocol);
+
+	if (0 > fd) {
+		freeaddrinfo(serverInfo);
 		return SOCKET_ERROR_SOCKET;
-	int yes = 1;
-	if (0 > setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)))
-		return SOCKET_ERROR_SETSOCKETOPT;
-	//Crea un addr (local, con el puerto paramtro) y la bindea a ese fd
-	p_sockaddr addr = _getlocaladdr(port);
-	if (!addr)
-		return SOCKET_ERROR_ADDRESS;
-	if (0 > bind(fd, addr, sizeof(t_sockaddr_in))) {
-		free(addr);
+	}
+
+	if (0 > bind(fd, serverInfo->ai_addr, serverInfo->ai_addrlen)) {
+		freeaddrinfo(serverInfo);
 		return SOCKET_ERROR_BIND;
 	}
-	free(addr);
-	//Hace el listen
-	if (0 > listen(fd, 5))
+
+	freeaddrinfo(serverInfo);
+
+	if (0 > listen(fd, 5)) {
 		return SOCKET_ERROR_LISTEN;
+	}
+
 	return fd;
 }
 
@@ -89,54 +68,55 @@ int socket_accept_and_get_ip(int fdListener, char **ipAddress) {
 	socklen_t addrlen = sizeof(addr);
 	int fd = accept(fdListener, (struct sockaddr *) &addr, &addrlen);
 
+	if (0 > fd) {
+		return SOCKET_ERROR_ACCEPT;
+	}
+
 	// set the ip.
 	*ipAddress = malloc(INET_ADDRSTRLEN);
 	inet_ntop(AF_INET, &addr.sin_addr.s_addr, *ipAddress, INET_ADDRSTRLEN);
 
-	//Usa retval para poder mandar error si hubo error en el setoption
-	int retval = socket_setoption(fd);
-	if (0 > retval)
-		return retval;
-	if (0 > fd)
-		return SOCKET_ERROR_ACCEPT;
 	return fd;
 }
 
 int socket_connect(const char* ip, t_port port) {
-	int fd = socket(AF_INET, SOCK_STREAM, PF_UNSPEC);
-	if (0 > fd)
-		return SOCKET_ERROR_SOCKET;
-	int retval = socket_setoption(fd);
-	if (0 > retval)
-		return retval;
-	p_sockaddr addr = _getaddr(ip, port);
-	if (!addr)
+	struct addrinfo hints;
+	struct addrinfo *serverInfo;
+
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_UNSPEC;		// Permite que la maquina se encargue de verificar si usamos IPv4 o IPv6
+	hints.ai_socktype = SOCK_STREAM;	// Indica que usaremos el protocolo TCP
+
+	char portStr[10];
+	socket_set_port_string(port, portStr);
+	getaddrinfo(ip, portStr, &hints, &serverInfo);
+
+	if (!serverInfo) {
 		return SOCKET_ERROR_ADDRESS;
-	//Con el while reintenta conectar 3 veces, espera 3 segundos entre cada intento
-	int retry = 3;
-	while (0 > connect(fd, addr, sizeof(t_sockaddr_in)) && retry--) {
-		switch (errno) {
-		case ECONNREFUSED:
-		case ETIMEDOUT:
-			usleep(3000000);
-			continue;
-		default:
-			free(addr);
-			return SOCKET_ERROR_CONNECT;
-		}
 	}
-	free(addr);
-	//si salio por el retry tira error
-	if (0 > retry) {
+
+	int fd = socket(serverInfo->ai_family, serverInfo->ai_socktype, serverInfo->ai_protocol);
+
+	if (0 > fd) {
+		freeaddrinfo(serverInfo);
+		return SOCKET_ERROR_SOCKET;
+	}
+
+	if (0 > connect(fd, serverInfo->ai_addr, serverInfo->ai_addrlen)) {
 		close(fd);
+		freeaddrinfo(serverInfo);
 		return SOCKET_ERROR_CONNECT;
-	} else
-		return fd;
+	}
+	freeaddrinfo(serverInfo);
+
+	return fd;
 }
 
 e_socket_status socket_close(int socket) {
-	if (0 > close(socket))
+	//if (0 > close(socket)) {
+	if (0 > shutdown(socket, SHUT_RDWR)) {
 		return SOCKET_ERROR_CLOSE;
+	}
 	return SOCKET_ERROR_NONE;
 }
 
@@ -188,50 +168,69 @@ e_socket_status socket_recv_integer(int socket, void* integer, size_t size) {
 //**********************************************************************************//
 
 e_socket_status socket_send(int socket, void* stream, size_t size) {
-	if (!stream) //Si no envia bytes en el stream tira error
+	if (!stream) {
 		return SOCKET_ERROR_SEND;
+	}
+
 	void* data = stream; //data es el puntero que voy a usar para ir avanzando en el stream y saber desde donde empezar
 	size_t tosend = size; //tosend es el tamaño total a mandar y count es lo que mando en ese send especifico
 	int count = 0;
-	for (; tosend; tosend -= count, data += count) { //le resta a tosend lo que envio y mueve el puntero data para enviar desde ahi
-		//otra vez el while para reintentar pero con send
+	while (tosend) {
+
 		int retry = 3;
-		while (0 > (count = send(socket, data, tosend, 0)) && retry--) {
+		while (0 >= (count = send(socket, data, tosend, 0)) && retry--) {
 			switch (errno) {
 			case ECONNREFUSED:
+			case EAGAIN:
 			case ETIMEDOUT:
-				usleep(3000000);
-				continue;
+				usleep(1000000);
+				break;
 			default:
 				return SOCKET_ERROR_SEND;
 			}
 		}
-		if (0 > count)
+
+		if (!count || 0 > count) {
 			return SOCKET_ERROR_SEND;
+		}
+
+		tosend -= count;
+		data += count;
 	}
 	return SOCKET_ERROR_NONE;
 }
 
 //Similar a la anterior pero con recv (no sirve para multiplexado
 e_socket_status socket_recv(int socket, void* stream, size_t size) {
-	if (!stream)
+	if (!stream) {
 		return SOCKET_ERROR_RECV;
-	void* data = stream;
-	size_t torecv = size;
+	}
+
+	void *data = stream; // Saves a pointer to keep moving until all size is read.
+	size_t left = size; // Saves the left size to read.s
 	int count;
-	for (; torecv; torecv -= count, data += count) {
-		while (0 > (count = recv(socket, data, torecv, 0))) {
+	while (left) {
+		int retry = 3;
+		while (0 >= (count = recv(socket, data, left, 0)) && retry--) {
 			switch (errno) {
 			case ECONNREFUSED:
 			case EAGAIN:
 			case ETIMEDOUT:
 				usleep(1000000);
-				continue;
+				break;
 			default:
 				return SOCKET_ERROR_RECV;
 			}
 		}
+
+		if (!count || 0 > count) {
+			return SOCKET_ERROR_RECV;
+		}
+
+		left -= count;
+		data += count; // Moves pointer forward
 	}
+
 	return SOCKET_ERROR_NONE;
 }
 
