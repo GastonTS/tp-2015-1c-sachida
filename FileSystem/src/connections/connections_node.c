@@ -179,6 +179,7 @@ char* connections_node_getBlock(file_block_t *fileBlock) {
 	status = socket_recv_packet(nodeSocket, &buffer, &sBuffer);
 
 	if (0 > status) {
+		log_info(mdfs_logger, "Removing node %s because it was disconnected", fileBlock->nodeId);
 		connections_node_removeNodeSocket(fileBlock->nodeId);
 		return NULL;
 	}

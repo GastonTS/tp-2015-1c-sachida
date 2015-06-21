@@ -167,7 +167,7 @@ void moveResource(char *resource, char *destination) {
 
 		dir_t *destinationDir = filesystem_resolveDirPath(destination, currentDirId, currentDirPrompt, NULL);
 		if (!destinationDir) {
-			printf("Cannot move. Dir %s not found", destination);
+			printf("Cannot move: dir '%s' not found", destination);
 			return;
 		}
 
@@ -304,7 +304,7 @@ void copyFile(char **parameters) {
 			if (result == -1) {
 				printf("Cannot create file '%s': Directory or file already exists with that name.\n", dest);
 			} else if (result == -2) {
-				printf("Cannot create file '%s': There is no file %s at local filesystem.\n", dest, source);
+				printf("Cannot create file '%s': There is no file '%s' at local filesystem.\n", dest, source);
 			} else if (result == -3) {
 				printf("Cannot create file '%s': There is not enough space to make all the copies.\n", dest);
 			} else if (result == -4) {
@@ -344,7 +344,7 @@ void md5sum(char *fileName) {
 				printf("%s\t%s\n", md5sum, file->name);
 				free(md5sum);
 			} else {
-				printf("There was an error trying to get the MD5 of %s (Maybe the file is unavailable)\n", fileName);
+				printf("Aborting: The file '%s' is unavailable because some block couldn't be found in any active node.\n", file->name);
 			}
 			file_free(file);
 		} else {

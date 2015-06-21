@@ -204,7 +204,7 @@ void filesystem_addNode(char *nodeId, uint16_t blocksCount, bool isNewNode) {
 			list_iterate(files, (void *) listFiles);
 
 			// Finally, format the node:
-			// TODO if the node changes the blocksCount it fucks all this shit ! (maybe create a new instance)
+			// if the node changes the blocksCount it fucks all this shit !
 			formatNode(node);
 
 			// Free files
@@ -212,7 +212,7 @@ void filesystem_addNode(char *nodeId, uint16_t blocksCount, bool isNewNode) {
 		}
 		// Else: The node exists in the filesystem and he says that is not new, so he should have the same data. I don't have to do anything
 	} else {
-		// The node does not exist, so I don't care whether he is new or not.
+		// The node does not exist, so I don't care whether he is new or not, just create a new one.
 		node = node_create(blocksCount);
 		node->id = strdup(nodeId);
 		mongo_node_save(node);
@@ -715,19 +715,18 @@ char* filesystem_getAllFileContent(file_t *file) {
 	}
 	list_iterate(file->blocks, (void *) listBlocks);
 
-	if (!isComplete) {
-		return NULL;
-	}
+	char *fileBuffer = NULL;
 
-	char *fileBuffer = strdup("");
-	void concatBuffers(char *buffer) {
-		fileBuffer = realloc(fileBuffer, sizeof(char) * (strlen(fileBuffer) + strlen(buffer) + 1));
-		strcat(fileBuffer, buffer);
+	if (isComplete) {
+		fileBuffer = strdup("");
+		void concatBuffers(char *buffer) {
+			fileBuffer = realloc(fileBuffer, sizeof(char) * (strlen(fileBuffer) + strlen(buffer) + 1));
+			strcat(fileBuffer, buffer);
+		}
+		list_iterate(blocksData, (void *) concatBuffers);
 	}
-	list_iterate(blocksData, (void *) concatBuffers);
 
 	list_destroy_and_destroy_elements(blocksData, free);
-
 	return fileBuffer;
 }
 
