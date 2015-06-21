@@ -65,8 +65,8 @@ int main(int argc, char *argv[]) {
 		close(fd);
 	}
 
-	//socket_fileSystem = conectarFileSystem();
-	socket_job = conectarJob();
+	socket_fileSystem = conectarFileSystem();
+	//socket_job = conectarJob();
 
 	// TODO, esto no vendria de config?
 
@@ -84,12 +84,12 @@ int main(int argc, char *argv[]) {
 	memcpy(pBuffer + sizeof(cfgNodo->nodo_nuevo) + sizeof(cantBloques), &sNameSerialized, sizeof(sName));
 	memcpy(pBuffer + sizeof(cfgNodo->nodo_nuevo) + sizeof(cantBloques) + sizeof(sName), &myName, sName);
 
-	//socket_send_packet(socket_fileSystem, pBuffer, sBuffer);
-	socket_send_packet(socket_job, pBuffer, sBuffer);
+	socket_send_packet(socket_fileSystem, pBuffer, sBuffer);
+	//socket_send_packet(socket_job, pBuffer, sBuffer);
 	free(pBuffer);
 
-	//nodo_escucharAcciones(socket_fileSystem);
-	nodo_escucharAcciones(socket_job);
+	nodo_escucharAcciones(socket_fileSystem);
+	//nodo_escucharAcciones(socket_job);
 	freeNodo();
 	return EXIT_SUCCESS;
 }
@@ -100,7 +100,13 @@ void nodo_escucharAcciones(int socket) {
 		void* paquete;
 		// Ahora armo todo para esperar a que el fs me mande datos.
 		printf("armo todo para esperar a que el cliente mande datos: \n");
-		socket_recv_packet(socket, &paquete, &packet_size);
+		e_socket_status status = socket_recv_packet(socket, &paquete, &packet_size);
+		if (0 > status) {
+			// TODO HANDLE
+			printf("ERROR\n");
+			fflush(stdout);
+			return;
+		}
 		printf("Recive OK\n");
 		uint8_t comando = obtenerComando(paquete);
 		switch (comando) {
@@ -263,7 +269,10 @@ void createNode() {
  }*/
 
 int conectarFileSystem() {
-	int descriptorFileSystem = socket_connect(cfgNodo->ip_fs, cfgNodo->puerto_fs);
+	int descriptorFileSystem = -1;
+	while (0 > descriptorFileSystem) {
+		descriptorFileSystem = socket_connect(cfgNodo->ip_fs, cfgNodo->puerto_fs);
+	}
 	if (HANDSHAKE_FILESYSTEM != socket_handshake_to_server(descriptorFileSystem, HANDSHAKE_FILESYSTEM, HANDSHAKE_NODO)) {
 		return -1;
 	}
