@@ -197,14 +197,16 @@ void createNode() {
 
 // TODO el job se conecta al nodo mepa eh... hay que poner un listening.
 int conectarJob(t_nodeCfg *config) {
-	int descriptorJob;
-	int handshakea;
-	descriptorJob = socket_connect(config->ip_job, config->puerto_job);
-	handshakea = socket_handshake_to_server(descriptorJob,
-	HANDSHAKE_JOB, HANDSHAKE_NODO);
-	printf("derror %d", handshakea);
-	log_info(node_logger, "Conection sucessfully");
-	return descriptorJob;
+		int handshakea;
+		char* jobIp;
+		int nodoSocket = socket_listen(config->puerto_nodo);
+		int jobSocket = socket_accept_and_get_ip(nodoSocket, &jobIp);
+		free(jobIp);
+		handshakea = socket_handshake_to_client(jobSocket,
+		HANDSHAKE_NODO, HANDSHAKE_JOB);
+		printf("derror %d", handshakea);
+		log_info(node_logger, "Conection sucessfully");
+		return jobSocket;
 }
 
 char* node_getBlock(uint16_t numBlock) {
