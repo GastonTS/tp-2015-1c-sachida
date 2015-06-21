@@ -847,21 +847,4 @@ void filesystem_nodeBlockSendOperation_free(nodeBlockSendOperation_t *nodeBlockS
 	nodeBlockSendOperation->block = NULL;
 	free(nodeBlockSendOperation);
 }
-/*
- * MUTEX EXAMPLE
- * pthread_mutex_t lock;
- void a() {
- if (pthread_mutex_init(&lock, NULL) != 0) {
- log_error(mdfs_logger, "Error while trying to create new mutex");
- return;
- }
 
- pthread_mutex_lock(&lock);
-
- // REGION CRITICA.
-
- pthread_mutex_unlock(&lock);
-
- pthread_mutex_destroy(&lock);
- }
- */

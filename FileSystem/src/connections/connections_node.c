@@ -3,15 +3,24 @@
 
 #include <commons/collections/dictionary.h>
 
+pthread_mutex_t activeNodesLock;
+pthread_mutex_t standbyNodesLock;
 t_dictionary *activeNodesSockets;
 t_dictionary *standbyNodesSockets;
 
 void connections_node_initialize() {
+	if (pthread_mutex_init(&activeNodesLock, NULL) != 0 || pthread_mutex_init(&standbyNodesLock, NULL) != 0) {
+		log_error(mdfs_logger, "Error while trying to create new mutex");
+		return;
+	}
 	activeNodesSockets = dictionary_create();
 	standbyNodesSockets = dictionary_create();
 }
 
 void connections_node_shutdown() {
+	pthread_mutex_destroy(&activeNodesLock);
+	pthread_mutex_destroy(&standbyNodesLock);
+
 	void desconectNode(int *nodeSocket) {
 		socket_close(*nodeSocket);
 		free(nodeSocket);
@@ -21,49 +30,63 @@ void connections_node_shutdown() {
 }
 
 int connections_node_getNodeSocket(char *nodeId) {
-	// TODO MUTEX por nodo
+	pthread_mutex_lock(&activeNodesLock);
 	int *nodeSocket = dictionary_get(activeNodesSockets, nodeId);
+	pthread_mutex_unlock(&activeNodesLock);
+
 	return (nodeSocket ? *nodeSocket : -1);
 }
 
 void connections_node_setNodeSocket(char *nodeId, int socket) {
-	// TODO MUTEX
 	int *socketAcceptedPtr = malloc(sizeof(int));
 	*socketAcceptedPtr = socket;
+
+	pthread_mutex_lock(&standbyNodesLock);
 	dictionary_put(standbyNodesSockets, nodeId, socketAcceptedPtr);
+	pthread_mutex_unlock(&standbyNodesLock);
 }
 
 void connections_node_removeNodeSocket(char *nodeId) {
-	// TODO MUTEX
+	pthread_mutex_lock(&activeNodesLock);
 	int *socket = dictionary_remove(activeNodesSockets, nodeId);
+	pthread_mutex_unlock(&activeNodesLock);
+
 	if (socket) {
 		free(socket);
 	}
 }
 
 void connections_node_activateNode(char *nodeId) {
-	// TODO MUTEX ..
+	pthread_mutex_lock(&standbyNodesLock);
 	int *standbySocketPtr = (int *) dictionary_remove(standbyNodesSockets, nodeId);
+	pthread_mutex_unlock(&standbyNodesLock);
+
 	if (standbySocketPtr) {
+		pthread_mutex_lock(&activeNodesLock);
 		dictionary_put(activeNodesSockets, nodeId, standbySocketPtr);
+		pthread_mutex_unlock(&activeNodesLock);
 	}
 }
 
 void connections_node_deactivateNode(char *nodeId) {
-	// TODO MUTEX ..
+	pthread_mutex_lock(&activeNodesLock);
 	int *activeSocketPtr = (int *) dictionary_remove(activeNodesSockets, nodeId);
+	pthread_mutex_unlock(&activeNodesLock);
+
 	if (activeSocketPtr) {
+		pthread_mutex_lock(&standbyNodesLock);
 		dictionary_put(standbyNodesSockets, nodeId, activeSocketPtr);
+		pthread_mutex_unlock(&standbyNodesLock);
 	}
 }
 
 int connections_node_getActiveConnectedCount() {
-	// TODO MUTEX
+	pthread_mutex_lock(&activeNodesLock);
 	return dictionary_size(activeNodesSockets);
+	pthread_mutex_unlock(&activeNodesLock);
 }
 
 bool connections_node_isActiveNode(char *nodeId) {
-	// TODO MUTEX, chequear este caso especifo porque llama al otro que usa mutex sin haberlo liberado..
 	return connections_node_getNodeSocket(nodeId) != -1;
 }
 
@@ -105,7 +128,7 @@ void connections_node_accept(int socketAccepted, char *clientIP) {
 	// TODO ver en que usar la ip. ( EL NODO TIENE QUE MANDAR PUERTO DE LISTEN.. )
 	connections_node_setNodeSocket(nodeName, socketAccepted);
 
-	log_info(mdfs_logger, "Node connected. Name: %s . listenPort %d . blocksCount %d . New: %s", nodeName, listenPort, blocksCount, isNewNode ? "true" : "false");
+	log_info(mdfs_logger, "Node connected. Name: %s. listenPort %d. blocksCount %d. New: %s", nodeName, listenPort, blocksCount, isNewNode ? "true" : "false");
 	filesystem_addNode(nodeName, blocksCount, (bool) isNewNode);
 
 	free(nodeName);
@@ -143,6 +166,7 @@ bool connections_node_sendBlock(nodeBlockSendOperation_t *sendOperation) {
 		return 0;
 	}
 
+	// TODO, hacer un recv y esperar espuesta OK (hacer que el nodo mande. )
 	return (status == SOCKET_ERROR_NONE);
 }
 
