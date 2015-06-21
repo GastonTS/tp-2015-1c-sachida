@@ -73,16 +73,18 @@ int main(int argc, char *argv[]) {
 	char myName[] = "Nodo1"; // Le paso mi nombre.
 
 	uint16_t sName = strlen(myName);
-	size_t sBuffer = sizeof(cfgNodo->nodo_nuevo) + sizeof(cantBloques) + sizeof(sName) + sName;
+	size_t sBuffer = sizeof(cfgNodo->nodo_nuevo) + sizeof(cantBloques) + sizeof(sName) + sName + sizeof(cfgNodo->puerto_nodo);
 
 	uint16_t cantBloquesSerialized = htons(cantBloques);
+	uint16_t puertoNodoSerialized = htons(cfgNodo->puerto_nodo);
 	uint16_t sNameSerialized = htons(sName);
 
 	void *pBuffer = malloc(sBuffer);
 	memcpy(pBuffer, &cfgNodo->nodo_nuevo, sizeof(cfgNodo->nodo_nuevo));
 	memcpy(pBuffer + sizeof(cfgNodo->nodo_nuevo), &cantBloquesSerialized, sizeof(cantBloques));
-	memcpy(pBuffer + sizeof(cfgNodo->nodo_nuevo) + sizeof(cantBloques), &sNameSerialized, sizeof(sName));
-	memcpy(pBuffer + sizeof(cfgNodo->nodo_nuevo) + sizeof(cantBloques) + sizeof(sName), &myName, sName);
+	memcpy(pBuffer + sizeof(cfgNodo->nodo_nuevo) + sizeof(cantBloques), &puertoNodoSerialized, sizeof(puertoNodoSerialized));
+	memcpy(pBuffer + sizeof(cfgNodo->nodo_nuevo) + sizeof(cantBloques) + sizeof(puertoNodoSerialized), &sNameSerialized, sizeof(sNameSerialized));
+	memcpy(pBuffer + sizeof(cfgNodo->nodo_nuevo) + sizeof(cantBloques) + sizeof(puertoNodoSerialized) + sizeof(sName), &myName, sName);
 
 	socket_send_packet(socket_fileSystem, pBuffer, sBuffer);
 	//socket_send_packet(socket_job, pBuffer, sBuffer);

@@ -80,17 +80,24 @@ void connections_node_accept(int socketAccepted, char *clientIP) {
 	// NODE DESERIALZE ..
 	uint8_t isNewNode;
 	uint16_t blocksCount;
+	uint16_t listenPort;
 	uint16_t sName;
 	char *nodeName;
 
 	memcpy(&isNewNode, buffer, sizeof(isNewNode));
+
 	memcpy(&blocksCount, buffer + sizeof(isNewNode), sizeof(blocksCount));
 	blocksCount = ntohs(blocksCount);
-	memcpy(&sName, buffer + sizeof(isNewNode) + sizeof(blocksCount), sizeof(sName));
+
+	memcpy(&listenPort, buffer + sizeof(isNewNode) + sizeof(blocksCount), sizeof(listenPort));
+	listenPort = ntohs(listenPort);
+
+	memcpy(&sName, buffer + sizeof(isNewNode) + sizeof(blocksCount) + sizeof(listenPort), sizeof(sName));
 	sName = ntohs(sName);
 	nodeName = malloc(sizeof(char) * (sName + 1));
-	memcpy(nodeName, buffer + sizeof(isNewNode) + sizeof(blocksCount) + sizeof(sName), sName);
+	memcpy(nodeName, buffer + sizeof(isNewNode) + sizeof(blocksCount) + sizeof(listenPort) + sizeof(sName), sName);
 	nodeName[sName] = '\0';
+
 	free(buffer);
 	// ...
 
@@ -98,7 +105,7 @@ void connections_node_accept(int socketAccepted, char *clientIP) {
 	// TODO ver en que usar la ip. ( EL NODO TIENE QUE MANDAR PUERTO DE LISTEN.. )
 	connections_node_setNodeSocket(nodeName, socketAccepted);
 
-	log_info(mdfs_logger, "New node connected (new: %s). Name: %s . blocksCount %d", isNewNode ? "true" : "false", nodeName, blocksCount);
+	log_info(mdfs_logger, "Node connected. Name: %s . listenPort %d . blocksCount %d . New: %s", nodeName, listenPort, blocksCount, isNewNode ? "true" : "false");
 	filesystem_addNode(nodeName, blocksCount, (bool) isNewNode);
 
 	free(nodeName);

@@ -584,7 +584,6 @@ bool filesystem_isRootDir(dir_t *dir) {
 }
 
 void filesystem_createLocalFileFromString(char *pathToFile, char *str) {
-	// TODO usar mmap?
 	FILE *fp = fopen(pathToFile, "w");
 	if (str) {
 		fputs(str, fp);
