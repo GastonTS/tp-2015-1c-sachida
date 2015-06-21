@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <signal.h>
 
 // Siempre que halla if (0> algo) significa "Si hay error"
 // Siempre que halla if (0< algo) significa "Si NO hay error"
@@ -18,6 +19,7 @@ void socket_set_port_string(t_port port, char *portStr) {
 }
 
 int socket_listen(t_port port) {
+	signal(SIGPIPE, SIG_IGN);
 
 	struct addrinfo hints;
 	struct addrinfo *serverInfo;
@@ -80,6 +82,8 @@ int socket_accept_and_get_ip(int fdListener, char **ipAddress) {
 }
 
 int socket_connect(const char* ip, t_port port) {
+	signal(SIGPIPE, SIG_IGN);
+
 	struct addrinfo hints;
 	struct addrinfo *serverInfo;
 
@@ -179,12 +183,14 @@ e_socket_status socket_send(int socket, void* stream, size_t size) {
 
 		int retry = 3;
 		while (0 >= (count = send(socket, data, tosend, 0)) && retry--) {
+			printf("ERRNO %d", errno);
 			switch (errno) {
 			case ECONNREFUSED:
 			case EAGAIN:
 			case ETIMEDOUT:
 				usleep(1000000);
 				break;
+			case EPIPE:
 			default:
 				return SOCKET_ERROR_SEND;
 			}
@@ -197,6 +203,7 @@ e_socket_status socket_send(int socket, void* stream, size_t size) {
 		tosend -= count;
 		data += count;
 	}
+
 	return SOCKET_ERROR_NONE;
 }
 
@@ -218,6 +225,7 @@ e_socket_status socket_recv(int socket, void* stream, size_t size) {
 			case ETIMEDOUT:
 				usleep(1000000);
 				break;
+			case EPIPE:
 			default:
 				return SOCKET_ERROR_RECV;
 			}

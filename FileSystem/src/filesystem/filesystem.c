@@ -16,9 +16,9 @@ char* filesystem_md5(char *str);
 char* filesystem_getAllFileContent(file_t *file);
 t_list* filesystem_getFSFileBlocks(char *route, size_t *fileSize);
 bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file);
-void *filesystem_sendBlockToNode(void *param);
+bool filesystem_sendBlockToNode(nodeBlockSendOperation_t *nodeBlockSendOperation);
 nodeBlockSendOperation_t* filesystem_nodeBlockSendOperation_create(node_t *node, off_t blockIndex, char *block);
-void filesystem_nodeBlockSendOperation_free(nodeBlockSendOperation_t* nodeSendBlockOperation);
+void filesystem_nodeBlockSendOperation_free(nodeBlockSendOperation_t *nodeBlockSendOperation);
 bool filesystem_nodeComparatorByBlocksFree(node_t *node, node_t *node2);
 bool filesystem_isRootDirId(char *id);
 bool filesystem_isRootDir(dir_t *dir);
@@ -464,7 +464,14 @@ int filesystem_makeNewFileBlockCopy(file_t *file, uint16_t blockIndex) {
 
 			if (firstBlockFreeIndex != -1) {
 				nodeBlockSendOperation_t *nodeBlockSendOperation = filesystem_nodeBlockSendOperation_create(selectedNode, firstBlockFreeIndex, block);
-				filesystem_sendBlockToNode((void *) nodeBlockSendOperation);
+				bool sent = filesystem_sendBlockToNode(nodeBlockSendOperation);
+				filesystem_nodeBlockSendOperation_free(nodeBlockSendOperation);
+				if (!sent) {
+					free(block);
+					list_destroy_and_destroy_elements(nodes, (void *) node_free);
+					log_error(mdfs_logger, "Failed to send block to the node.");
+					return -3;
+				}
 
 				node_setBlockUsed(selectedNode, firstBlockFreeIndex);
 				mongo_node_updateBlocks(selectedNode);
@@ -475,14 +482,17 @@ int filesystem_makeNewFileBlockCopy(file_t *file, uint16_t blockIndex) {
 				list_add(blockCopies, blockCopy);
 				mongo_file_addBlockCopyToFile(file->id, blockIndex, blockCopy);
 
+				free(block);
 				list_destroy_and_destroy_elements(nodes, (void *) node_free);
 				return 1;
 			} else {
+				free(block);
 				list_destroy_and_destroy_elements(nodes, (void *) node_free);
 				log_error(mdfs_logger, "There are no nodes to do the copy!");
 				return -3;
 			}
 		} else {
+			free(block);
 			list_destroy_and_destroy_elements(nodes, (void *) node_free);
 			log_error(mdfs_logger, "There are no nodes to do the copy!");
 			return -3;
@@ -773,15 +783,23 @@ bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 
 	list_iterate(blocks, (void *) createSendOperations);
 
+	// Up to here, success tells me if the planification was ok, now I will try to send every block to the nodes.
 	if (success) {
+
+		int failed = 0;
+		void *sendBlockToNode(void *param) {
+			nodeBlockSendOperation_t *nodeBlockSendOperation = (nodeBlockSendOperation_t*) param;
+			if (!filesystem_sendBlockToNode(nodeBlockSendOperation)) {
+				failed = 1; // TODO mutex.
+			}
+			return NULL;
+		}
+
 		pthread_t threads[list_size(sendOperations)];
 		int count = 0;
-
-		void runOperations(nodeBlockSendOperation_t *sendOperation) {
-			// Aca es donde actualizo el bloque usado porque realmente se lo voy a mandar, sino no se actualiza y se destruye sin guardar.
-			mongo_node_updateBlocks(sendOperation->node);
-			// Create threads and do join later.
-			if (pthread_create(&(threads[count]), NULL, (void *) filesystem_sendBlockToNode, (void*) sendOperation)) {
+		void runOperations(nodeBlockSendOperation_t *nodeBlockSendOperation) {
+			if (pthread_create(&(threads[count]), NULL, (void *) sendBlockToNode, (void*) nodeBlockSendOperation)) {
+				failed = 1; // TODO mutex.
 				log_error(mdfs_logger, "Error while trying to create new thread: filesystem_sendBlockToNode");
 			}
 			count++;
@@ -793,40 +811,42 @@ bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 		for (i = 0; i < count; i++) {
 			pthread_join(threads[i], NULL);
 		}
+
+		// Check that everything went ok and update the nodes block (set as used)
+		if (!failed) {
+			void updateNode(nodeBlockSendOperation_t *nodeBlockSendOperation) {
+				mongo_node_updateBlocks(nodeBlockSendOperation->node);
+			}
+			list_iterate(sendOperations, (void *) updateNode);
+		}
+
+		success = !failed;
 	}
 
-	// destoy operations and nodes..
-	list_destroy(sendOperations); // The items are destroyed after usage.
+	list_destroy_and_destroy_elements(sendOperations, (void *) filesystem_nodeBlockSendOperation_free);
 	list_destroy_and_destroy_elements(nodes, (void *) node_free);
 
 	return success;
 }
 
-void *filesystem_sendBlockToNode(void *param) {
-	nodeBlockSendOperation_t* sendOperation = (nodeBlockSendOperation_t*) param;
-
-	log_info(mdfs_logger, "Sending block to node %s , blockIndex %d", sendOperation->node->id, sendOperation->blockIndex);
-	// TODO what happens if fails? :O.
-	connections_node_sendBlock(sendOperation);
-
-	filesystem_nodeBlockSendOperation_free(sendOperation);
-
-	return NULL;
+bool filesystem_sendBlockToNode(nodeBlockSendOperation_t *nodeBlockSendOperation) {
+	log_info(mdfs_logger, "Sending block to node %s , blockIndex %d", nodeBlockSendOperation->node->id, nodeBlockSendOperation->blockIndex);
+	return connections_node_sendBlock(nodeBlockSendOperation);
 }
 
 nodeBlockSendOperation_t* filesystem_nodeBlockSendOperation_create(node_t *node, off_t blockIndex, char *block) {
-	nodeBlockSendOperation_t *nodeSendBlockOperation = malloc(sizeof(nodeBlockSendOperation_t));
-	nodeSendBlockOperation->node = node;
-	nodeSendBlockOperation->blockIndex = blockIndex;
-	nodeSendBlockOperation->block = block;
-	return nodeSendBlockOperation;
+	nodeBlockSendOperation_t *nodeBlockSendOperation = malloc(sizeof(nodeBlockSendOperation_t));
+	nodeBlockSendOperation->node = node;
+	nodeBlockSendOperation->blockIndex = blockIndex;
+	nodeBlockSendOperation->block = block;
+	return nodeBlockSendOperation;
 }
 
-void filesystem_nodeBlockSendOperation_free(nodeBlockSendOperation_t* nodeSendBlockOperation) {
+void filesystem_nodeBlockSendOperation_free(nodeBlockSendOperation_t *nodeBlockSendOperation) {
 	// Point it to null because they are free'd by others.
-	nodeSendBlockOperation->node = NULL;
-	nodeSendBlockOperation->block = NULL;
-	free(nodeSendBlockOperation);
+	nodeBlockSendOperation->node = NULL;
+	nodeBlockSendOperation->block = NULL;
+	free(nodeBlockSendOperation);
 }
 /*
  * MUTEX EXAMPLE

@@ -3,9 +3,6 @@
 
 #include <commons/collections/dictionary.h>
 
-int connections_node_getNodeSocket(char *nodeId);
-void connections_node_setNodeSocket(char *nodeId, int socket);
-
 t_dictionary *activeNodesSockets;
 t_dictionary *standbyNodesSockets;
 
@@ -34,6 +31,14 @@ void connections_node_setNodeSocket(char *nodeId, int socket) {
 	int *socketAcceptedPtr = malloc(sizeof(int));
 	*socketAcceptedPtr = socket;
 	dictionary_put(standbyNodesSockets, nodeId, socketAcceptedPtr);
+}
+
+void connections_node_removeNodeSocket(char *nodeId) {
+	// TODO MUTEX
+	int *socket = dictionary_remove(activeNodesSockets, nodeId);
+	if (socket) {
+		free(socket);
+	}
 }
 
 void connections_node_activateNode(char *nodeId) {
@@ -125,6 +130,13 @@ bool connections_node_sendBlock(nodeBlockSendOperation_t *sendOperation) {
 
 	free(buffer);
 
+	if (0 > status) {
+		printf("REMOVING NODE \n ");
+		fflush(stdout);
+		connections_node_removeNodeSocket(sendOperation->node->id);
+		return 0;
+	}
+
 	return (status == SOCKET_ERROR_NONE);
 }
 
@@ -134,8 +146,6 @@ char* connections_node_getBlock(file_block_t *fileBlock) {
 	if (nodeSocket == -1) {
 		return NULL;
 	}
-
-	e_socket_status status;
 
 	uint8_t command = NODE_COMMAND_GET_BLOCK;
 	uint16_t numBlock = fileBlock->blockIndex;
@@ -148,7 +158,7 @@ char* connections_node_getBlock(file_block_t *fileBlock) {
 	memcpy(buffer, &command, sizeof(command));
 	memcpy(buffer + sizeof(command), &numBlockSerialized, sizeof(numBlock));
 
-	status = socket_send_packet(nodeSocket, buffer, sBuffer);
+	e_socket_status status = socket_send_packet(nodeSocket, buffer, sBuffer);
 
 	free(buffer);
 
@@ -162,7 +172,8 @@ char* connections_node_getBlock(file_block_t *fileBlock) {
 	sBuffer = 0;
 	status = socket_recv_packet(nodeSocket, &buffer, &sBuffer);
 
-	if (status != SOCKET_ERROR_NONE) {
+	if (0 > status) {
+		connections_node_removeNodeSocket(fileBlock->nodeId);
 		return NULL;
 	}
 
