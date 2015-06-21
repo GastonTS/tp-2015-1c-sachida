@@ -9,7 +9,7 @@
 
 #include "../connections/connections_node.h"
 
-void formatNode(node_t *node);
+void filesystem_formatNode(node_t *node);
 void filesystem_createLocalFileFromString(char *pathToFile, char *str);
 bool filesystem_canCreateResource(char *resourceName, char *parentId);
 char* filesystem_md5(char *str);
@@ -41,17 +41,12 @@ void filesystem_shutdown() {
 	log_destroy(mdfs_logger);
 }
 
-void formatNode(node_t *node) {
-	node_setAllBlocksFree(node);
-	mongo_node_updateBlocks(node);
-}
-
 bool filesystem_format() {
 	log_info(mdfs_logger, "Format FS.");
 	if (mongo_dir_deleteAll() && mongo_file_deleteAll()) {
 		t_list *nodes = mongo_node_getAll();
 
-		list_iterate(nodes, (void *) formatNode);
+		list_iterate(nodes, (void *) filesystem_formatNode);
 		list_destroy_and_destroy_elements(nodes, (void *) node_free);
 
 		return 1;
@@ -205,7 +200,7 @@ void filesystem_addNode(char *nodeId, uint16_t blocksCount, bool isNewNode) {
 
 			// Finally, format the node:
 			// if the node changes the blocksCount it fucks all this shit !
-			formatNode(node);
+			filesystem_formatNode(node);
 
 			// Free files
 			list_destroy_and_destroy_elements(files, (void *) file_free);
@@ -381,7 +376,6 @@ dir_t* filesystem_resolveDirPath(char *path, char *startingDirId, char *starting
  * 	-3 -> Passed null to file
  * 	 1 -> Ok!
  */
-
 int filesystem_saveFileBlockToLocalFS(file_t *file, uint16_t blockIndex, char *pathToFile) {
 	if (file) {
 		if (blockIndex >= list_size(file->blocks)) {
@@ -557,7 +551,14 @@ int filesystem_saveFileToLocalFS(file_t *file, char *pathToFile) {
 	return -2;
 }
 
-// PRIVATE
+//**********************************************************************************//
+//									PRIVATE											//
+//**********************************************************************************//
+
+void filesystem_formatNode(node_t *node) {
+	node_setAllBlocksFree(node);
+	mongo_node_updateBlocks(node);
+}
 
 t_list* filesystem_getAllActivatedNodes() {
 	bool nodeIsConnected(node_t *node) {

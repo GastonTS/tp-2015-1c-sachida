@@ -2,8 +2,8 @@
 #define NODO_H_
 
 /*Este archivo contiene todas las definiciones, incluciones de librerias, variables,
-  metodos, y estructuras que vamos a utilizar en el Nodo.c
-*/
+ metodos, y estructuras que vamos a utilizar en el Nodo.c
+ */
 
 //Librerias
 #include <stdio.h>
@@ -29,13 +29,6 @@
 #define MAXDATASIZE 100 //Cantidad maxima de datos que puedo mandar de un socket a otro
 #define CANT_BLOQUES 50 //Cantidad de bloques en espacio de datos
 #define SIZE_MSG sizeof(t_mensaje)
-#define HANDSHAKE 100
-#define HANDSHAKEOK 110
-#define MARTA 100
-#define FILESYSTEM 200
-#define JOB 300
-#define NODO 400
-
 
 #define	BLOCK_SIZE	20 * 1024 * 1024 // 20 MB de bloques
 
@@ -46,15 +39,26 @@ typedef struct {
 	char mensaje[16];
 } t_mensaje;
 
-t_log* nodeLogger;
+typedef struct {
+	uint16_t puerto_fs;
+	uint16_t puerto_job;
+	uint16_t puerto_nodo;
+	char *ip_nodo;
+	char *ip_fs;
+	char *ip_job;
+	char *archivo_bin;
+	char *dir_tmp;
+	uint8_t nodo_nuevo;
+} t_nodeCfg;
+
+extern t_log* node_logger;
 
 //METODOS
 int initConfig(char* conf);
 
-char* getBloque(uint16_t nroBloque);
-
-void setBloque(uint16_t nroBloque, char* string);
+char* node_getBlock(uint16_t numBlock);
+void node_freeBlock(char *blockStr);
+void node_setBlock(uint16_t numBlock, char *blockData);
 
 #endif /* NODO_H_ */
-
 
