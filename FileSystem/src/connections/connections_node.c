@@ -131,8 +131,7 @@ bool connections_node_sendBlock(nodeBlockSendOperation_t *sendOperation) {
 	free(buffer);
 
 	if (0 > status) {
-		printf("REMOVING NODE \n ");
-		fflush(stdout);
+		log_info(mdfs_logger, "Removing node %s because it was disconnected", sendOperation->node->id);
 		connections_node_removeNodeSocket(sendOperation->node->id);
 		return 0;
 	}

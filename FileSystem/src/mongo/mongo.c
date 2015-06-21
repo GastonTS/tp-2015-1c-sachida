@@ -124,26 +124,3 @@ void mongo_update(mongoc_collection_t *collection, bson_t *query, bson_t *update
 	bson_destroy(query);
 	bson_destroy(update);
 }
-
-/*
- bool mongo_existsIndex(mongoc_collection_t *collection, char *name) {
- mongoc_cursor_t *cursor;
- const bson_t *index;
- bson_error_t error = { 0 };
-
- bson_iter_t iter;
- const bson_value_t *value = malloc(sizeof(bson_value_t *));
-
- cursor = mongoc_collection_find_indexes(collection, &error);
-
- while (mongoc_cursor_next(cursor, &index)) {
- bson_iter_init(&iter, index);
- bson_iter_find(&iter, "name");
- value = bson_iter_value(&iter);
-
- printf("%s", value->value.v_utf8.str);
- }
-
- return 1;
- }
- */

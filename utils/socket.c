@@ -183,7 +183,6 @@ e_socket_status socket_send(int socket, void* stream, size_t size) {
 
 		int retry = 3;
 		while (0 >= (count = send(socket, data, tosend, 0)) && retry--) {
-			printf("ERRNO %d", errno);
 			switch (errno) {
 			case ECONNREFUSED:
 			case EAGAIN:
