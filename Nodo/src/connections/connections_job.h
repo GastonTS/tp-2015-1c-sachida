@@ -3,7 +3,9 @@
 
 #include "connections.h"
 
-void connections_job_initialize(t_nodeCfg *config);
+void connections_job_initialize();
 void connections_job_shutdown();
+
+void connections_job_accept(int socketAccepted);
 
 #endif

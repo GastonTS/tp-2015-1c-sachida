@@ -10,7 +10,7 @@
 #include "../utils/socket.h"
 #include "../Nodo.h"
 
-void connections_initialize(t_nodeCfg *nodeCfg);
+void connections_initialize();
 void connections_shutdown();
 
 #endif

@@ -3,7 +3,7 @@
 
 #include "connections.h"
 
-void connections_fs_initialize(t_nodeCfg *config);
+void connections_fs_initialize();
 void connections_fs_shutdown();
 
 #endif

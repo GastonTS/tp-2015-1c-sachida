@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <arpa/inet.h>
 
 //**********************************************************************************//
 //									SOCKETS											//
@@ -82,9 +83,12 @@ int socket_handshake_to_client(int socket, int hiserver, int hiclient);
 //									COMMANDS										//
 //**********************************************************************************//
 
-#define COMMAND_NODE_SET_BLOCK 1
-#define COMMAND_NODE_GET_BLOCK 2
+#define COMMAND_FS_TO_NODE_SET_BLOCK 1
+#define COMMAND_FS_TO_NODE_GET_BLOCK 2
 
-#define COMMAND_FS_GET_FILE_BLOCKS 1
+#define COMMAND_JOB_TO_NODE_DO_MAP 1
+#define COMMAND_JOB_TO_NODE_DO_REDUCE 2
+
+#define COMMAND_MARTA_TO_FS_GET_FILE_BLOCKS 1
 
 #endif

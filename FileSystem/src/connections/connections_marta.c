@@ -49,7 +49,7 @@ void *connections_marta_listenActions(void *param) {
 			memcpy(&command, buffer, sizeof(uint8_t));
 
 			switch (command) {
-			case COMMAND_FS_GET_FILE_BLOCKS:
+			case COMMAND_MARTA_TO_FS_GET_FILE_BLOCKS:
 				if (!connection_marta_sendFileBlocks(buffer)) {
 					exit = 1;
 				}

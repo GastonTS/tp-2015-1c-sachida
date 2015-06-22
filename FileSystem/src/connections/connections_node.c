@@ -141,7 +141,7 @@ bool connections_node_sendBlock(nodeBlockSendOperation_t *sendOperation) {
 		return 0;
 	}
 
-	uint8_t command = COMMAND_NODE_SET_BLOCK;
+	uint8_t command = COMMAND_FS_TO_NODE_SET_BLOCK;
 	uint16_t numBlock = sendOperation->blockIndex;
 	uint32_t sBlockData = strlen(sendOperation->block);
 
@@ -177,7 +177,7 @@ char* connections_node_getBlock(file_block_t *fileBlock) {
 		return NULL;
 	}
 
-	uint8_t command = COMMAND_NODE_GET_BLOCK;
+	uint8_t command = COMMAND_FS_TO_NODE_GET_BLOCK;
 	uint16_t numBlock = fileBlock->blockIndex;
 
 	size_t sBuffer = sizeof(command) + sizeof(numBlock);

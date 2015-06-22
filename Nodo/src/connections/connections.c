@@ -7,11 +7,11 @@ void *connections_listenerThread(void *param);
 int socketListener;
 pthread_t listenerThread;
 
-void connections_initialize(t_nodeCfg *config) {
-	connections_fs_initialize(config);
-	connections_job_initialize(config);
+void connections_initialize() {
+	connections_fs_initialize();
+	connections_job_initialize();
 
-	if (pthread_create(&listenerThread, NULL, (void *) connections_listenerThread, (void *) config)) {
+	if (pthread_create(&listenerThread, NULL, (void *) connections_listenerThread, NULL)) {
 		log_error(node_logger, "Error while trying to create new thread: connections_listenerThread");
 	}
 }
@@ -25,9 +25,8 @@ void connections_shutdown() {
 }
 
 void *connections_listenerThread(void *param) {
-	t_nodeCfg *config = (t_nodeCfg *) param;
 
-	socketListener = socket_listen(config->puerto_nodo);
+	socketListener = socket_listen(node_config->listenPort);
 	int socketAccepted;
 
 	while (1) {
@@ -39,7 +38,7 @@ void *connections_listenerThread(void *param) {
 
 		switch (socket_handshake_to_client(socketAccepted, HANDSHAKE_FILESYSTEM, HANDSHAKE_JOB)) {
 		case HANDSHAKE_JOB:
-			//connections_job_accept(socketAccepted); // TODO MOVER A THREAD
+			connections_job_accept(socketAccepted); // TODO MOVER A THREAD (sure?)
 			break;
 		}
 

@@ -1,84 +1,54 @@
 #include "connections_job.h"
 #include "connections.h"
 
-void *connections_job_connect(int socket);
-void connections_job_sendInfo();
-void connections_job_listenActions();
+void* connections_job_listenActions(void *param);
 void connections_job_deserializeMap(void *buffer);
 void connections_job_deserializeReduce(void *buffer);
 
-int jobSocket;
-int exitJob;
+void connections_job_initialize() {
 
-void connections_job_initialize(t_nodeCfg *config) {
-	return;
-	// TODO ...
-
-	exitJob = 0;
-	jobSocket = -1;
-	pthread_t jobTh;
-	if (pthread_create(&jobTh, NULL, (void *) connections_job_connect, (void *) config)) {
-		log_error(node_logger, "Error while trying to create new thread: connections_job_connect");
-	}
-	pthread_detach(jobTh);
 }
 
 void connections_job_shutdown() {
-	exitJob = 1;
+
 }
 
-void *connections_job_connect(int socketAccepted) {
+void connections_job_accept(int socketAccepted) {
 
-	while (!exitJob) {
-		if (0 > jobSocket) {
-			while (0 > jobSocket && !exitJob) {
-				jobSocket = socket_listen(socketAccepted);
-			}
-			if (jobSocket >= 0) {
-				if (HANDSHAKE_FILESYSTEM != socket_handshake_to_client(jobSocket, HANDSHAKE_NODO, HANDSHAKE_JOB)) {
-					socket_close(jobSocket);
-					jobSocket = -1;
-					log_error(node_logger, "Handshake to Job failed.");
-				} else {
-					log_info(node_logger, "Connected to Job.");
+	log_info(node_logger, "New job connected.");
 
-				}
-			}
-		}
+	pthread_t listenActionsTh;
+	if (pthread_create(&listenActionsTh, NULL, (void *) connections_job_listenActions, (void *) &socketAccepted)) {
+		log_error(node_logger, "Error while trying to create new thread: connections_job_listenActions");
 	}
-	socket_close(jobSocket);
-	jobSocket = -1;
-	return NULL;
+	pthread_detach(listenActionsTh); // TODO check
 }
 
-void connections_job_sendInfo() {
-	//TODO ver si aca manda informacion, o recibe
-}
+void* connections_job_listenActions(void *param) {
+	int socket = *(int *) param;
 
-void connections_job_listenActions() {
 	while (1) {
 		size_t sBuffer;
 		void *buffer = NULL;
 
-		e_socket_status status = socket_recv_packet(jobSocket, &buffer, &sBuffer);
+		e_socket_status status = socket_recv_packet(socket, &buffer, &sBuffer);
 		if (0 > status) {
-			socket_close(jobSocket);
-			jobSocket = -1; // TODO mover a metodo y meter mutex por fsSocket.
-			return;
+			socket_close(socket);
+			return NULL;
 		}
 
 		uint8_t command;
 		memcpy(&command, buffer, sizeof(uint8_t));
 
 		switch (command) {
-		case 3: //setBloque // TODO mover a socket.h
+		case COMMAND_JOB_TO_NODE_DO_MAP:
 			connections_job_deserializeMap(buffer);
 			break;
-		case 4: //getBloque
+		case COMMAND_JOB_TO_NODE_DO_REDUCE:
 			connections_job_deserializeReduce(buffer);
 			break;
 		default:
-			log_error(node_logger, "JOB Sent an invalid command %d", command);
+			log_error(node_logger, "JOB sent an invalid command %d", command);
 			break;
 		}
 		free(buffer);
@@ -126,3 +96,32 @@ void connections_job_deserializeReduce(void *buffer) {
 	printf("llego al deseralize reduce\n");
 	free(reduce);
 }
+
+
+/*void getFileContent(){
+ Devolverá   el   contenido   del   archivo   de   Espacio   Temporal solicitado.
+ Se usara en el return de las funciones para devolver los archivos almencenadaso en memoria temporal
+ getFileContent probablemente no sea tan "útil" como usuario, pero sí la usan los Nodos para pasarse datos para el Reduce, y, ya que está, exponérsela al FS ayuda a que,
+ por ejemplo, mientras desarrollan puedan chequear de manera "fácil" que los temporales se estén generando bien. Poder inspeccionar lo que está pasando en el sistema siempre
+ es bueno, y si encima viene casi gratis en cuanto a esfuerzo de desarrollo, mejor.
+
+ }*/
+
+/*int nodeMap (rutinaMap, int nroBloque){
+ El Nodo4 guarda el contenido de map.py en un archivo en el filesystem local. Le da permisos de ejecución.
+ * El hilo mapper le solicita al Nodo4 que envie el contenido del Bloque6 por entrada estánda a map.py. El STDOUT lo almacena en un archivo temporal (ej: map.py.result.tmp)
+ * Usa la tool sort para ordenar el archivo temporal del paso anterior ya en el archivo definitivo
+ # cat map.py.result.tmp | sort > librazo12347.tmp
+ * El hilo mapper se conecta al nodo, y le indica la rutina de maping, el bloque de datos donde aplicarla y tiene que almacenar
+ * los resultados de manera ordenada (sort) en el FS Temporal del nodo. Debera dar una respuesta al hilo MApper
+ int lugarDeAlmacenamiento;
+ return lugarDeAlmacenamiento;
+ }*/
+
+/*void nodeReduce (array[string nameNode, int nroBloque], rutinaReduce, char nombreDondeGuarda){
+ //el reduce recibe un nodo y un nombre de archivo (el FS se encargara de rearmar ese archivo y pasarlo)
+ El hilo reduce, indica aplicar la rutina sobre varios archvos del espacio temporal, de los cuales uno debe ser siempre local al nodo
+ * El reduce le manda el nombre de los bloques y los nodos donde se encuentran, el codigo de la rutina de reduce y el nombre del
+ * archivo donde se alamcenara. Al finalizar se debe informar al JOB que termino
+ return 0;
+ }*/

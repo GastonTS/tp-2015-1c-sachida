@@ -2,7 +2,7 @@
 #include "connections.h"
 
 void *connections_fs_connect(void *param);
-void connections_fs_sendInfo(t_nodeCfg *config);
+void connections_fs_sendInfo();
 void connections_fs_listenActions();
 void connections_fs_deserializeSetBlock(void *buffer);
 void connections_fs_deserializeGetBlock(void *buffer);
@@ -10,12 +10,12 @@ void connections_fs_deserializeGetBlock(void *buffer);
 int fsSocket;
 int exitFs;
 
-void connections_fs_initialize(t_nodeCfg *config) {
+void connections_fs_initialize() {
 	exitFs = 0;
 	fsSocket = -1;
 
 	pthread_t fsTh;
-	if (pthread_create(&fsTh, NULL, (void *) connections_fs_connect, (void *) config)) {
+	if (pthread_create(&fsTh, NULL, (void *) connections_fs_connect, NULL)) {
 		log_error(node_logger, "Error while trying to create new thread: connections_fs_connect");
 	}
 	pthread_detach(fsTh);
@@ -26,12 +26,11 @@ void connections_fs_shutdown() {
 }
 
 void *connections_fs_connect(void *param) {
-	t_nodeCfg *config = (t_nodeCfg *) param;
 
 	while (!exitFs) {
 		if (0 > fsSocket) {
 			while (0 > fsSocket && !exitFs) {
-				fsSocket = socket_connect(config->ip_fs, config->puerto_fs);
+				fsSocket = socket_connect(node_config->fsIp, node_config->fsPort);
 			}
 			if (fsSocket >= 0) {
 				if (HANDSHAKE_FILESYSTEM != socket_handshake_to_server(fsSocket, HANDSHAKE_FILESYSTEM, HANDSHAKE_NODO)) {
@@ -40,7 +39,7 @@ void *connections_fs_connect(void *param) {
 					log_error(node_logger, "Handshake to filesystem failed.");
 				} else {
 					log_info(node_logger, "Connected to FileSystem.");
-					connections_fs_sendInfo(config);
+					connections_fs_sendInfo();
 				}
 			}
 		}
@@ -50,24 +49,24 @@ void *connections_fs_connect(void *param) {
 	return NULL;
 }
 
-void connections_fs_sendInfo(t_nodeCfg *config) {
-	// TODO from config.
-	uint16_t cantBloques = 30;
-	char myName[] = "Nodo1"; // TODO from config.
+void connections_fs_sendInfo() {
 
-	uint16_t sName = strlen(myName);
-	size_t sBuffer = sizeof(config->nodo_nuevo) + sizeof(cantBloques) + sizeof(sName) + sName + sizeof(config->puerto_nodo);
+	uint8_t newNode = node_config->newNode;
+	uint16_t blocksCount = node_config->blocksCount;
 
-	uint16_t cantBloquesSerialized = htons(cantBloques);
-	uint16_t puertoNodoSerialized = htons(config->puerto_nodo);
+	uint16_t sName = strlen(node_config->name);
+	size_t sBuffer = sizeof(newNode) + sizeof(blocksCount) + sizeof(sName) + sName + sizeof(node_config->listenPort);
+
+	uint16_t blocksCountSerialized = htons(blocksCount);
+	uint16_t listenPortSerialized = htons(node_config->listenPort);
 	uint16_t sNameSerialized = htons(sName);
 
 	void *pBuffer = malloc(sBuffer);
-	memcpy(pBuffer, &config->nodo_nuevo, sizeof(config->nodo_nuevo));
-	memcpy(pBuffer + sizeof(config->nodo_nuevo), &cantBloquesSerialized, sizeof(cantBloques));
-	memcpy(pBuffer + sizeof(config->nodo_nuevo) + sizeof(cantBloques), &puertoNodoSerialized, sizeof(puertoNodoSerialized));
-	memcpy(pBuffer + sizeof(config->nodo_nuevo) + sizeof(cantBloques) + sizeof(puertoNodoSerialized), &sNameSerialized, sizeof(sNameSerialized));
-	memcpy(pBuffer + sizeof(config->nodo_nuevo) + sizeof(cantBloques) + sizeof(puertoNodoSerialized) + sizeof(sName), &myName, sName);
+	memcpy(pBuffer, &newNode, sizeof(newNode));
+	memcpy(pBuffer + sizeof(newNode), &blocksCountSerialized, sizeof(blocksCount));
+	memcpy(pBuffer + sizeof(newNode) + sizeof(blocksCount), &listenPortSerialized, sizeof(listenPortSerialized));
+	memcpy(pBuffer + sizeof(newNode) + sizeof(blocksCount) + sizeof(listenPortSerialized), &sNameSerialized, sizeof(sNameSerialized));
+	memcpy(pBuffer + sizeof(newNode) + sizeof(blocksCount) + sizeof(listenPortSerialized) + sizeof(sName), node_config->name, sName);
 
 	e_socket_status status = socket_send_packet(fsSocket, pBuffer, sBuffer);
 	if (0 > status) {
@@ -96,10 +95,10 @@ void connections_fs_listenActions() {
 		memcpy(&command, buffer, sizeof(uint8_t));
 
 		switch (command) {
-		case COMMAND_NODE_SET_BLOCK:
+		case COMMAND_FS_TO_NODE_SET_BLOCK:
 			connections_fs_deserializeSetBlock(buffer);
 			break;
-		case COMMAND_NODE_GET_BLOCK:
+		case COMMAND_FS_TO_NODE_GET_BLOCK:
 			connections_fs_deserializeGetBlock(buffer);
 			break;
 		default:
