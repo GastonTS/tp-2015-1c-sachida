@@ -495,7 +495,38 @@ void serializeMap(int sock_nodo, t_map* map){
 //**********************************Send Reduce Nodo************************************//
 
 void serializeReduce(int sock_nodo, t_reduce* reduce){
+	char order = 'r';
+	size_t sOrder = sizeof(char);
+	char* fileReduce;
+	size_t sTempName = strlen(reduce->tempResultName);
 
+	/* Obtenemos binario de File Map */
+	fileReduce = getMapReduceRoutine(cfgJob->REDUCER);
+	size_t sfileReduce = strlen(fileReduce);
+
+	/* htons */
+
+
+	/* Armo el paquete y lo mando */
+	size_t sbuffer = sOrder + sizeof(sfileReduce) + sfileReduce + sizeof(sTempName) + sTempName;
+	void* buffer = malloc(sbuffer);
+	buffer = memset(buffer, '\0', sbuffer);
+	memcpy(buffer, &order, sOrder);
+	memcpy(buffer + sOrder, &sfileReduce, sizeof(sfileReduce));
+	memcpy(buffer + sOrder + sizeof(sfileReduce), fileReduce, sfileReduce);
+	memcpy(buffer + sOrder + sizeof(sfileReduce) + sfileReduce, &sTempName, sizeof(sTempName));
+	memcpy(buffer + sOrder + sizeof(sfileReduce) + sfileReduce + sizeof(sTempName), reduce->tempResultName, sTempName);
+
+	int envio;
+	envio = socket_send_packet(sock_nodo,buffer,sbuffer);
+	log_info(logger,"Enviado %d",envio);
+	log_info(logger,"Order: %c", order);
+	log_info(logger,"sfileMap: %d",sfileReduce);
+	log_info(logger,"fileMap: %s",fileReduce);
+	log_info(logger,"stemp: %d",sTempName);
+	log_info(logger,"temp: %s",reduce->tempResultName);
+	//free(fileMap);
+	free(buffer);
 }
 
 //**********************************************************************************//
