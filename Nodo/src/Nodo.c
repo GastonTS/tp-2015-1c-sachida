@@ -50,6 +50,7 @@ int main(int argc, char *argv[]) {
 	connections_initialize(nodeCfg);
 	//while(1) {} // TODO
 	connections_job_connect(nodeCfg->puerto_nodo);
+	printf("conecto con el job");
 	connections_job_listenActions();
 	//nodo_escucharAcciones(socket_job);
 	freeNodo();

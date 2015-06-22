@@ -7,7 +7,7 @@
 
 int main(void) {
 
-	//startFS();
-	startJob();
+	startFS();
+	//startJob();
 	return EXIT_SUCCESS;
 }

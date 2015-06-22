@@ -68,6 +68,7 @@ void connections_fs_sendInfo(t_nodeCfg *config) {
 	memcpy(pBuffer + sizeof(config->nodo_nuevo) + sizeof(cantBloques) + sizeof(puertoNodoSerialized), &sNameSerialized, sizeof(sNameSerialized));
 	memcpy(pBuffer + sizeof(config->nodo_nuevo) + sizeof(cantBloques) + sizeof(puertoNodoSerialized) + sizeof(sName), &myName, sName);
 
+	printf("va a madnar los dtos  del nodo al fs");
 	e_socket_status status = socket_send_packet(fsSocket, pBuffer, sBuffer);
 	if (0 > status) {
 		socket_close(fsSocket);
@@ -96,9 +97,11 @@ void connections_fs_listenActions() {
 
 		switch (command) {
 		case 1: //setBloque // TODO mover a socket.h
+			printf("llego al deserialize set block");
 			connections_fs_deserializeSetBlock(buffer);
 			break;
 		case 2: //getBloque
+			printf("llego al deserialize get block");
 			connections_fs_deserializeGetBlock(buffer);
 			break;
 		default:
