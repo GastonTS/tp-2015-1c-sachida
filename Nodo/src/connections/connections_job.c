@@ -9,7 +9,7 @@ int jobSocket;
 int exitJob;
 
 void connections_job_initialize(t_nodeCfg *config) {
-	exitFs = 0;
+	exitJob = 0;
 	jobSocket = -1;
 	pthread_t jobTh;
 	if (pthread_create(&jobTh, NULL, (void *) connections_job_connect, (void *) config)) {
@@ -25,9 +25,9 @@ void connections_job_shutdown() {
 void *connections_job_connect(void *param) {
 	t_nodeCfg *config = (t_nodeCfg *) param;
 
-	while (!exitFs) {
+	while (!exitJob) {
 		if (0 > jobSocket) {
-			while (0 > jobSocket && !exitFs) {
+			while (0 > jobSocket && !exitJob) {
 				jobSocket = socket_listen(config->puerto_job);
 			}
 			if (jobSocket >= 0) {
@@ -42,8 +42,8 @@ void *connections_job_connect(void *param) {
 			}
 		}
 	}
-	socket_close(fsSocket);
-	fsSocket = -1;
+	socket_close(jobSocket);
+	jobSocket = -1;
 	return NULL;
 }
 
@@ -66,10 +66,10 @@ void connections_job_sendInfo(t_nodeCfg *config) {
 	memcpy(pBuffer + sizeof(config->nodo_nuevo) + sizeof(cantBloques) + sizeof(puertoNodoSerialized), &sNameSerialized, sizeof(sNameSerialized));
 	memcpy(pBuffer + sizeof(config->nodo_nuevo) + sizeof(cantBloques) + sizeof(puertoNodoSerialized) + sizeof(sName), &myName, sName);
 
-	e_socket_status status = socket_send_packet(fsSocket, pBuffer, sBuffer);
+	e_socket_status status = socket_send_packet(jobSocket, pBuffer, sBuffer);
 	if (0 > status) {
-		socket_close(fsSocket);
-		fsSocket = -1;
+		socket_close(jobSocket);
+		jobSocket = -1;
 	} else {
 		connections_fs_listenActions();
 	}
@@ -82,10 +82,10 @@ void connections_job_listenActions() {
 		size_t sBuffer;
 		void *buffer = NULL;
 
-		e_socket_status status = socket_recv_packet(fsSocket, &buffer, &sBuffer);
+		e_socket_status status = socket_recv_packet(jobSocket, &buffer, &sBuffer);
 		if (0 > status) {
-			socket_close(fsSocket);
-			fsSocket = -1; // TODO mover a metodo y meter mutex por fsSocket.
+			socket_close(jobSocket);
+			jobSocket = -1; // TODO mover a metodo y meter mutex por fsSocket.
 			return;
 		}
 
