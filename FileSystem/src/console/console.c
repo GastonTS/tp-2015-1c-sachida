@@ -6,13 +6,21 @@
 #include "console.h"
 #include "../filesystem/filesystem.h"
 
-#define ANSI_COLOR_RED     "\x1b[31m"
-#define ANSI_COLOR_GREEN   "\x1b[32m"
-#define ANSI_COLOR_YELLOW  "\x1b[33m"
-#define ANSI_COLOR_BLUE    "\x1b[34m"
-#define ANSI_COLOR_MAGENTA "\x1b[35m"
-#define ANSI_COLOR_CYAN    "\x1b[36m"
-#define ANSI_COLOR_RESET   "\x1b[0m"
+#define ANSI_COLOR_RED         "\033[31m"
+#define ANSI_COLOR_GREEN       "\033[32m"
+#define ANSI_COLOR_YELLOW      "\033[33m"
+#define ANSI_COLOR_BLUE        "\033[34m"
+#define ANSI_COLOR_MAGENTA     "\033[35m"
+#define ANSI_COLOR_CYAN        "\033[36m"
+#define ANSI_COLOR_BOLDBLACK   "\033[1m\033[30m"
+#define ANSI_COLOR_BOLDRED     "\033[1m\033[31m"
+#define ANSI_COLOR_BOLDGREEN   "\033[1m\033[32m"
+#define ANSI_COLOR_BOLDYELLOW  "\033[1m\033[33m"
+#define ANSI_COLOR_BOLDBLUE    "\033[1m\033[34m"
+#define ANSI_COLOR_BOLDMAGENTA "\033[1m\033[35m"
+#define ANSI_COLOR_BOLDCYAN    "\033[1m\033[36m"
+#define ANSI_COLOR_BOLDWHITE   "\033[1m\033[37m"
+#define ANSI_COLOR_RESET       "\033[0m"
 
 void readCommand(char *command);
 int isNull(char *parameter);
@@ -535,30 +543,36 @@ int getIntFromString(char *string) {
 }
 
 void help() {
-	printf("Valid commands:\n\n");
+	printf("\n" ANSI_COLOR_BOLDWHITE "FILESYSTEM" ANSI_COLOR_RESET "\n");
 	printf("\t format\t\t\t\t Formats MDFS\n");
 	printf("\t df\t\t\t\t Prints the MDFS free space\n");
-	printf("\t rm <file>\t\t\t Deletes the file <file> \n");
-	printf("\t rm -r <dir>\t\t\t Deletes the dir <dir>\n");
-	printf("\t mv <file> <dest>\t\t Moves the file named <file> to the dir named <dir>\n");
-	printf("\t mv <dir> <dest>\t\t Moves the dir named <dir> to the dir named <dir>\n");
-	printf("\t mkdir <dir>\t\t\t Makes a new dir in the current dir named <dir>\n");
-	printf("\t ll\t\t\t\t Lists all the files and dirs in the current dir\n");
 
+	printf("\n" ANSI_COLOR_BOLDWHITE "FILES" ANSI_COLOR_RESET "\n");
+	printf("\t rm <file>\t\t\t Deletes the file <file> \n");
+	printf("\t mv <file> <dest>\t\t Moves the file named <file> to the dir named <dir>\n");
+	printf("\t ll\t\t\t\t Lists all the files and dirs in the current dir\n");
 	printf("\t md5sum <file>\t\t\t Gets the MD5 check sum of the file named <file>\n");
 	printf("\t cp -tofs <file> <dest>\t\t Copies the file <file> from the MDFS to the local FileSystem at <dest>\n");
 	printf("\t cp -fromfs <file> <dest>\t Copies the file <file> from the local FileSystem to the MDFS at <dest>\n");
+	printf("\t status <file>\t\t\t Prints the blocks status of the file <file>\n");
 
-	printf("\t catb <file> <blockN>\t\t Gets contents of the block number <blockN> (zero-based) of the file <file> and saves it to a temp file\n");
-	printf("\t cpb <file> <blockN>\t\t Makes a new copy (in a different node) of the block number <blockN> (zero-based) of the file <file>\n");
-	printf("\t rmb <file> <blockN> <copyN>\t Deletes the copy <copyN> (zero-based) of the block number <blockN> (zero-based) of the file <file>\n");
+	printf("\n" ANSI_COLOR_BOLDWHITE "DIRECTORIES" ANSI_COLOR_RESET "\n");
+	printf("\t rm -r <dir>\t\t\t Deletes the dir <dir>\n");
+	printf("\t mv <dir> <dest>\t\t Moves the dir named <dir> to the dir named <dir>\n");
+	printf("\t mkdir <dir>\t\t\t Makes a new dir in the current dir named <dir>\n");
 
+	printf("\n" ANSI_COLOR_BOLDWHITE "BLOCKS" ANSI_COLOR_RESET "\n");
+	printf("\t catb <file> <blockN>\t\t Gets contents of the block number <blockN> of the file <file> and saves it to a temp file\n");
+	printf("\t cpb <file> <blockN>\t\t Makes a new copy (in a different node) of the block number <blockN> of the file <file>\n");
+	printf("\t rmb <file> <blockN> <copyN>\t Deletes the copy <copyN> of the block number <blockN> of the file <file>\n");
+
+	printf("\n" ANSI_COLOR_BOLDWHITE "NODES" ANSI_COLOR_RESET "\n");
 	printf("\t enablen <node>\t\t\t Activates the currently connected node named <node>\n");
 	printf("\t disablen <node>\t\t Deactivates the currently connected node named <node>\n");
 	printf("\t nodestat <nodename>\t\t Prints the status (blocks usage) of the node named <nodename>\n");
 
+	printf("\n" ANSI_COLOR_BOLDWHITE "OTHERS" ANSI_COLOR_RESET "\n");
 	printf("\t help\t\t\t\t Prints Help (this message)\n");
 	printf("\t exit\t\t\t\t Exits the MDFS\n\n");
-
 }
 
