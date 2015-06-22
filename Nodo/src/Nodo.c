@@ -2,6 +2,9 @@
 #include "utils/socket.h"
 #include "connections/connections.h"
 
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
 #include <sys/mman.h>
 
 int node_initConfig(char* configFile);
