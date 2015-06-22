@@ -78,7 +78,7 @@ int initConfig(char* configFile) {
 		return -1;
 	}
 
-	char* getCongifString(char *property) {
+	char* getConfigString(char *property) {
 		if (config_has_property(_config, property)) {
 			return config_get_string_value(_config, property);
 		}
@@ -95,7 +95,7 @@ int initConfig(char* configFile) {
 	log_info(logger, "Loading config...");
 
 	cfgMaRTA->listenPort = getConfigInt("PUERTO_LISTEN");
-	cfgMaRTA->fsIP = strdup(getCongifString("IP_FILE_SYSTEM"));
+	cfgMaRTA->fsIP = strdup(getConfigString("IP_FILE_SYSTEM"));
 	cfgMaRTA->fsPort = getConfigInt("PUERTO_FILE_SYSTEM");
 
 	if (!failure) {
