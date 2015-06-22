@@ -291,9 +291,9 @@ void atenderReducer(void* parametros) {
 	int sock_nodo;
 	int ret_val = 0;
 
-	if ((sock_nodo = socket_connect(reduce.ip_nodo, reduce.port_nodo)) < 0) {
+	if ((sock_nodo = socket_connect(reduce->ip_nodo, reduce->port_nodo)) < 0) {
 		log_error(logger, "Error al conectar reduce con Nodo %d", sock_nodo);
-		freeThreadMap(reduce);
+		freeThreadReduce(reduce);
 		pthread_exit(&ret_val);
 	}
 
@@ -302,7 +302,7 @@ void atenderReducer(void* parametros) {
 	hand_nodo = socket_handshake_to_server(sock_nodo, HANDSHAKE_NODO, HANDSHAKE_JOB);
 	if (!hand_nodo) {
 		log_error(logger,"Error en reduce hand_nodo con Nodo %d", hand_nodo);
-		freeThreadMap(reduce);
+		freeThreadReduce(reduce);
 		pthread_exit(&ret_val);
 	}
 
@@ -426,7 +426,8 @@ t_reduce* desserializeReduceOrder(void *buffer, size_t sbuffer) {
 	reduce->ip_nodo = strdup(nodeIP);
 	reduce->port_nodo = nodePort;
 	reduce->tempResultName = strdup(tempResultName);
-	reduce->temps; //PROBAR SI ESTO FUNCIONA
+	//TODO VER COMO GUARDAR LA LISTA
+	//reduce->temps;
 
 //Test TODO: Adaptar a las estructuras de Job
 	printf("\n%s\n", nodeIP);
