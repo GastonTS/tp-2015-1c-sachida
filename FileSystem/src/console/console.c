@@ -29,7 +29,7 @@ void makeDir(char *dirName);
 void changeDir(char *dirName);
 void listResources();
 
-void md5sum(char *fileName);
+void md5sum(char *filePath);
 void saveBlockContents(char **parameters);
 void deleteBlock(char **parameters);
 void copyBlock(char **parameters);
@@ -37,6 +37,7 @@ void copyBlock(char **parameters);
 void enableNode(char *node);
 void disableNode(char *nodeName);
 void printNodeStatus(char *nodeName);
+void printFileStatus(char *filePath);
 
 void help();
 
@@ -78,6 +79,8 @@ void console_start() {
 				md5sum(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "cp")) {
 				copyFile(parameters);
+			} else if (string_equals_ignore_case(parameters[0], "status")) {
+				printFileStatus(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "catb")) {
 				saveBlockContents(parameters);
 			} else if (string_equals_ignore_case(parameters[0], "cpb")) {
@@ -334,10 +337,10 @@ void copyFile(char **parameters) {
 	}
 }
 
-void md5sum(char *fileName) {
-	if (!isNull(fileName)) {
+void md5sum(char *filePath) {
+	if (!isNull(filePath)) {
 
-		file_t *file = filesystem_resolveFilePath(fileName, currentDirId, currentDirPrompt);
+		file_t *file = filesystem_resolveFilePath(filePath, currentDirId, currentDirPrompt);
 		if (file) {
 			char *md5sum = filesystem_md5sum(file);
 			if (md5sum) {
@@ -348,33 +351,33 @@ void md5sum(char *fileName) {
 			}
 			file_free(file);
 		} else {
-			printf("File '%s' not found.\n", fileName);
+			printf("File '%s' not found.\n", filePath);
 		}
 	}
 }
 
 void saveBlockContents(char **parameters) {
-	char *fileName = parameters[1];
+	char *filePath = parameters[1];
 	char *blockN = parameters[2];
 
-	if (!isNull(fileName) && !isNull(blockN)) {
+	if (!isNull(filePath) && !isNull(blockN)) {
 		int blockNumber = getIntFromString(blockN);
 		if (blockNumber < 0) {
 			printf("Invalid blockNumber '%s'\n", blockN);
 			return;
 		}
 
-		file_t *file = filesystem_resolveFilePath(fileName, currentDirId, currentDirPrompt);
+		file_t *file = filesystem_resolveFilePath(filePath, currentDirId, currentDirPrompt);
 		if (file) {
 			printf("Getting block %d from file '%s'\n", blockNumber, file->name);
 
-			char tempFileName[512];
-			snprintf(tempFileName, sizeof(tempFileName), "/tmp/MDFS_FILE_BLOCK_%s__%d", file->name, blockNumber);
-			int result = filesystem_saveFileBlockToLocalFS(file, blockNumber, tempFileName);
+			char tempFilePath[512];
+			snprintf(tempFilePath, sizeof(tempFilePath), "/tmp/MDFS_FILE_BLOCK_%s__%d", file->name, blockNumber);
+			int result = filesystem_saveFileBlockToLocalFS(file, blockNumber, tempFilePath);
 
 			// TODO mostrar las copias (nombre, index)
 			if (result == 1) {
-				printf("Done: A file at the local filesystem named '%s' has been saved with the contents.\n", tempFileName);
+				printf("Done: A file at the local filesystem named '%s' has been saved with the contents.\n", tempFilePath);
 			} else if (result == -1) {
 				printf("Aborting: The file '%s' does not have a blockNumber '%d'\n", file->name, blockNumber);
 			} else if (result == -2) {
@@ -382,23 +385,23 @@ void saveBlockContents(char **parameters) {
 			}
 			file_free(file);
 		} else {
-			printf("File '%s' not found.\n", fileName);
+			printf("File '%s' not found.\n", filePath);
 		}
 	}
 }
 
 void copyBlock(char **parameters) {
-	char *fileName = parameters[1];
+	char *filePath = parameters[1];
 	char *blockN = parameters[2];
 
-	if (!isNull(fileName) && !isNull(blockN)) {
+	if (!isNull(filePath) && !isNull(blockN)) {
 		int blockNumber = getIntFromString(blockN);
 		if (blockNumber < 0) {
 			printf("Invalid blockNumber '%s'\n", blockN);
 			return;
 		}
 
-		file_t *file = filesystem_resolveFilePath(fileName, currentDirId, currentDirPrompt);
+		file_t *file = filesystem_resolveFilePath(filePath, currentDirId, currentDirPrompt);
 		if (file) {
 			printf("Making a new copy of the block %d from file '%s'\n", blockNumber, file->name);
 
@@ -416,17 +419,17 @@ void copyBlock(char **parameters) {
 			}
 			file_free(file);
 		} else {
-			printf("File '%s' not found.\n", fileName);
+			printf("File '%s' not found.\n", filePath);
 		}
 	}
 }
 
 void deleteBlock(char **parameters) {
-	char *fileName = parameters[1];
+	char *filePath = parameters[1];
 	char *blockN = parameters[2];
 	char *copyN = parameters[3];
 
-	if (!isNull(fileName) && !isNull(blockN) && !isNull(copyN)) {
+	if (!isNull(filePath) && !isNull(blockN) && !isNull(copyN)) {
 		int blockNumber = getIntFromString(blockN);
 		if (blockNumber < 0) {
 			printf("Invalid blockNumber '%s'\n", blockN);
@@ -438,7 +441,7 @@ void deleteBlock(char **parameters) {
 			return;
 		}
 
-		file_t *file = filesystem_resolveFilePath(fileName, currentDirId, currentDirPrompt);
+		file_t *file = filesystem_resolveFilePath(filePath, currentDirId, currentDirPrompt);
 		if (file) {
 			printf("Deleting copy %d of the block %d from file '%s'\n", copyNumber, blockNumber, file->name);
 
@@ -454,7 +457,7 @@ void deleteBlock(char **parameters) {
 			}
 			file_free(file);
 		} else {
-			printf("File '%s' not found.\n", fileName);
+			printf("File '%s' not found.\n", filePath);
 		}
 	}
 }
@@ -491,6 +494,32 @@ void disableNode(char *nodeName) {
 			node_free(node);
 		} else {
 			printf("Node '%s' does not exist.\n", nodeName);
+		}
+	}
+}
+
+void printFileStatus(char *filePath) {
+	if (!isNull(filePath)) {
+		file_t *file = filesystem_resolveFilePath(filePath, currentDirId, currentDirPrompt);
+		if (file) {
+			int blockNumber = 0;
+			printf("Blocks of file %s . It has %d blocks:\n", file->name, list_size(file->blocks));
+			void listBlocks(t_list* blockCopies) {
+				int copyNumber = 0;
+				void listBlockCopies(file_block_t *blockCopy) {
+					printf("  |  +----> Copy number %d -> Node: %s. Block number: %d\n", copyNumber, blockCopy->nodeId, blockCopy->blockIndex);
+					copyNumber++;
+				}
+				printf("  +----> Block number %d. It has %d copies\n", blockNumber, list_size(blockCopies));
+				list_iterate(blockCopies, (void *) listBlockCopies);
+				blockNumber++;
+			}
+			list_iterate(file->blocks, (void *) listBlocks);
+			printf("---------------------------------------------------------\n");
+
+			file_free(file);
+		} else {
+			printf("File '%s' not found.\n", filePath);
 		}
 	}
 }

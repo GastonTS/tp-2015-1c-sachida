@@ -7,11 +7,13 @@ void connections_job_listenActions();
 void connections_job_deserializeMap(void *buffer);
 void connections_job_deserializeReduce(void *buffer);
 
-
 int jobSocket;
 int exitJob;
 
-void connections_job_accept(t_nodeCfg *config) {
+void connections_job_initialize(t_nodeCfg *config) {
+	return;
+	// TODO ...
+
 	exitJob = 0;
 	jobSocket = -1;
 	pthread_t jobTh;
@@ -83,7 +85,6 @@ void connections_job_listenActions() {
 	}
 }
 
-
 void connections_job_deserializeMap(void *buffer) {
 	uint16_t numBlock;
 	memcpy(&numBlock, buffer + sizeof(uint8_t), sizeof(uint16_t));
@@ -97,7 +98,7 @@ void connections_job_deserializeMap(void *buffer) {
 	memcpy(map, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint16_t), sizeMap);
 
 	uint32_t sizeTmp;
-	memcpy(&sizeTmp,buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint16_t) + sizeMap, sizeof(uint16_t));
+	memcpy(&sizeTmp, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint16_t) + sizeMap, sizeof(uint16_t));
 	sizeTmp = ntohl(sizeTmp);
 
 	char* tmp = malloc(sizeof(char) * (sizeTmp));

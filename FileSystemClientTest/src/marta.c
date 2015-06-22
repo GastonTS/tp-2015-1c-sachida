@@ -54,7 +54,7 @@ void marta_escucharAcciones(int fsSocket) {
 
 void pedirBloquesArchivo(int fsSocket) {
 
-	uint8_t command = 1; // Comando para pedir los bloques del archivo.
+	uint8_t command = COMMAND_FS_GET_FILE_BLOCKS; // Comando para pedir los bloques del archivo.
 	char archivo[] = "b";
 	uint32_t sArchivo = strlen(archivo);
 

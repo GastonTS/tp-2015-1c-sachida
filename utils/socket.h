@@ -78,4 +78,13 @@ e_socket_status socket_recv_string(int socket, char** string);
 int socket_handshake_to_server(int socket, int hiserver, int hiclient);
 int socket_handshake_to_client(int socket, int hiserver, int hiclient);
 
+//**********************************************************************************//
+//									COMMANDS										//
+//**********************************************************************************//
+
+#define COMMAND_NODE_SET_BLOCK 1
+#define COMMAND_NODE_GET_BLOCK 2
+
+#define COMMAND_FS_GET_FILE_BLOCKS 1
+
 #endif

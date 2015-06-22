@@ -13,6 +13,7 @@ int exitFs;
 void connections_fs_initialize(t_nodeCfg *config) {
 	exitFs = 0;
 	fsSocket = -1;
+
 	pthread_t fsTh;
 	if (pthread_create(&fsTh, NULL, (void *) connections_fs_connect, (void *) config)) {
 		log_error(node_logger, "Error while trying to create new thread: connections_fs_connect");
@@ -52,7 +53,7 @@ void *connections_fs_connect(void *param) {
 void connections_fs_sendInfo(t_nodeCfg *config) {
 	// TODO from config.
 	uint16_t cantBloques = 30;
-	char myName[] = "Nodo1"; // Le paso mi nombre.
+	char myName[] = "Nodo1"; // TODO from config.
 
 	uint16_t sName = strlen(myName);
 	size_t sBuffer = sizeof(config->nodo_nuevo) + sizeof(cantBloques) + sizeof(sName) + sName + sizeof(config->puerto_nodo);
@@ -68,7 +69,6 @@ void connections_fs_sendInfo(t_nodeCfg *config) {
 	memcpy(pBuffer + sizeof(config->nodo_nuevo) + sizeof(cantBloques) + sizeof(puertoNodoSerialized), &sNameSerialized, sizeof(sNameSerialized));
 	memcpy(pBuffer + sizeof(config->nodo_nuevo) + sizeof(cantBloques) + sizeof(puertoNodoSerialized) + sizeof(sName), &myName, sName);
 
-	printf("va a mandar los datos  del nodo al fs\n");
 	e_socket_status status = socket_send_packet(fsSocket, pBuffer, sBuffer);
 	if (0 > status) {
 		socket_close(fsSocket);
@@ -96,12 +96,10 @@ void connections_fs_listenActions() {
 		memcpy(&command, buffer, sizeof(uint8_t));
 
 		switch (command) {
-		case 1: //setBloque // TODO mover a socket.h
-			printf("llego al deserialize set block\n");
+		case COMMAND_NODE_SET_BLOCK:
 			connections_fs_deserializeSetBlock(buffer);
 			break;
-		case 2: //getBloque
-			printf("llego al deserialize get block\n");
+		case COMMAND_NODE_GET_BLOCK:
 			connections_fs_deserializeGetBlock(buffer);
 			break;
 		default:
@@ -113,21 +111,18 @@ void connections_fs_listenActions() {
 }
 
 void connections_fs_deserializeSetBlock(void *buffer) {
-	printf("llego al connections_fs_des SetBLock\n");
 	uint16_t numBlock;
 	memcpy(&numBlock, buffer + sizeof(uint8_t), sizeof(uint16_t));
 	numBlock = ntohs(numBlock);
 
-
 	uint32_t sBlockData;
 	memcpy(&sBlockData, buffer + sizeof(uint8_t) + sizeof(uint16_t), sizeof(uint32_t));
-
+	sBlockData = ntohl(sBlockData);
 
 	char *blockData = malloc(sizeof(char) * (sBlockData + 1));
 	memcpy(blockData, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint32_t), sBlockData);
 	blockData[sBlockData] = '\0';
 
-	printf("3\n");
 	node_setBlock(numBlock, blockData);
 
 	free(blockData);

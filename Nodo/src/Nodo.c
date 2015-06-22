@@ -2,7 +2,6 @@
 #include "utils/socket.h"
 #include "connections/connections.h"
 
-
 t_nodeCfg *nodeCfg;
 
 void createNode();
@@ -48,10 +47,10 @@ int main(int argc, char *argv[]) {
 	}
 
 	connections_initialize(nodeCfg);
-	//while(1) {} // TODO
-	connections_job_connect(nodeCfg->puerto_nodo);
+	while(1) {} // TODO JUST TESTING A LITTLE.
+	//connections_job_connect(nodeCfg->puerto_nodo);
 	printf("conecto con el job");
-	connections_job_listenActions();
+	//connections_job_listenActions();
 	//nodo_escucharAcciones(socket_job);
 	freeNodo();
 	return EXIT_SUCCESS;
