@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
 char* node_getBlock(uint16_t numBlock) {
 	log_info(node_logger, "Getting block number %d", numBlock);
 
-	int fd = open("/home/utnso/block", O_RDONLY); // todo name.
+	int fd = open(node_config->binFilePath, O_RDONLY);
 	if (fd == -1) {
 		log_error(node_logger, "An error occurred while trying to open the bin file.");
 		return NULL;
@@ -77,7 +77,7 @@ void node_freeBlock(char *blockStr) {
 void node_setBlock(uint16_t numBlock, char *blockData) {
 	log_info(node_logger, "Setting block number %d", numBlock);
 
-	int fd = open("/home/utnso/block", O_RDWR); // TODO name.
+	int fd = open(node_config->binFilePath, O_RDWR);
 	if (fd == -1) {
 		log_error(node_logger, "An error occurred while trying to open the bin file.");
 		return;
