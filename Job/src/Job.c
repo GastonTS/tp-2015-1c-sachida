@@ -39,6 +39,13 @@ typedef struct {
 	char *tempResultName;
 } t_map;
 
+typedef struct{
+	char *ip_nodo;
+	uint16_t port_nodo;
+	char *tempResultName;
+	t_list *temps;
+} t_reduce;
+
 //t_list_thread* hiloMap;
 //t_list_thread* hiloRed;
 t_configJob* cfgJob;
@@ -51,6 +58,7 @@ uint16_t contReduce;
 int initConfig(char* configFile);
 void freeCfg();
 void freeThreadMap(t_map* map);
+void freeThreadReduce(t_reduce* reduce);
 //void convertirListaArch(char* cadena,t_list* lista);
 
 /* MaRTA */
@@ -65,11 +73,12 @@ void serializeConfigMaRTA(int fd, bool combiner, char* files);
 void recvOrder(int fd);
 t_map* desserializeMapOrder(void *buffer);
 void desserializeTempToList(t_list *temporals, void *buffer, size_t *sbuffer);
-void desserializeReduceOrder(void *buffer, size_t sbuffer);
+t_reduce* desserializeReduceOrder(void *buffer, size_t sbuffer);
 
 /* Nodo */
 void serializeMap(int sock, t_map* map);
-char* getMapRoutine(char* pathFile);
+char* getMapReduceRoutine(char* pathFile);
+void serializeReduce(int sock_nodo, t_reduce* reduce);
 
 
 int main(int argc, char *argv[]) {
@@ -229,7 +238,7 @@ void atenderMapper(void* parametros) {
 	int ret_val = 0;
 
 	if ((sock_nodo = socket_connect(map->ip_nodo, map->port_nodo)) < 0) {
-		log_error(logger, "Error al conectar con Nodo %d", sock_nodo);
+		log_error(logger, "Error al conectar map con Nodo %d", sock_nodo);
 		freeThreadMap(map);
 		pthread_exit(&ret_val);
 	}
@@ -238,32 +247,71 @@ void atenderMapper(void* parametros) {
 
 	hand_nodo = socket_handshake_to_server(sock_nodo, HANDSHAKE_NODO, HANDSHAKE_JOB);
 	if (!hand_nodo) {
-		log_error(logger,"Error en hand_nodo con Nodo %d", hand_nodo);
+		log_error(logger,"Error en map hand_nodo con Nodo %d", hand_nodo);
 		freeThreadMap(map);
 		pthread_exit(&ret_val);
 	}
 
 	/* Serializo y mando datos */
-	log_info(logger,"Handshake Nodo: %d",hand_nodo);
+	log_info(logger,"Handshake Map Nodo: %d",hand_nodo);
 	serializeMap(sock_nodo,map);
+
+	/* Wait for confirmation */
+	void *buffer;
+	size_t sbuffer = 0;
+	socket_recv_packet(sock_nodo, &buffer, &sbuffer);
+	char order = '\0';
+	size_t sOrder = sizeof(char);
+	memcpy(&order, buffer, sOrder);
+
+	//Desserializar
+	confirmarMap();
+	free(buffer);
+	freeThreadMap(map);
 
 }
 
 void confirmarMap() {
-
+	//TODO ACA AVISAR A MARTA EXITO O FRACASO
 }
 
 void atenderReducer(void* parametros) {
-	log_info(logger, "Cree hilo reducer");
+	struct parms_threads *p = (struct parms_threads *)parametros;
+	log_info(logger, "Thread reduce created");
+	printf("Thread reduce created");
 
-	//struct parms_trheads* p = (struct parms_trheads*)parametros;
-	struct parms_threads *p = parametros;
+	t_reduce* reduce;
 
 	/* Desserializo el mensaje de Mapper de MaRTA */
-	desserializeMapOrder(p->buffer);
+	reduce = desserializeReduceOrder(p->buffer,p->tamanio);
 
-	//TODO CONECTARME AL NODO Y MANDARLE EL BLOQUE Y LOS DATOS DE REDUCE.PY
+	/* Me conecto al Nodo */
 
+	int hand_nodo;
+	int sock_nodo;
+	int ret_val = 0;
+
+	if ((sock_nodo = socket_connect(reduce.ip_nodo, reduce.port_nodo)) < 0) {
+		log_error(logger, "Error al conectar reduce con Nodo %d", sock_nodo);
+		freeThreadMap(reduce);
+		pthread_exit(&ret_val);
+	}
+
+	log_info(logger, "Coneccion reduce con Nodo: %d", sock_nodo);
+
+	hand_nodo = socket_handshake_to_server(sock_nodo, HANDSHAKE_NODO, HANDSHAKE_JOB);
+	if (!hand_nodo) {
+		log_error(logger,"Error en reduce hand_nodo con Nodo %d", hand_nodo);
+		freeThreadMap(reduce);
+		pthread_exit(&ret_val);
+	}
+
+	/* Serializo y mando datos */
+	log_info(logger,"Handshake Reduce Nodo: %d",hand_nodo);
+	serializeReduce(sock_nodo,reduce);
+
+
+	freeThreadReduce(reduce);
 }
 
 void confirmarReduce() {
@@ -347,7 +395,7 @@ void desserializeTempToList(t_list *temporals, void *buffer, size_t *sbuffer) {
 	*sbuffer += sizeof(uint16_t) + sizeof(snodeIP) + snodeIP + sizeof(uint16_t) + sizeof(char) * 60;
 }
 
-void desserializeReduceOrder(void *buffer, size_t sbuffer) {
+t_reduce* desserializeReduceOrder(void *buffer, size_t sbuffer) {
 	size_t snodePort = sizeof(uint16_t);
 	size_t stempName = sizeof(char) * 60;
 	size_t snodeIP;
@@ -373,6 +421,13 @@ void desserializeReduceOrder(void *buffer, size_t sbuffer) {
 		desserializeTempToList(temps, tempsBuffer, &stempsBuffer);
 	}
 
+	t_reduce* reduce;
+	reduce = malloc(sizeof(t_reduce));
+	reduce->ip_nodo = strdup(nodeIP);
+	reduce->port_nodo = nodePort;
+	reduce->tempResultName = strdup(tempResultName);
+	reduce->temps; //PROBAR SI ESTO FUNCIONA
+
 //Test TODO: Adaptar a las estructuras de Job
 	printf("\n%s\n", nodeIP);
 	printf("%d\n", nodePort);
@@ -386,6 +441,8 @@ void desserializeReduceOrder(void *buffer, size_t sbuffer) {
 		printf("\t%s\n", temp->tempName);
 	}
 	list_iterate(temps, (void *) showTemp);
+
+	return (reduce);
 //End
 }
 
@@ -403,13 +460,11 @@ void serializeMap(int sock_nodo, t_map* map){
 	size_t sTempName = strlen(map->tempResultName);
 
 	/* Obtenemos binario de File Map */
-	fileMap = getMapRoutine(cfgJob->MAPPER);
+	fileMap = getMapReduceRoutine(cfgJob->MAPPER);
 	size_t sfileMap = strlen(fileMap);
 
 	/* htons */
 	uint16_t numBlock = htons(map->numBlock);
-	//sfileMap = htons(sfileMap);
-	//sTempName = htons(sTempName);
 
 	/* Armo el paquete y lo mando */
 	size_t sbuffer = sOrder + sBlock + sizeof(sfileMap) + sfileMap + sizeof(sTempName) + sTempName;
@@ -436,6 +491,11 @@ void serializeMap(int sock_nodo, t_map* map){
 
 }
 
+//**********************************Send Reduce Nodo************************************//
+
+void serializeReduce(int sock_nodo, t_reduce* reduce){
+
+}
 
 //**********************************************************************************//
 //									ESTRUCTURAS  									//
@@ -458,6 +518,13 @@ void freeThreadMap(t_map* map){
 	free(map->ip_nodo);
 	free(map->tempResultName);
 	free(map);
+}
+
+//**********************************Free Thread Reduce**************************************//
+void freeThreadReduce(t_reduce* reduce){
+	free(reduce->ip_nodo);
+	free(reduce->tempResultName);
+	free(reduce);
 }
 
 //**********************************Init Config****************************************//
@@ -513,7 +580,7 @@ int initConfig(char* configFile) {
 
 
 /*******************************Get Map Routine*************************************/
-char* getMapRoutine(char* pathFile){
+char* getMapReduceRoutine(char* pathFile){
 	int mapper;
 	char* mapeo;
 	int size;
