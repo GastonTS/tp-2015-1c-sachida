@@ -244,7 +244,8 @@ void atenderMapper(void* parametros) {
 	}
 
 	/* Serializo y mando datos */
-
+	log_info(logger,"Handshake Nodo: %d",hand_nodo);
+	serializeMap(sock_nodo,map);
 
 }
 
@@ -409,16 +410,21 @@ void serializeMap(int sock_nodo, t_map* map){
 
 	/* Armo el paquete y lo mando */
 
-
+	log_info(logger,"Block: %d",numBlock);
+	log_info(logger,"fileMap: %s", cfgJob->MAPPER);
+	log_info(logger,"tempResultName: %s", map->tempResultName);
 	size_t sbuffer = sOrder + sBlock + sfileMap + sTempName;
 	void* buffer = malloc(sbuffer);
 	buffer = memset(buffer, '\0', sbuffer);
 	memcpy(buffer, &order, sOrder);
 	memcpy(buffer + sOrder, &numBlock, sBlock);
-	memcpy(buffer + sOrder + sBlock, fileMap, sfileMap);
-	memcpy(buffer + sOrder + sBlock + sfileMap, map->tempResultName, sTempName);
+	memcpy(buffer + sOrder + sBlock, &sfileMap, sizeof(uint16_t));
+	memcpy(buffer + sOrder + sBlock + sizeof(uint16_t), fileMap, sfileMap);
+	memcpy(buffer + sOrder + sBlock + sizeof(uint16_t), &sTempName, sizeof(uint16_t));
+	memcpy(buffer + sOrder + sBlock + sizeof(uint16_t) + sfileMap + sizeof(uint16_t), map->tempResultName, sTempName);
 
 	socket_send_packet(sock_nodo,buffer,sbuffer);
+	log_info(logger,"Enviado");
 	free(fileMap);
 	free(buffer);
 
