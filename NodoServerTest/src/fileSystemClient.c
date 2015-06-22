@@ -40,10 +40,10 @@ void fs_enviarAcciones(int nodeSocket) {
 	char *bufferS = malloc(sbufferS);
 	memcpy(bufferS, paqueteS, sbufferS);
 	socket_send_packet(nodeSocket, bufferS, sbufferS);
-	printf("Send OK\n"); // TODO handlear el error
+	printf("Send OK de %d bytes \n",sbufferS); // TODO handlear el error
 	free(bufferS);
 	// op 2, bloque 21, leng 0002, bloque FF
-	char paqueteG[] = { 0b00000010, 0b00010101, 0b00000000, 0b00000010,
+	/*char paqueteG[] = { 0b00000010, 0b00010101, 0b00000000, 0b00000010,
 			0b00000000, 0b00000000, 0b00000000, 0b01000110, 0b01000110 };
 	size_t sbufferG = sizeof(paqueteG);
 	char *bufferG = malloc(sbufferG);
@@ -51,5 +51,5 @@ void fs_enviarAcciones(int nodeSocket) {
 	socket_send_packet(nodeSocket, bufferG, sbufferG);
 	socket_close(nodeSocket);
 	printf("Send OK\n"); // TODO handlear el error
-	free(bufferG);
+	free(bufferG); */
 }

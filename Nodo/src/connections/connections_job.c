@@ -105,7 +105,7 @@ void connections_job_deserializeMap(void *buffer) {
 
 	//node_setBlock(numBlock, blockData);
 	//node_map();
-	printf("llego al deseralize map");
+	printf("llego al deseralize map\n");
 	free(tmp);
 	free(map);
 }
@@ -122,6 +122,6 @@ void connections_job_deserializeReduce(void *buffer) {
 	char* reduce = malloc(sizeof(char) * (sizeReduce));
 	memcpy(reduce, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint16_t), sizeReduce);
 	//node_reduce();
-	printf("llego al deseralize reduce");
+	printf("llego al deseralize reduce\n");
 	free(reduce);
 }
