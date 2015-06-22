@@ -1,8 +1,8 @@
 #include "connections_job.h"
 #include "connections.h"
 
-void *connections_job_connect(void *param);
-void connections_job_sendInfo(t_nodeCfg *config);
+void *connections_job_connect(int socket);
+void connections_job_sendInfo();
 void connections_job_listenActions();
 void connections_job_deserializeMap(void *buffer);
 void connections_job_deserializeReduce(void *buffer);
@@ -11,7 +11,7 @@ void connections_job_deserializeReduce(void *buffer);
 int jobSocket;
 int exitJob;
 
-void connections_job_initialize(t_nodeCfg *config) {
+void connections_job_accept(t_nodeCfg *config) {
 	exitJob = 0;
 	jobSocket = -1;
 	pthread_t jobTh;
@@ -25,13 +25,12 @@ void connections_job_shutdown() {
 	exitJob = 1;
 }
 
-void *connections_job_connect(void *param) {
-	t_nodeCfg *config = (t_nodeCfg *) param;
+void *connections_job_connect(int socketAccepted) {
 
 	while (!exitJob) {
 		if (0 > jobSocket) {
 			while (0 > jobSocket && !exitJob) {
-				jobSocket = socket_listen(config->puerto_job);
+				jobSocket = socket_listen(socketAccepted);
 			}
 			if (jobSocket >= 0) {
 				if (HANDSHAKE_FILESYSTEM != socket_handshake_to_client(jobSocket, HANDSHAKE_NODO, HANDSHAKE_JOB)) {
@@ -40,7 +39,7 @@ void *connections_job_connect(void *param) {
 					log_error(node_logger, "Handshake to Job failed.");
 				} else {
 					log_info(node_logger, "Connected to Job.");
-					connections_job_sendInfo(config);
+
 				}
 			}
 		}
@@ -50,34 +49,8 @@ void *connections_job_connect(void *param) {
 	return NULL;
 }
 
-void connections_job_sendInfo(t_nodeCfg *config) {
-	// TODO from config.
-	uint16_t cantBloques = 30;
-	char myName[] = "Nodo1"; // Le paso mi nombre.
-
-	uint16_t sName = strlen(myName);
-	size_t sBuffer = sizeof(config->nodo_nuevo) + sizeof(cantBloques) + sizeof(sName) + sName + sizeof(config->puerto_nodo);
-
-	uint16_t cantBloquesSerialized = htons(cantBloques);
-	uint16_t puertoNodoSerialized = htons(config->puerto_nodo);
-	uint16_t sNameSerialized = htons(sName);
-
-	void *pBuffer = malloc(sBuffer);
-	memcpy(pBuffer, &config->nodo_nuevo, sizeof(config->nodo_nuevo));
-	memcpy(pBuffer + sizeof(config->nodo_nuevo), &cantBloquesSerialized, sizeof(cantBloques));
-	memcpy(pBuffer + sizeof(config->nodo_nuevo) + sizeof(cantBloques), &puertoNodoSerialized, sizeof(puertoNodoSerialized));
-	memcpy(pBuffer + sizeof(config->nodo_nuevo) + sizeof(cantBloques) + sizeof(puertoNodoSerialized), &sNameSerialized, sizeof(sNameSerialized));
-	memcpy(pBuffer + sizeof(config->nodo_nuevo) + sizeof(cantBloques) + sizeof(puertoNodoSerialized) + sizeof(sName), &myName, sName);
-
-	e_socket_status status = socket_send_packet(jobSocket, pBuffer, sBuffer);
-	if (0 > status) {
-		socket_close(jobSocket);
-		jobSocket = -1;
-	} else {
-		connections_job_listenActions();
-	}
-
-	free(pBuffer);
+void connections_job_sendInfo() {
+	//TODO ver si aca manda informacion, o recibe
 }
 
 void connections_job_listenActions() {
@@ -132,6 +105,7 @@ void connections_job_deserializeMap(void *buffer) {
 
 	//node_setBlock(numBlock, blockData);
 	//node_map();
+	printf("llego al deseralize map");
 	free(tmp);
 	free(map);
 }
@@ -148,5 +122,6 @@ void connections_job_deserializeReduce(void *buffer) {
 	char* reduce = malloc(sizeof(char) * (sizeReduce));
 	memcpy(reduce, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint16_t), sizeReduce);
 	//node_reduce();
+	printf("llego al deseralize reduce");
 	free(reduce);
 }

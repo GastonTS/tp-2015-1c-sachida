@@ -49,8 +49,8 @@ int main(int argc, char *argv[]) {
 
 	connections_initialize(nodeCfg);
 	//while(1) {} // TODO
-	//socket_job = conectarJob();
-
+	connections_job_connect(nodeCfg->puerto_nodo);
+	connections_job_listenActions();
 	//nodo_escucharAcciones(socket_job);
 	freeNodo();
 	return EXIT_SUCCESS;
@@ -154,7 +154,7 @@ int initConfig(char* configFile) {
 		return -1;
 	}
 
-	char* getCongifString(char *property) {
+	char* getConfigString(char *property) {
 		if (config_has_property(_config, property)) {
 			return config_get_string_value(_config, property);
 		}
@@ -168,11 +168,11 @@ int initConfig(char* configFile) {
 	nodeCfg = malloc(sizeof(t_nodeCfg));
 	log_info(node_logger, "Loading config...");
 
-	nodeCfg->archivo_bin = strdup(getCongifString("ARCHIVO_BIN"));
-	nodeCfg->dir_tmp = strdup(getCongifString("DIR_TMP"));
-	nodeCfg->ip_fs = strdup(getCongifString("IP_FS"));
-	nodeCfg->ip_nodo = strdup(getCongifString("IP_NODO"));
-	nodeCfg->ip_job = strdup(getCongifString("IP_JOB"));
+	nodeCfg->archivo_bin = strdup(getConfigString("ARCHIVO_BIN"));
+	nodeCfg->dir_tmp = strdup(getConfigString("DIR_TMP"));
+	nodeCfg->ip_fs = strdup(getConfigString("IP_FS"));
+	nodeCfg->ip_nodo = strdup(getConfigString("IP_NODO"));
+	nodeCfg->ip_job = strdup(getConfigString("IP_JOB"));
 	nodeCfg->nodo_nuevo = getConfigInt("NODO_NUEVO");
 	nodeCfg->puerto_fs = getConfigInt("PUERTO_FS");
 	nodeCfg->puerto_nodo = getConfigInt("PUERTO_NODO");

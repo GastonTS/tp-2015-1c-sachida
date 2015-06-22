@@ -9,7 +9,6 @@ pthread_t listenerThread;
 
 void connections_initialize(t_nodeCfg *config) {
 	connections_fs_initialize(config);
-	connections_job_initialize(config);
 
 	if (pthread_create(&listenerThread, NULL, (void *) connections_listenerThread, (void *) config)) {
 		log_error(node_logger, "Error while trying to create new thread: connections_listenerThread");
@@ -35,8 +34,9 @@ void *connections_listenerThread(void *param) {
 		if (0 > socketAccepted) { // Connections where closed.
 			return NULL;
 		}
-
-		switch (socket_handshake_to_client(socketAccepted, HANDSHAKE_FILESYSTEM, HANDSHAKE_JOB)) {
+		//TODO aca no seria un client de NODO como server y JOB como client?
+		//Cambio el serer a NODO
+		switch (socket_handshake_to_client(socketAccepted, HANDSHAKE_NODO, HANDSHAKE_JOB)) {
 		case HANDSHAKE_JOB:
 			//connections_job_accept(socketAccepted); // TODO MOVER A THREAD
 			break;
