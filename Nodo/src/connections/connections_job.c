@@ -4,6 +4,9 @@
 void *connections_job_connect(void *param);
 void connections_job_sendInfo(t_nodeCfg *config);
 void connections_job_listenActions();
+void connections_job_deserializeMap(void *buffer);
+void connections_job_deserializeReduce(void *buffer);
+
 
 int jobSocket;
 int exitJob;
@@ -71,7 +74,7 @@ void connections_job_sendInfo(t_nodeCfg *config) {
 		socket_close(jobSocket);
 		jobSocket = -1;
 	} else {
-		connections_fs_listenActions();
+		connections_job_listenActions();
 	}
 
 	free(pBuffer);
@@ -93,14 +96,14 @@ void connections_job_listenActions() {
 		memcpy(&command, buffer, sizeof(uint8_t));
 
 		switch (command) {
-		case 1: //setBloque // TODO mover a socket.h
+		case 3: //setBloque // TODO mover a socket.h
 			connections_job_deserializeMap(buffer);
 			break;
-		case 2: //getBloque
+		case 4: //getBloque
 			connections_job_deserializeReduce(buffer);
 			break;
 		default:
-			log_error(node_logger, "FS Sent an invalid command %d", command);
+			log_error(node_logger, "JOB Sent an invalid command %d", command);
 			break;
 		}
 		free(buffer);
@@ -118,7 +121,7 @@ void connections_job_deserializeMap(void *buffer) {
 	sizeMap = ntohl(sizeMap);
 
 	char* map = malloc(sizeof(char) * (sizeMap));
-	memcpy(map, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint16_t), map);
+	memcpy(map, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint16_t), sizeMap);
 
 	uint32_t sizeTmp;
 	memcpy(&sizeTmp,buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint16_t) + sizeMap, sizeof(uint16_t));
@@ -143,7 +146,7 @@ void connections_job_deserializeReduce(void *buffer) {
 	sizeReduce = ntohl(sizeReduce);
 
 	char* reduce = malloc(sizeof(char) * (sizeReduce));
-	memcpy(reduce, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint16_t), reduce);
+	memcpy(reduce, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint16_t), sizeReduce);
 	//node_reduce();
 	free(reduce);
 }

@@ -9,7 +9,7 @@ pthread_t listenerThread;
 
 void connections_initialize(t_nodeCfg *config) {
 	connections_fs_initialize(config);
-	// TODO connections_job_initialize();
+	connections_job_initialize(config);
 
 	if (pthread_create(&listenerThread, NULL, (void *) connections_listenerThread, (void *) config)) {
 		log_error(node_logger, "Error while trying to create new thread: connections_listenerThread");
@@ -18,7 +18,7 @@ void connections_initialize(t_nodeCfg *config) {
 
 void connections_shutdown() {
 	connections_fs_shutdown();
-	// TODO connections_job_shutdown();
+	connections_job_shutdown();
 
 	socket_close(socketListener);
 	pthread_join(listenerThread, NULL);
