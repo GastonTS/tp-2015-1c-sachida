@@ -37,18 +37,26 @@ void *connections_listenerThread(void *param) {
 			return NULL;
 		}
 
-		switch (socket_handshake_to_client(socketAccepted, HANDSHAKE_FILESYSTEM, HANDSHAKE_MARTA | HANDSHAKE_NODO)) {
-		case HANDSHAKE_NODO:
-			connections_node_accept(socketAccepted, clientIP); // TODO MOVER A THREAD
-			break;
-		case HANDSHAKE_MARTA:
+		pthread_t acceptedConnectionTh;
+		int handshake = socket_handshake_to_client(socketAccepted, HANDSHAKE_FILESYSTEM, HANDSHAKE_MARTA | HANDSHAKE_NODO);
+
+		if (handshake == HANDSHAKE_NODO) {
+			node_connection_t *nodeConnection = connections_node_connection_create(socketAccepted, clientIP);
+			if (pthread_create(&acceptedConnectionTh, NULL, (void *) connections_node_accept, (void *) nodeConnection)) {
+				connections_node_connection_free(nodeConnection);
+				log_error(mdfs_logger, "Error while trying to create new thread: connections_node_accept");
+			}
+			pthread_detach(acceptedConnectionTh);
+		} else if (handshake == HANDSHAKE_MARTA) {
 			if (connections_node_getActiveConnectedCount() < config->minNodesCount) {
 				log_info(mdfs_logger, "Marta connected but rejected because minimum nodes count was not reached\n");
 				socket_close(socketAccepted);
 			} else {
-				connections_marta_accept(socketAccepted); // TODO MOVER A THREAD
+				if (pthread_create(&acceptedConnectionTh, NULL, (void *) connections_marta_accept, (void *) &socketAccepted)) {
+					log_error(mdfs_logger, "Error while trying to create new thread: connections_marta_accept");
+				}
+				pthread_detach(acceptedConnectionTh);
 			}
-			break;
 		}
 
 		if (clientIP) {

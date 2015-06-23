@@ -785,11 +785,22 @@ bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 	// Up to here, success tells me if the planification was ok, now I will try to send every block to the nodes.
 	if (success) {
 
+		pthread_mutex_t failed_mutex;
 		int failed = 0;
+		if (pthread_mutex_init(&failed_mutex, NULL) != 0) {
+			log_error(mdfs_logger, "Error while trying to create new mutex (failed_mutex)");
+			return 0;
+		}
+		void setFailed() {
+			pthread_mutex_lock(&failed_mutex);
+			failed = 1;
+			pthread_mutex_unlock(&failed_mutex);
+		}
+
 		void *sendBlockToNode(void *param) {
 			nodeBlockSendOperation_t *nodeBlockSendOperation = (nodeBlockSendOperation_t*) param;
 			if (!filesystem_sendBlockToNode(nodeBlockSendOperation)) {
-				failed = 1; // TODO mutex.
+				setFailed();
 			}
 			return NULL;
 		}
@@ -798,7 +809,7 @@ bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 		int count = 0;
 		void runOperations(nodeBlockSendOperation_t *nodeBlockSendOperation) {
 			if (pthread_create(&(threads[count]), NULL, (void *) sendBlockToNode, (void*) nodeBlockSendOperation)) {
-				failed = 1; // TODO mutex.
+				setFailed();
 				log_error(mdfs_logger, "Error while trying to create new thread: filesystem_sendBlockToNode");
 			}
 			count++;
@@ -810,6 +821,8 @@ bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 		for (i = 0; i < count; i++) {
 			pthread_join(threads[i], NULL);
 		}
+
+		pthread_mutex_destroy(&failed_mutex); // Release the mutex after joined threads.
 
 		// Check that everything went ok and update the nodes block (set as used)
 		if (!failed) {
@@ -843,8 +856,10 @@ nodeBlockSendOperation_t* filesystem_nodeBlockSendOperation_create(node_t *node,
 
 void filesystem_nodeBlockSendOperation_free(nodeBlockSendOperation_t *nodeBlockSendOperation) {
 	// Point it to null because they are free'd by others.
-	nodeBlockSendOperation->node = NULL;
-	nodeBlockSendOperation->block = NULL;
-	free(nodeBlockSendOperation);
+	if (nodeBlockSendOperation) {
+		nodeBlockSendOperation->node = NULL;
+		nodeBlockSendOperation->block = NULL;
+		free(nodeBlockSendOperation);
+	}
 }
 

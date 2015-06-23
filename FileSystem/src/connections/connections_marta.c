@@ -18,11 +18,13 @@ void connections_marta_shutdown() {
 	socket_close(martaSocket);
 }
 
-void connections_marta_accept(int socketAccepted) {
+void* connections_marta_accept(void *param) {
+	int socketAccepted = *(int *) param;
+
 	if (martaSocket != -1) {
 		log_error(mdfs_logger, "Marta tried to connect but rejected because there was another Marta connected");
 		socket_close(socketAccepted);
-		return;
+		return NULL;
 	}
 
 	pthread_t martaTh;
@@ -31,6 +33,8 @@ void connections_marta_accept(int socketAccepted) {
 		log_error(mdfs_logger, "Error while trying to create new thread: connections_marta_listenActions");
 	}
 	pthread_detach(martaTh);
+
+	return NULL;
 }
 
 void *connections_marta_listenActions(void *param) {

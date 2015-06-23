@@ -45,7 +45,7 @@ void copyBlock(char **parameters);
 void enableNode(char *node);
 void disableNode(char *nodeName);
 void printNodeStatus(char *nodeName);
-void printFileStatus(char *filePath);
+void printFileBlocks(char *filePath);
 
 void help();
 
@@ -63,7 +63,7 @@ void console_start() {
 	do {
 		printf("%s > ", currentDirPrompt);
 		readCommand(command);
-		// TODO NO ANDA EL TRIM DE COMONS .string_trim(&command);
+		// El trim de las commons tira error a veces.. string_trim(&command);
 
 		// Ignore empty enter
 		if (command[0] != '\0') {
@@ -87,8 +87,8 @@ void console_start() {
 				md5sum(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "cp")) {
 				copyFile(parameters);
-			} else if (string_equals_ignore_case(parameters[0], "status")) {
-				printFileStatus(parameters[1]);
+			} else if (string_equals_ignore_case(parameters[0], "blocks")) {
+				printFileBlocks(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "catb")) {
 				saveBlockContents(parameters);
 			} else if (string_equals_ignore_case(parameters[0], "cpb")) {
@@ -383,7 +383,6 @@ void saveBlockContents(char **parameters) {
 			snprintf(tempFilePath, sizeof(tempFilePath), "/tmp/MDFS_FILE_BLOCK_%s__%d", file->name, blockNumber);
 			int result = filesystem_saveFileBlockToLocalFS(file, blockNumber, tempFilePath);
 
-			// TODO mostrar las copias (nombre, index)
 			if (result == 1) {
 				printf("Done: A file at the local filesystem named '%s' has been saved with the contents.\n", tempFilePath);
 			} else if (result == -1) {
@@ -415,7 +414,6 @@ void copyBlock(char **parameters) {
 
 			int result = filesystem_makeNewFileBlockCopy(file, blockNumber);
 
-			// TODO mostrar la nueva copia (nombre, index)
 			if (result == 1) {
 				printf("Done: A new copy has been made\n");
 			} else if (result == -1) {
@@ -455,7 +453,6 @@ void deleteBlock(char **parameters) {
 
 			int result = filesystem_deleteFileBlockCopy(file, blockNumber, copyNumber);
 
-			// TODO mostrar la nueva copia (nombre, index) (?)
 			if (result == 1) {
 				printf("Done: the copy has been deleted\n");
 			} else if (result == -1) {
@@ -506,7 +503,7 @@ void disableNode(char *nodeName) {
 	}
 }
 
-void printFileStatus(char *filePath) {
+void printFileBlocks(char *filePath) {
 	if (!isNull(filePath)) {
 		file_t *file = filesystem_resolveFilePath(filePath, currentDirId, currentDirPrompt);
 		if (file) {
@@ -554,7 +551,7 @@ void help() {
 	printf("\t md5sum <file>\t\t\t Gets the MD5 check sum of the file named <file>\n");
 	printf("\t cp -tofs <file> <dest>\t\t Copies the file <file> from the MDFS to the local FileSystem at <dest>\n");
 	printf("\t cp -fromfs <file> <dest>\t Copies the file <file> from the local FileSystem to the MDFS at <dest>\n");
-	printf("\t status <file>\t\t\t Prints the blocks status of the file <file>\n");
+	printf("\t blocks <file>\t\t\t Prints the blocks status of the file <file>\n");
 
 	printf("\n" ANSI_COLOR_BOLDWHITE "DIRECTORIES" ANSI_COLOR_RESET "\n");
 	printf("\t rm -r <dir>\t\t\t Deletes the dir <dir>\n");

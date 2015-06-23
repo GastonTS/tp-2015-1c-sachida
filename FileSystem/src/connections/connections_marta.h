@@ -4,6 +4,6 @@
 void connections_marta_initialize();
 void connections_marta_shutdown();
 
-void connections_marta_accept(int socketAccepted);
+void* connections_marta_accept(void *param);
 
 #endif
