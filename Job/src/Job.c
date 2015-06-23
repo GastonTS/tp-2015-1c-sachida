@@ -7,22 +7,8 @@
 
 #include "structs/Job.h"
 #include "utils/socket.h"
+#include "structs/node.h"
 
-
-typedef struct {
-	uint16_t PUERTO_MARTA;
-	char* IP_MARTA;
-	char* MAPPER;
-	char* REDUCER;
-	char* RESULTADO;
-	char* LIST_ARCHIVOS;
-	char*  COMBINER;
-} t_configJob;
-
-struct parms_threads{
-	void *buffer;
-	size_t tamanio;
-};
 
 /*
 typedef struct{
@@ -31,34 +17,9 @@ typedef struct{
 } t_list_thread;
 */
 
-typedef struct {
-	uint16_t idJob;
-	char *ip_nodo;
-	uint16_t port_nodo;
-	uint16_t numBlock;
-	char *tempResultName;
-} t_map;
-
-typedef struct{
-	char *ip_nodo;
-	uint16_t port_nodo;
-	char *tempResultName;
-	t_list *temps;
-} t_reduce;
-
 //t_list_thread* hiloMap;
 //t_list_thread* hiloRed;
-t_configJob* cfgJob;
-pthread_t hilo_mapper;
-pthread_t hilo_reduce;
-uint16_t contMap;
-uint16_t contReduce;
 
-/* Estructuras */
-int initConfig(char* configFile);
-void freeCfg();
-void freeThreadMap(t_map* map);
-void freeThreadReduce(t_reduce* reduce);
 //void convertirListaArch(char* cadena,t_list* lista);
 
 /* MaRTA */
@@ -75,10 +36,7 @@ t_map* desserializeMapOrder(void *buffer);
 void desserializeTempToList(t_list *temporals, void *buffer, size_t *sbuffer);
 t_reduce* desserializeReduceOrder(void *buffer, size_t sbuffer);
 
-/* Nodo */
-void serializeMap(int sock, t_map* map);
-char* getMapReduceRoutine(char* pathFile);
-void serializeReduce(int sock_nodo, t_reduce* reduce);
+
 
 
 int main(int argc, char *argv[]) {
@@ -96,8 +54,6 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	contMap = 0;
-	contReduce = 0;
 
 	if((sock_marta = conectarMarta()) >= 0){
 		log_info(logger,"sock_marta: %d",sock_marta);
@@ -447,87 +403,7 @@ t_reduce* desserializeReduceOrder(void *buffer, size_t sbuffer) {
 //End
 }
 
-//**********************************************************************************//
-//									PAQUETES NODO 									//
-//**********************************************************************************//
 
-//**********************************Send Map Nodo************************************//
-
-void serializeMap(int sock_nodo, t_map* map){
-	char order = 'm';
-	size_t sOrder = sizeof(char);
-	size_t sBlock = sizeof(uint16_t);
-	char* fileMap;
-	size_t sTempName = strlen(map->tempResultName);
-
-	/* Obtenemos binario de File Map */
-	fileMap = getMapReduceRoutine(cfgJob->MAPPER);
-	size_t sfileMap = strlen(fileMap);
-
-	/* htons */
-	uint16_t numBlock = htons(map->numBlock);
-
-	/* Armo el paquete y lo mando */
-	size_t sbuffer = sOrder + sBlock + sizeof(sfileMap) + sfileMap + sizeof(sTempName) + sTempName;
-	void* buffer = malloc(sbuffer);
-	buffer = memset(buffer, '\0', sbuffer);
-	memcpy(buffer, &order, sOrder);
-	memcpy(buffer + sOrder, &numBlock, sBlock);
-	memcpy(buffer + sOrder + sBlock, &sfileMap, sizeof(sfileMap));
-	memcpy(buffer + sOrder + sBlock + sizeof(sfileMap), fileMap, sfileMap);
-	memcpy(buffer + sOrder + sBlock + sizeof(sfileMap) + sfileMap, &sTempName, sizeof(sTempName));
-	memcpy(buffer + sOrder + sBlock + sizeof(sfileMap) + sfileMap + sizeof(sTempName), map->tempResultName, sTempName);
-
-	int envio;
-	envio = socket_send_packet(sock_nodo,buffer,sbuffer);
-	log_info(logger,"Enviado %d",envio);
-	log_info(logger,"Order: %c", order);
-	log_info(logger,"numBlock: %d",numBlock);
-	log_info(logger,"sfileMap: %d",sfileMap);
-	log_info(logger,"fileMap: %s",fileMap);
-	log_info(logger,"stemp: %d",sTempName);
-	log_info(logger,"temp: %s",map->tempResultName);
-	//free(fileMap);
-	free(buffer);
-
-}
-
-//**********************************Send Reduce Nodo************************************//
-
-void serializeReduce(int sock_nodo, t_reduce* reduce){
-	char order = 'r';
-	size_t sOrder = sizeof(char);
-	char* fileReduce;
-	size_t sTempName = strlen(reduce->tempResultName);
-
-	/* Obtenemos binario de File Map */
-	fileReduce = getMapReduceRoutine(cfgJob->REDUCER);
-	size_t sfileReduce = strlen(fileReduce);
-
-	/* htons */
-
-
-	/* Armo el paquete y lo mando */
-	size_t sbuffer = sOrder + sizeof(sfileReduce) + sfileReduce + sizeof(sTempName) + sTempName;
-	void* buffer = malloc(sbuffer);
-	buffer = memset(buffer, '\0', sbuffer);
-	memcpy(buffer, &order, sOrder);
-	memcpy(buffer + sOrder, &sfileReduce, sizeof(sfileReduce));
-	memcpy(buffer + sOrder + sizeof(sfileReduce), fileReduce, sfileReduce);
-	memcpy(buffer + sOrder + sizeof(sfileReduce) + sfileReduce, &sTempName, sizeof(sTempName));
-	memcpy(buffer + sOrder + sizeof(sfileReduce) + sfileReduce + sizeof(sTempName), reduce->tempResultName, sTempName);
-
-	int envio;
-	envio = socket_send_packet(sock_nodo,buffer,sbuffer);
-	log_info(logger,"Enviado %d",envio);
-	log_info(logger,"Order: %c", order);
-	log_info(logger,"sfileMap: %d",sfileReduce);
-	log_info(logger,"fileMap: %s",fileReduce);
-	log_info(logger,"stemp: %d",sTempName);
-	log_info(logger,"temp: %s",reduce->tempResultName);
-	//free(fileMap);
-	free(buffer);
-}
 
 //**********************************************************************************//
 //									ESTRUCTURAS  									//

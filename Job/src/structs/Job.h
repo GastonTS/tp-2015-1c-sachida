@@ -29,32 +29,38 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include "node.h"
+
+typedef struct {
+	uint16_t PUERTO_MARTA;
+	char* IP_MARTA;
+	char* MAPPER;
+	char* REDUCER;
+	char* RESULTADO;
+	char* LIST_ARCHIVOS;
+	char*  COMBINER;
+} t_configJob;
 
 
-#define BACKLOG 2 /* El número de conexiones permitidas */
-#define MAXDATASIZE 100 //Cantidad maxima de datos que puedo mandar de un socket a otro
-#define LISTA_ARCHIVOS 100// Para los nombres de los archivos
-#define SIZE_MSG sizeof(t_mensaje)
-#define HANDSHAKE 100
-#define HANDSHAKEOK 110
-#define REDUCE 120
-#define	MAP 130
-#define ARCHIVOS 140
-#define RUTINAMAP 150
-#define RUTINAREDUCE 160
-#define BLOQUE 170
-#define MAPOK 180
-#define MAPERROR 181
-#define REDUCEOK 190
-#define REDUCEERROR 191
-#define MARTA 200
-#define FILESYSTEM 300
-#define JOB 400
-#define NODO 500
+struct parms_threads{
+	void *buffer;
+	size_t tamanio;
+};
+
 
 t_log* logger;
+t_configJob* cfgJob;
+pthread_t hilo_mapper;
+pthread_t hilo_reduce;
 int sock_marta;
 
+
+/**************** METODOS ***************/
+/* Estructuras */
+int initConfig(char* configFile);
+void freeCfg();
+void freeThreadMap(t_map* map);
+void freeThreadReduce(t_reduce* reduce);
 
 
 
