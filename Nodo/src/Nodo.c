@@ -8,6 +8,7 @@
 #include <sys/mman.h>
 
 int node_initConfig(char* configFile);
+bool node_init();
 void node_free();
 
 t_log *node_logger;
@@ -31,27 +32,48 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	// TODO move.
-	if (node_config->newNode) {
-		int fd = open("/home/utnso/block", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-		if (fd == -1) {
-			return -1; // TODO handlear.
-		}
-
-		// TODO truncate -s 1G miarchivo.bin*/
-		lseek(fd, BLOCK_SIZE * node_config->blocksCount, SEEK_SET);
-		write(fd, "", 1);
-		lseek(fd, 0, SEEK_SET);
-
-		close(fd);
+	if (!node_init()) {
+		log_error(node_logger, "Failed to initialize node.");
+		node_free();
+		return EXIT_FAILURE;
 	}
 
 	connections_initialize();
 	while (1) {
 		// TODO DELETE
 	}
+
 	node_free();
 	return EXIT_SUCCESS;
+}
+
+bool node_init() {
+	bool createFile = 0;
+	bool binFileExists = access(node_config->binFilePath, F_OK) != -1;
+
+	if (node_config->newNode) {
+		createFile = 1;
+	} else {
+		if (!binFileExists) {
+			// If it is not a new node but the file does not exist, then I create it. Otherwise it will be kept intact.
+			createFile = 1;
+		}
+	}
+
+	if (createFile) {
+		int fd = open(node_config->binFilePath, O_TRUNC | O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+		if (fd == -1) {
+			return 0;
+		}
+
+		// Maybe? truncate -s 1G miarchivo.bin*/
+		lseek(fd, BLOCK_SIZE * node_config->blocksCount, SEEK_SET);
+		write(fd, "", 1);
+		lseek(fd, 0, SEEK_SET);
+
+		close(fd);
+	}
+	return 1;
 }
 
 char* node_getBlock(uint16_t numBlock) {
