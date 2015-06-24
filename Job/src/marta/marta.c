@@ -10,7 +10,7 @@
 #include "marta.h"
 
 //**********************************************************************************//
-//									CONEXIONES MaRTA											//
+//									CONEXIONES MaRTA								//
 //**********************************************************************************//
 
 int conectarMarta() {
@@ -159,19 +159,47 @@ void atenderMapper(void* parametros) {
 	void *buffer;
 	size_t sbuffer = 0;
 	socket_recv_packet(sock_nodo, &buffer, &sbuffer);
-	char order = '\0';
-	size_t sOrder = sizeof(char);
-	memcpy(&order, buffer, sOrder);
+	char conf = '\0';
+	size_t sConf = sizeof(char);
+	memcpy(&conf, buffer, sConf);
 
 	//Desserializar
-	confirmarMap();
+	confirmarMap(conf, map);
 	free(buffer);
-	freeThreadMap(map);
 
 }
 
-void confirmarMap() {
-	//TODO ACA AVISAR A MARTA EXITO O FRACASO
+void confirmarMap(char confirmacion, t_map* map) {
+
+	/*TODO ARMAR METODO? */
+	size_t sOrder = sizeof(char);
+	size_t sIdJob = sizeof(uint16_t);
+	size_t sbuffer = sOrder + sIdJob;
+
+	uint16_t idJob = htons(map->idJob);
+
+	void* buffer = malloc(sbuffer);
+	buffer = memset(buffer, '\0', sbuffer);
+	memcpy(buffer, &confirmacion, sOrder);
+	memcpy(buffer + sOrder, &idJob, sIdJob);
+
+
+	if (confirmacion == 't'){
+			socket_send_packet(sock_marta,&buffer,sbuffer);
+			log_info(logger,"Map %d Successfully Completed", map->idJob);
+			printf("Map %d Successfully Completed \n",map->idJob);
+		}
+		else if (confirmacion == 'f'){
+			socket_send_packet(sock_marta,&buffer,sbuffer);
+			log_info(logger,"Map %d Failed", map->idJob);
+			printf("Map %d Failed \n",map->idJob);
+		}
+		else{
+			printf("\n NO SE RECONOCIO LA CONFIRMACION DEL NODO \n");
+			log_error(logger,"NO SE RECONOCIO LA CONFIRMACION DEL NODO");
+		}
+	freeThreadMap(map);
+	free(buffer);
 }
 
 void atenderReducer(void* parametros) {
@@ -209,6 +237,8 @@ void atenderReducer(void* parametros) {
 	log_info(logger,"Handshake Reduce Nodo: %d",hand_nodo);
 	serializeReduce(sock_nodo,reduce);
 
+
+	/* Confirmar Reduce */
 
 	freeThreadReduce(reduce);
 }
@@ -268,6 +298,7 @@ t_map* desserializeMapOrder(void *buffer) {
 
 }
 
+//*********************************SerializeConfMap*******************************************//
 
 //*********************************REDUCE*******************************************//
 typedef struct {
