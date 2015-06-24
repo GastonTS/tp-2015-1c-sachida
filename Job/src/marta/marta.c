@@ -163,7 +163,7 @@ void atenderMapper(void* parametros) {
 	size_t sConf = sizeof(char);
 	memcpy(&conf, buffer, sConf);
 
-	//Desserializar
+	/* Confirmar Map */
 	confirmarMap(conf, map);
 	free(buffer);
 
@@ -237,13 +237,81 @@ void atenderReducer(void* parametros) {
 	log_info(logger,"Handshake Reduce Nodo: %d",hand_nodo);
 	serializeReduce(sock_nodo,reduce);
 
+	/* Wait for confirmation */
+	void *buffer;
+	size_t sbuffer = 0;
+	socket_recv_packet(sock_nodo, &buffer, &sbuffer);
+	char conf = '\0';
+	size_t sConf = sizeof(char);
+	memcpy(&conf, buffer, sConf);
+
 
 	/* Confirmar Reduce */
-
-	freeThreadReduce(reduce);
+	confirmarReduce(conf, reduce, buffer);
 }
 
-void confirmarReduce() {
+void confirmarReduce(char confirmacion, t_reduce* reduce, void* bufferNodo) {
+
+	/*TODO ARMAR METODO? */
+	size_t sOrder = sizeof(char);
+	size_t sIdJob = sizeof(uint16_t);
+
+	/*
+	uint16_t idJob = htons(reduce->idJob);
+
+
+	size_t sbuffer = sOrder + sIdJob;
+	void* buffer = malloc(sbuffer);
+	buffer = memset(buffer, '\0', sbuffer);
+	memcpy(buffer, &confirmacion, sOrder);
+	memcpy(buffer + sOrder, &idJob, sIdJob);
+	*/
+
+	if (confirmacion == 't'){
+		/* Armo el pkg reduce confirmation */
+			uint16_t idJob = htons(reduce->idJob);
+			size_t sbuffer = sOrder + sIdJob;
+			void* buffer = malloc(sbuffer);
+			buffer = memset(buffer, '\0', sbuffer);
+			memcpy(buffer, &confirmacion, sOrder);
+			memcpy(buffer + sOrder, &idJob, sIdJob);
+		/* Envio todo a MaRTA */
+			socket_send_packet(sock_marta,&buffer,sbuffer);
+			log_info(logger,"Map %d Successfully Completed", reduce->idJob);
+			printf("Map %d Successfully Completed \n",reduce->idJob);
+			free(bufferNodo);
+			free(buffer);
+		}
+		else if (confirmacion == 'f'){
+		/* Armo el pkg reduce confirmation */
+			uint16_t idJob = htons(reduce->idJob);
+
+			char* tmpfail;
+			size_t stmpfail;
+
+			memcpy(&stmpfail, bufferNodo + sIdJob, sizeof(size_t));
+			tmpfail = malloc(stmpfail);
+			memcpy(tmpfail, bufferNodo + sizeof(stmpfail), stmpfail);
+
+			size_t sbuffer = sOrder + sIdJob + sizeof(size_t) + stmpfail;
+			void* buffer = malloc(sbuffer);
+			buffer = memset(buffer, '\0', sbuffer);
+			memcpy(buffer, &confirmacion, sOrder);
+			memcpy(buffer + sOrder, &idJob, sIdJob);
+			memcpy(buffer + sOrder + sIdJob, &stmpfail, sizeof(size_t));
+			memcpy(buffer + sOrder + sIdJob + sizeof(size_t), &tmpfail, stmpfail);
+		/* Envio todo a MaRTA */
+			socket_send_packet(sock_marta,&buffer,sbuffer);
+			log_info(logger,"Map %d Failed", reduce->idJob);
+			printf("Map %d Failed \n",reduce->idJob);
+			free(bufferNodo);
+			free(buffer);
+		}
+		else{
+			printf("\n NO SE RECONOCIO LA CONFIRMACION DEL NODO \n");
+			log_error(logger,"NO SE RECONOCIO LA CONFIRMACION DEL NODO");
+		}
+	freeThreadReduce(reduce);
 
 }
 
@@ -312,6 +380,7 @@ void desserializeTempToList(t_list *temporals, void *buffer, size_t *sbuffer) {
 	t_temp *temporal = malloc(sizeof(t_temp));
 	size_t snodeIP;
 
+
 	memcpy(&temporal->originMap, buffer + *sbuffer, sizeof(uint16_t));
 	temporal->originMap = ntohs(temporal->originMap);
 	memcpy(&snodeIP, buffer + *sbuffer + sizeof(uint16_t), sizeof(snodeIP));
@@ -329,30 +398,36 @@ t_reduce* desserializeReduceOrder(void *buffer, size_t sbuffer) {
 	size_t snodePort = sizeof(uint16_t);
 	size_t stempName = sizeof(char) * 60;
 	size_t snodeIP;
+	size_t sIdJob = sizeof(uint16_t);
+	uint16_t idJob;
 
 	char* nodeIP;
 	uint16_t nodePort;
 	char tempResultName[60];
 	uint16_t countTemps = 0;
 
-	memcpy(&snodeIP, buffer, sizeof(size_t));
+	memcpy(&idJob, buffer, sIdJob);
+	memcpy(&snodeIP, buffer + sIdJob, sizeof(size_t));
 	nodeIP = malloc(snodeIP);
 	memcpy(nodeIP, buffer + sizeof(snodeIP), snodeIP);
-	memcpy(&nodePort, buffer + sizeof(snodeIP) + snodeIP, snodePort);
+	memcpy(&nodePort, buffer + sIdJob + sizeof(snodeIP) + snodeIP, snodePort);
 	nodePort = ntohs(nodePort);
 	memcpy(tempResultName, buffer + sizeof(snodeIP) + snodeIP + snodePort, stempName);
-	memcpy(&countTemps, buffer + sizeof(snodeIP) + snodeIP + snodePort + stempName, sizeof(uint16_t));
+	memcpy(&countTemps, buffer + sIdJob + sizeof(snodeIP) + snodeIP + snodePort + stempName, sizeof(uint16_t));
 	countTemps = ntohs(countTemps);
-	void *tempsBuffer = malloc(sbuffer - sizeof(snodeIP) - snodeIP - snodePort - stempName - sizeof(uint16_t));
-	tempsBuffer = buffer + sizeof(snodeIP) + snodeIP + snodePort + stempName + sizeof(uint16_t);
+	void *tempsBuffer = malloc(sbuffer - sIdJob - sizeof(snodeIP) - snodeIP - snodePort - stempName - sizeof(uint16_t));
+	tempsBuffer = buffer + sIdJob + sizeof(snodeIP) + snodeIP + snodePort + stempName + sizeof(uint16_t);
 	size_t stempsBuffer = 0;
 	t_list *temps = list_create();
 	for (; countTemps; countTemps--) {
 		desserializeTempToList(temps, tempsBuffer, &stempsBuffer);
 	}
 
+	idJob = ntohs(idJob);
+
 	t_reduce* reduce;
 	reduce = malloc(sizeof(t_reduce));
+	reduce->idJob = idJob;
 	reduce->ip_nodo = strdup(nodeIP);
 	reduce->port_nodo = nodePort;
 	reduce->tempResultName = strdup(tempResultName);
@@ -360,6 +435,7 @@ t_reduce* desserializeReduceOrder(void *buffer, size_t sbuffer) {
 	//reduce->temps;
 
 //Test TODO: Adaptar a las estructuras de Job
+	printf("%d \n",idJob);
 	printf("\n%s\n", nodeIP);
 	printf("%d\n", nodePort);
 	printf("%s\n", tempResultName);

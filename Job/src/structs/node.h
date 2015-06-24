@@ -27,6 +27,7 @@ typedef struct {
 } t_map;
 
 typedef struct{
+	uint16_t idJob;
 	char *ip_nodo;
 	uint16_t port_nodo;
 	char *tempResultName;

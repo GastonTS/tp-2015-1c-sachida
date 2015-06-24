@@ -16,7 +16,7 @@ void atenderMarta(int socketMarta);
 void atenderMapper(void* parametros);
 void confirmarMap(char confirmacion, t_map* map);
 void atenderReducer(void* parametros);
-void confirmarReduce();
+void confirmarReduce(char confirmacion, t_reduce* reduce, void* bufferNodo);
 
 /*serialize*/
 void serializeConfigMaRTA(int fd, bool combiner, char* files);
