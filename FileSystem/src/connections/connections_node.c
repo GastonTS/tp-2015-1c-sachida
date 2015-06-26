@@ -133,7 +133,9 @@ void* connections_node_accept(void *param) {
 }
 
 bool connections_node_sendBlock(nodeBlockSendOperation_t *sendOperation) {
-	// TODO, deberia hacer un mutex por socket (o sino hacerlo en socket.c)
+	// TODO, deberia hacer un mutex por socket. SI, hasta el recv e que salio todo ok, sino es un bardo..
+
+	log_info(mdfs_logger, "Going to SET block %d to node %s.", sendOperation->blockIndex, sendOperation->node->id);
 
 	node_connection_t *nodeConnection = connections_node_getNodeConnection(sendOperation->node->id);
 	if (!nodeConnection) {
@@ -170,6 +172,7 @@ bool connections_node_sendBlock(nodeBlockSendOperation_t *sendOperation) {
 }
 
 char* connections_node_getBlock(file_block_t *fileBlock) {
+	log_info(mdfs_logger, "Going to GET block %d from node %s.", fileBlock->blockIndex, fileBlock->nodeId);
 
 	node_connection_t *nodeConnection = connections_node_getNodeConnection(fileBlock->nodeId);
 	if (!nodeConnection) {

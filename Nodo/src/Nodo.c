@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
 
 	connections_initialize();
 	while (1) {
-		// TODO DELETE
+		// TODO DELETE ?
 	}
 
 	node_free();
@@ -59,19 +59,23 @@ bool node_init() {
 		}
 	}
 
+	int fd;
 	if (createFile) {
-		int fd = open(node_config->binFilePath, O_TRUNC | O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-		if (fd == -1) {
-			return 0;
-		}
-
-		// Maybe? truncate -s 1G miarchivo.bin*/
-		lseek(fd, BLOCK_SIZE * node_config->blocksCount, SEEK_SET);
-		write(fd, "", 1);
-		lseek(fd, 0, SEEK_SET);
-
-		close(fd);
+		fd = open(node_config->binFilePath, O_TRUNC | O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+	} else {
+		fd = open(node_config->binFilePath, O_TRUNC | O_RDWR); // Truncate just in case the blokcsCount changed..
 	}
+
+	if (fd == -1) {
+		return 0;
+	}
+
+	if (ftruncate(fd, BLOCK_SIZE * node_config->blocksCount) == -1) {
+		return 0;
+	}
+
+	close(fd);
+
 	return 1;
 }
 

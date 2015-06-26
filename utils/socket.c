@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <arpa/inet.h>
 #include <signal.h>
 
 // Siempre que halla if (0> algo) significa "Si hay error"

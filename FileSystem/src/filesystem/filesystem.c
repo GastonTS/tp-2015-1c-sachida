@@ -178,34 +178,37 @@ node_t* filesystem_getNodeById(char *nodeId) {
 void filesystem_addNode(char *nodeId, uint16_t blocksCount, bool isNewNode) {
 	node_t *node = filesystem_getNodeById(nodeId);
 	if (node) {
-		if (isNewNode) {
-			// The node exists in the filesystem but he says that is new, so I should delete all blocks copies that are in that node.
-			t_list *files = mongo_file_getFilesThatHaveNode(node->id);
+		if (node->blocksCount != blocksCount) {
+			log_error(mdfs_logger, "The node informed a different blocksCount. %d != %d", node->blocksCount, blocksCount);
+		} else {
+			if (isNewNode) {
+				// The node exists in the filesystem but he says that is new, so I should delete all blocks copies that are in that node.
+				t_list *files = mongo_file_getFilesThatHaveNode(node->id);
 
-			// Delete the copies.
-			void listFiles(file_t *file) {
-				uint16_t blockIndex = 0;
-				void listBlocks(t_list* blockCopies) {
-					void listBlockCopies(file_block_t *blockCopy) {
-						if (strcmp(blockCopy->nodeId, node->id) == 0) {
-							mongo_file_deleteBlockCopy(file->id, blockIndex, blockCopy);
+				// Delete the copies.
+				void listFiles(file_t *file) {
+					uint16_t blockIndex = 0;
+					void listBlocks(t_list* blockCopies) {
+						void listBlockCopies(file_block_t *blockCopy) {
+							if (strcmp(blockCopy->nodeId, node->id) == 0) {
+								mongo_file_deleteBlockCopy(file->id, blockIndex, blockCopy);
+							}
 						}
+						list_iterate(blockCopies, (void *) listBlockCopies);
+						blockIndex++;
 					}
-					list_iterate(blockCopies, (void *) listBlockCopies);
-					blockIndex++;
+					list_iterate(file->blocks, (void *) listBlocks);
 				}
-				list_iterate(file->blocks, (void *) listBlocks);
-			}
-			list_iterate(files, (void *) listFiles);
+				list_iterate(files, (void *) listFiles);
 
-			// Finally, format the node:
-			// if the node changes the blocksCount it fucks all this shit !
-			filesystem_formatNode(node);
+				// Finally, format the node:
+				// if the node changes the blocksCount it fucks all this shit !
+				filesystem_formatNode(node);
 
-			// Free files
-			list_destroy_and_destroy_elements(files, (void *) file_free);
+				// Free files
+				list_destroy_and_destroy_elements(files, (void *) file_free);
+			} // Else: The node exists in the filesystem and he says that is not new, so he should have the same data. I don't have to do anything
 		}
-		// Else: The node exists in the filesystem and he says that is not new, so he should have the same data. I don't have to do anything
 	} else {
 		// The node does not exist, so I don't care whether he is new or not, just create a new one.
 		node = node_create(blocksCount);
@@ -688,11 +691,8 @@ t_list* filesystem_getFSFileBlocks(char *route, size_t *fileSize) {
 }
 
 char* filesystem_getAllFileContent(file_t *file) {
-	// TODO MOVER A THREAD
-	//pthread_t getBlockThread[list_size(file->blocks)];
-	//int thCount = 0;
 	bool found = 0;
-	bool isComplete = 1; // Tells if I can get all the contents of the file.
+	bool isComplete = 1; // Tells if I could get all the contents of the file.
 
 	t_list *blocksData = list_create();
 	void listBlocks(t_list* blockCopies) {
@@ -842,7 +842,6 @@ bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 }
 
 bool filesystem_sendBlockToNode(nodeBlockSendOperation_t *nodeBlockSendOperation) {
-	log_info(mdfs_logger, "Sending block to node %s , blockIndex %d", nodeBlockSendOperation->node->id, nodeBlockSendOperation->blockIndex);
 	return connections_node_sendBlock(nodeBlockSendOperation);
 }
 

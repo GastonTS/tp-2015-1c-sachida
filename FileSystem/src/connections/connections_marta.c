@@ -27,6 +27,8 @@ void* connections_marta_accept(void *param) {
 		return NULL;
 	}
 
+	log_info(mdfs_logger, "Marta connected.");
+
 	pthread_t martaTh;
 	martaSocket = socketAccepted;
 	if (pthread_create(&martaTh, NULL, (void *) connections_marta_listenActions, NULL)) {
@@ -80,11 +82,13 @@ bool connection_marta_sendFileBlocks(void *bufferReceived) {
 	filePathName[sFileName] = '\0';
 
 	log_info(mdfs_logger, "Marta requested the blocks of file %s", filePathName);
+
 	file_t *file = filesystem_resolveFilePath(filePathName, ROOT_DIR_ID, "/");
 
 	free(filePathName);
 
 	if (!file) {
+		// TODO avisar a marta que no existe el archivo.
 		return 1;
 	}
 
