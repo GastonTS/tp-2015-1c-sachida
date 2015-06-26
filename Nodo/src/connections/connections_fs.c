@@ -8,10 +8,16 @@ void connections_fs_deserializeSetBlock(void *buffer);
 void connections_fs_deserializeGetBlock(void *buffer);
 
 int fsSocket;
-int exitFs;
+int exitFsConnections;
+
+void connections_fs_setDisconnected() {
+	log_error(node_logger, "Connection to FS was lost.");
+	socket_close(fsSocket);
+	fsSocket = -1;
+}
 
 void connections_fs_initialize() {
-	exitFs = 0;
+	exitFsConnections = 0;
 	fsSocket = -1;
 
 	pthread_t fsTh;
@@ -22,21 +28,20 @@ void connections_fs_initialize() {
 }
 
 void connections_fs_shutdown() {
-	exitFs = 1;
+	exitFsConnections = 1;
 }
 
 void *connections_fs_connect(void *param) {
 
-	while (!exitFs) {
+	while (!exitFsConnections) {
 		if (0 > fsSocket) {
-			while (0 > fsSocket && !exitFs) {
+			while (0 > fsSocket && !exitFsConnections) {
 				fsSocket = socket_connect(node_config->fsIp, node_config->fsPort);
 			}
 			if (fsSocket >= 0) {
 				if (HANDSHAKE_FILESYSTEM != socket_handshake_to_server(fsSocket, HANDSHAKE_FILESYSTEM, HANDSHAKE_NODO)) {
-					socket_close(fsSocket);
-					fsSocket = -1;
 					log_error(node_logger, "Handshake to filesystem failed.");
+					connections_fs_setDisconnected();
 				} else {
 					log_info(node_logger, "Connected to FileSystem.");
 					connections_fs_sendInfo();
@@ -44,8 +49,8 @@ void *connections_fs_connect(void *param) {
 			}
 		}
 	}
-	socket_close(fsSocket);
-	fsSocket = -1;
+
+	connections_fs_setDisconnected();
 	return NULL;
 }
 
@@ -70,8 +75,7 @@ void connections_fs_sendInfo() {
 
 	e_socket_status status = socket_send_packet(fsSocket, pBuffer, sBuffer);
 	if (0 > status) {
-		socket_close(fsSocket);
-		fsSocket = -1;
+		connections_fs_setDisconnected();
 	} else {
 		connections_fs_listenActions();
 	}
@@ -86,8 +90,7 @@ void connections_fs_listenActions() {
 
 		e_socket_status status = socket_recv_packet(fsSocket, &buffer, &sBuffer);
 		if (0 > status) {
-			socket_close(fsSocket);
-			fsSocket = -1; // TODO mover a metodo y meter mutex por fsSocket.
+			connections_fs_setDisconnected();
 			return;
 		}
 
@@ -138,12 +141,12 @@ void connections_fs_deserializeGetBlock(void *buffer) {
 		e_socket_status status = socket_send_packet(fsSocket, blockData, strlen(blockData));
 
 		if (status != SOCKET_ERROR_NONE) {
-			// TODO, manejar el error.
+			connections_fs_setDisconnected();
 		}
+		node_freeBlock(blockData);
 	} else {
-		// TODO handlear error.
+		// No deberia pasar nunca supuestamente.
+		// TODO handlear error. (mandar al fs un mensaje de error ?).
 	}
-
-	node_freeBlock(blockData);
 }
 

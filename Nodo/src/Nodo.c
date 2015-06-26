@@ -14,7 +14,6 @@ void node_free();
 t_log *node_logger;
 t_nodeCfg *node_config;
 
-//Le agregue los argumentos para que se pueda pasar el archivo de conf como parametro del main
 int main(int argc, char *argv[]) {
 	node_logger = log_create("node.log", "Node", 1, log_level_from_string("TRACE"));
 

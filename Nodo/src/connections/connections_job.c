@@ -13,7 +13,8 @@ void connections_job_shutdown() {
 
 }
 
-void connections_job_accept(int socketAccepted) {
+void* connections_job_accept(void *param) {
+	int socketAccepted = *(int *) param;
 
 	log_info(node_logger, "New job connected.");
 
@@ -21,7 +22,9 @@ void connections_job_accept(int socketAccepted) {
 	if (pthread_create(&listenActionsTh, NULL, (void *) connections_job_listenActions, (void *) &socketAccepted)) {
 		log_error(node_logger, "Error while trying to create new thread: connections_job_listenActions");
 	}
-	pthread_detach(listenActionsTh); // TODO check
+	pthread_detach(listenActionsTh);
+
+	return NULL;
 }
 
 void* connections_job_listenActions(void *param) {
@@ -96,7 +99,6 @@ void connections_job_deserializeReduce(void *buffer) {
 	printf("llego al deseralize reduce\n");
 	free(reduce);
 }
-
 
 /*void getFileContent(){
  Devolverá   el   contenido   del   archivo   de   Espacio   Temporal solicitado.

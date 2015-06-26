@@ -36,12 +36,15 @@ void *connections_listenerThread(void *param) {
 			return NULL;
 		}
 
-		switch (socket_handshake_to_client(socketAccepted, HANDSHAKE_FILESYSTEM, HANDSHAKE_JOB)) {
-		case HANDSHAKE_JOB:
-			connections_job_accept(socketAccepted); // TODO MOVER A THREAD (sure?)
-			break;
-		}
+		pthread_t acceptedConnectionTh;
+		int handshake = socket_handshake_to_client(socketAccepted, HANDSHAKE_NODO, HANDSHAKE_JOB);
 
+		if (handshake == HANDSHAKE_JOB) {
+			if (pthread_create(&acceptedConnectionTh, NULL, (void *) connections_job_accept, (void *) &socketAccepted)) {
+				log_error(node_logger, "Error while trying to create new thread: connections_job_accept");
+			}
+			pthread_detach(acceptedConnectionTh);
+		}
 	}
 
 	return NULL;

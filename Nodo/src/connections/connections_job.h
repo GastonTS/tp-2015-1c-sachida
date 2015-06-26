@@ -6,6 +6,6 @@
 void connections_job_initialize();
 void connections_job_shutdown();
 
-void connections_job_accept(int socketAccepted);
+void* connections_job_accept(void *param);
 
 #endif
