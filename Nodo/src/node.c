@@ -1,4 +1,5 @@
-#include "Nodo.h"
+#include "node.h"
+
 #include "utils/socket.h"
 #include "connections/connections.h"
 

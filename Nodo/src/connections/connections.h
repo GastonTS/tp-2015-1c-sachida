@@ -7,8 +7,9 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <commons/log.h>
+
+#include "../node.h"
 #include "../utils/socket.h"
-#include "../Nodo.h"
 
 void connections_initialize();
 void connections_shutdown();

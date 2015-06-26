@@ -1,7 +1,6 @@
-#ifndef NODO_H_
-#define NODO_H_
+#ifndef NODE_H
+#define NODE_H
 
-//Librerias
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,12 +11,14 @@
 
 #define	BLOCK_SIZE	20 * 1024 * 1024 // 20 MB de bloques
 
+/* TODO, que verga es esto?
 typedef struct {
 	int tipo;
 	int id_proceso;
 	int datosNumericos;
 	char mensaje[16];
 } t_mensaje;
+*/
 
 typedef struct {
 	char *fsIp;
@@ -37,5 +38,4 @@ char* node_getBlock(uint16_t numBlock);
 void node_freeBlock(char *blockStr);
 void node_setBlock(uint16_t numBlock, char *blockData);
 
-#endif /* NODO_H_ */
-
+#endif
