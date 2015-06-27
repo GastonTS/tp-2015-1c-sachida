@@ -54,9 +54,9 @@ void recvResult(int fd, t_job *job) {
 	size_t sResult = sizeof(char);
 	memcpy(&resultFrom, buffer, sResult);
 	printf("\nRECVRESULT: %c\n", resultFrom);
-	if (resultFrom == 'm')
+	if (resultFrom == COMMAND_MAP)
 		desserializeMapResult(buffer + sResult, job);
-	else if (resultFrom == 'r')
+	else if (resultFrom == COMMAND_REDUCE)
 		desserializaReduceResult(buffer + sResult, job);
 	free(buffer);
 }
@@ -73,8 +73,8 @@ void sendDieOrder(int fd) {
 }
 //**********************************MAP*********************************************//
 void serializeMapToOrder(int fd, t_map *map) {
-	char order = 'm';
-	size_t sOrder = sizeof(char);
+	uint8_t order = COMMAND_MAP;
+	size_t sOrder = sizeof(uint8_t);
 	size_t sIpMap = sizeof(uint16_t);
 	size_t snumBlock = sIpMap;
 	size_t snodePort = sizeof(uint16_t);
@@ -147,7 +147,7 @@ void serializeTemp(t_temp *temporal, void *buffer, size_t *sbuffer) {
 }
 
 void serializeReduceToOrder(int fd, t_reduce *reduce) {
-	char order = 'r';
+	char order = COMMAND_REDUCE;
 	size_t sOrder = sizeof(char);
 	size_t snodeIP = strlen(reduce->nodeIP) + 1;
 	size_t snodePort = sizeof(uint16_t);

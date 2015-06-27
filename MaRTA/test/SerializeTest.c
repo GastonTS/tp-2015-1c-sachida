@@ -29,13 +29,13 @@ void seializeCompleteJobTest() {
 			else
 				log_info(logger, "Iniciando Job: %d (No combiner)", job->id);
 
-			t_map *map = CreateMap(1, 13, 30123, "NodoX", "xxx.yyy.zzz.www", "temporal map 1.txt");
+			t_map *map = CreateMap(1, 13, 5001, "NodoX", "192.168.1.120", "temporal map 1.txt");
 			list_add(job->maps, map);
 
 			serializeMapToOrder(fdAccepted, map);
 			printf("\nMap done:%d", map->done);
 			recvResult(fdAccepted, job);
-			printf("Map done:%d\n\n", map->done);
+			/*printf("Map done:%d\n\n", map->done);
 
 			job->finalReduce->done = 0;
 			job->finalReduce->finalNode = strdup("Nodo Final");
@@ -47,7 +47,7 @@ void seializeCompleteJobTest() {
 			serializeReduceToOrder(fdAccepted, job->finalReduce);
 			printf("\nReduce done:%d", job->finalReduce->done);
 			recvResult(fdAccepted, job);
-			printf("Reduce done:%d\n\n", job->finalReduce->done);
+			printf("Reduce done:%d\n\n", job->finalReduce->done);*/
 			sendDieOrder(fdAccepted);
 			freeJob(job);
 
