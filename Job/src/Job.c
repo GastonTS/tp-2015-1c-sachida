@@ -30,11 +30,11 @@ typedef struct{
 
 int main(int argc, char *argv[]) {
 
-	logger = log_create("Job.log", "JOB", false, LOG_LEVEL_DEBUG);
+	logger = log_create("Job.log", "JOB", 1, LOG_LEVEL_DEBUG);
 
 	if (argc != 2) {
 		printf("ERROR -> La sintaxis es:  ./Job.c \"Ruta_archivo_config\" \n");
-		return (-1);
+		return EXIT_FAILURE;
 	}
 
 	if (!initConfig(argv[1])) {
@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	freeCfg();
-	return 1;
+	return EXIT_SUCCESS;
 }
 
 
@@ -72,6 +72,7 @@ void freeCfg() {
 	free(cfgJob->REDUCER);
 	free(cfgJob->RESULTADO);
 	free(cfgJob->LIST_ARCHIVOS);
+	free(cfgJob->COMBINER);
 	free(cfgJob);
 }
 

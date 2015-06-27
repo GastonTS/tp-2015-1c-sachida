@@ -14,7 +14,7 @@
 int conectarMarta();
 void atenderMarta(int socketMarta);
 void atenderMapper(void* parametros);
-void confirmarMap(char confirmacion, t_map* map);
+void confirmarMap(bool confirmacion, t_map* map);
 void atenderReducer(void* parametros);
 void confirmarReduce(char confirmacion, t_reduce* reduce, void* bufferNodo);
 

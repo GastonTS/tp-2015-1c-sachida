@@ -16,29 +16,35 @@
 //**********************************Send Map Nodo************************************//
 
 void serializeMap(int sock_nodo, t_map* map){
-	char order = 'm';
-	size_t sOrder = sizeof(char);
+	uint8_t order  = COMMAND_MAP;
+	size_t sOrder = sizeof(uint8_t);
 	size_t sBlock = sizeof(uint16_t);
 	char* fileMap;
-	size_t sTempName = strlen(map->tempResultName);
+
 
 	/* Obtenemos binario de File Map */
 	fileMap = getMapReduceRoutine(cfgJob->MAPPER);
-	size_t sfileMap = strlen(fileMap);
+	uint32_t sfileMap = strlen(fileMap);
+	uint32_t sTempName = strlen(map->tempResultName);
+	size_t sbuffer = sOrder + sBlock + sizeof(uint32_t) + sfileMap + sizeof(uint32_t) + sTempName;
 
-	/* htons */
+	/* htons - htonl */
 	uint16_t numBlock = htons(map->numBlock);
 
+	uint32_t sfileMapSerialize = htonl(sfileMap);
+	uint32_t sTempNameSerialize = htonl(sTempName);
+
 	/* Armo el paquete y lo mando */
-	size_t sbuffer = sOrder + sBlock + sizeof(sfileMap) + sfileMap + sizeof(sTempName) + sTempName;
+
+
 	void* buffer = malloc(sbuffer);
 	buffer = memset(buffer, '\0', sbuffer);
 	memcpy(buffer, &order, sOrder);
 	memcpy(buffer + sOrder, &numBlock, sBlock);
-	memcpy(buffer + sOrder + sBlock, &sfileMap, sizeof(sfileMap));
-	memcpy(buffer + sOrder + sBlock + sizeof(sfileMap), fileMap, sfileMap);
-	memcpy(buffer + sOrder + sBlock + sizeof(sfileMap) + sfileMap, &sTempName, sizeof(sTempName));
-	memcpy(buffer + sOrder + sBlock + sizeof(sfileMap) + sfileMap + sizeof(sTempName), map->tempResultName, sTempName);
+	memcpy(buffer + sOrder + sBlock, &sfileMapSerialize, sizeof(uint32_t));
+	memcpy(buffer + sOrder + sBlock + sizeof(uint32_t), fileMap, sfileMap);
+	memcpy(buffer + sOrder + sBlock + sizeof(uint32_t) + sfileMap, &sTempNameSerialize, sizeof(uint32_t));
+	memcpy(buffer + sOrder + sBlock + sizeof(uint32_t) + sfileMap + sizeof(uint32_t), map->tempResultName, sTempName);
 
 	int envio;
 	envio = socket_send_packet(sock_nodo,buffer,sbuffer);
