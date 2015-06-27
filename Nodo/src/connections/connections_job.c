@@ -14,12 +14,13 @@ void connections_job_shutdown() {
 }
 
 void* connections_job_accept(void *param) {
-	int socketAccepted = *(int *) param;
+	int *socketAcceptedPtr = (int *) param;
 
 	log_info(node_logger, "New job connected.");
 
 	pthread_t listenActionsTh;
-	if (pthread_create(&listenActionsTh, NULL, (void *) connections_job_listenActions, (void *) &socketAccepted)) {
+	if (pthread_create(&listenActionsTh, NULL, (void *) connections_job_listenActions, (void *) socketAcceptedPtr)) {
+		free(socketAcceptedPtr);
 		log_error(node_logger, "Error while trying to create new thread: connections_job_listenActions");
 	}
 	pthread_detach(listenActionsTh);
@@ -28,7 +29,9 @@ void* connections_job_accept(void *param) {
 }
 
 void* connections_job_listenActions(void *param) {
-	int socket = *(int *) param;
+	int *socketAcceptedPtr = (int *) param;
+	int socket = *socketAcceptedPtr;
+	free(socketAcceptedPtr);
 
 	while (1) {
 		size_t sBuffer;

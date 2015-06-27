@@ -40,7 +40,9 @@ void *connections_listenerThread(void *param) {
 		int handshake = socket_handshake_to_client(socketAccepted, HANDSHAKE_NODO, HANDSHAKE_JOB);
 
 		if (handshake == HANDSHAKE_JOB) {
-			if (pthread_create(&acceptedConnectionTh, NULL, (void *) connections_job_accept, (void *) &socketAccepted)) {
+			int *socketAcceptedPtr = malloc(sizeof(socketAccepted));
+			*socketAcceptedPtr = socketAccepted;
+			if (pthread_create(&acceptedConnectionTh, NULL, (void *) connections_job_accept, (void *) socketAcceptedPtr)) {
 				log_error(node_logger, "Error while trying to create new thread: connections_job_accept");
 			}
 			pthread_detach(acceptedConnectionTh);
