@@ -2,8 +2,8 @@
 #include "connections.h"
 
 void* connections_job_listenActions(void *param);
-void connections_job_deserializeMap(void *buffer);
-void connections_job_deserializeReduce(void *buffer);
+void connections_job_deserializeMap(int socket, void *buffer);
+void connections_job_deserializeReduce(int socket, void *buffer);
 
 void connections_job_initialize() {
 
@@ -47,11 +47,11 @@ void* connections_job_listenActions(void *param) {
 		memcpy(&command, buffer, sizeof(uint8_t));
 
 		switch (command) {
-		case COMMAND_JOB_TO_NODE_DO_MAP:
-			connections_job_deserializeMap(buffer);
+		case COMMAND_MAP:
+			connections_job_deserializeMap(socket, buffer);
 			break;
-		case COMMAND_JOB_TO_NODE_DO_REDUCE:
-			connections_job_deserializeReduce(buffer);
+		case COMMAND_REDUCE:
+			connections_job_deserializeReduce(socket, buffer);
 			break;
 		default:
 			log_error(node_logger, "JOB sent an invalid command %d", command);
@@ -61,33 +61,41 @@ void* connections_job_listenActions(void *param) {
 	}
 }
 
-void connections_job_deserializeMap(void *buffer) {
+void connections_job_deserializeMap(int socket, void *buffer) {
 	uint16_t numBlock;
 	memcpy(&numBlock, buffer + sizeof(uint8_t), sizeof(uint16_t));
 	numBlock = ntohs(numBlock);
 
-	uint16_t sizeMap;
-	memcpy(&sizeMap, buffer + sizeof(uint8_t) + sizeof(uint16_t), sizeof(uint16_t));
+	uint32_t sizeMap;
+	memcpy(&sizeMap, buffer + sizeof(uint8_t) + sizeof(uint16_t), sizeof(uint32_t));
 	sizeMap = ntohl(sizeMap);
 
-	char* map = malloc(sizeof(char) * (sizeMap));
-	memcpy(map, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint16_t), sizeMap);
+	char* mapRutine = malloc(sizeof(char) * (sizeMap + 1));
+	memcpy(mapRutine, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint32_t), sizeMap);
+	mapRutine[sizeMap] = '\0';
 
-	uint32_t sizeTmp;
-	memcpy(&sizeTmp, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint16_t) + sizeMap, sizeof(uint16_t));
-	sizeTmp = ntohl(sizeTmp);
+	uint32_t sizeTmpName;
+	memcpy(&sizeTmpName, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint32_t) + sizeMap, sizeof(uint32_t));
+	sizeTmpName = ntohl(sizeTmpName);
 
-	char* tmp = malloc(sizeof(char) * (sizeTmp));
-	memcpy(tmp, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint16_t) + sizeMap + sizeof(uint16_t), sizeTmp);
+	char* tmpName = malloc(sizeof(char) * (sizeTmpName + 1));
+	memcpy(tmpName, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint32_t) + sizeMap + sizeof(uint32_t), sizeTmpName);
+	tmpName[sizeTmpName] = '\0';
 
-	//node_setBlock(numBlock, blockData);
+	log_info(node_logger, "Job Requested MAP Rutine. numBlock %d. tmpName: %s", numBlock, tmpName);
+
 	//node_map();
-	printf("llego al deseralize map\n");
-	free(tmp);
-	free(map);
+	// OK
+
+	// TODO
+	bool ok = 1;
+	socket_send_packet(socket, &ok, sizeof(ok));
+
+	free(mapRutine);
+	free(tmpName);
 }
 
-void connections_job_deserializeReduce(void *buffer) {
+void connections_job_deserializeReduce(int socket, void *buffer) {
 	uint16_t numBlock;
 	memcpy(&numBlock, buffer + sizeof(uint8_t), sizeof(uint16_t));
 	numBlock = ntohs(numBlock);

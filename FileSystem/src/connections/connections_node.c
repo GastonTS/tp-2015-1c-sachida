@@ -126,7 +126,6 @@ void* connections_node_accept(void *param) {
 
 	//  Save the connection as a reference to this node.
 	nodeConnection->listenPort = listenPort;
-	printf("IP NODO : %s\n", nodeConnection->ip);
 
 	connections_node_setNodeConnection(nodeName, nodeConnection);
 
