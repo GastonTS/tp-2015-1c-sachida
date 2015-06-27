@@ -5,10 +5,14 @@
 
 pthread_mutex_t activeNodesLock;
 pthread_mutex_t standbyNodesLock;
+pthread_mutex_t m;
 t_dictionary *activeNodesSockets;
 t_dictionary *standbyNodesSockets;
 
 void connections_node_initialize() {
+	pthread_mutex_init(&m, NULL);
+
+
 	if (pthread_mutex_init(&activeNodesLock, NULL) != 0 || pthread_mutex_init(&standbyNodesLock, NULL) != 0) {
 		log_error(mdfs_logger, "Error while trying to create new mutex");
 		return;
@@ -135,10 +139,13 @@ void* connections_node_accept(void *param) {
 bool connections_node_sendBlock(nodeBlockSendOperation_t *sendOperation) {
 	// TODO, deberia hacer un mutex por socket. SI, hasta el recv e que salio todo ok, sino es un bardo..
 
+	pthread_mutex_lock(&m);
+
 	log_info(mdfs_logger, "Going to SET block %d to node %s.", sendOperation->blockIndex, sendOperation->node->id);
 
 	node_connection_t *nodeConnection = connections_node_getNodeConnection(sendOperation->node->id);
 	if (!nodeConnection) {
+		pthread_mutex_unlock(&m);
 		return 0;
 	}
 
@@ -164,9 +171,11 @@ bool connections_node_sendBlock(nodeBlockSendOperation_t *sendOperation) {
 	if (0 > status) {
 		log_info(mdfs_logger, "Removing node %s because it was disconnected", sendOperation->node->id);
 		connections_node_removeNodeConnection(sendOperation->node->id);
+		pthread_mutex_unlock(&m);
 		return 0;
 	}
 
+	pthread_mutex_unlock(&m);
 	// TODO, hacer un recv y esperar espuesta OK (hacer que el nodo mande. )
 	return (status == SOCKET_ERROR_NONE);
 }

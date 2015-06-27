@@ -1,6 +1,7 @@
 #include "connections_fs.h"
 #include "connections.h"
 
+void connections_fs_setDisconnected();
 void *connections_fs_connect(void *param);
 void connections_fs_sendInfo();
 void connections_fs_listenActions();
@@ -9,12 +10,6 @@ void connections_fs_deserializeGetBlock(void *buffer);
 
 int fsSocket;
 int exitFsConnections;
-
-void connections_fs_setDisconnected() {
-	log_error(node_logger, "Connection to FS was lost.");
-	socket_close(fsSocket);
-	fsSocket = -1;
-}
 
 void connections_fs_initialize() {
 	exitFsConnections = 0;
@@ -29,6 +24,12 @@ void connections_fs_initialize() {
 
 void connections_fs_shutdown() {
 	exitFsConnections = 1;
+}
+
+void connections_fs_setDisconnected() {
+	log_error(node_logger, "Connection to FS was lost.");
+	socket_close(fsSocket);
+	fsSocket = -1;
 }
 
 void *connections_fs_connect(void *param) {

@@ -42,8 +42,8 @@ int main(int argc, char *argv[]) {
 	while (1) {
 		// TODO DELETE ?
 	}
-
 	node_free();
+
 	return EXIT_SUCCESS;
 }
 
@@ -64,7 +64,7 @@ bool node_init() {
 	if (createFile) {
 		fd = open(node_config->binFilePath, O_TRUNC | O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
 	} else {
-		fd = open(node_config->binFilePath, O_TRUNC | O_RDWR); // Truncate just in case the blokcsCount changed..
+		fd = open(node_config->binFilePath, O_TRUNC); // Truncate just in case the blokcsCount changed..
 	}
 
 	if (fd == -1) {
