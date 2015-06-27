@@ -9,6 +9,7 @@
 #include <sys/mman.h>
 
 int node_initConfig(char* configFile);
+void node_readCommand();
 bool node_init();
 void node_free();
 
@@ -39,12 +40,20 @@ int main(int argc, char *argv[]) {
 	}
 
 	connections_initialize();
-	while (1) {
-		// TODO DELETE ?
-	}
+	log_info(node_logger, "Node Initialized, press 'd' and enter to exit.");
+	node_readCommand(); // Waits till 'd' is pressed
+	connections_shutdown();
 	node_free();
 
 	return EXIT_SUCCESS;
+}
+
+void node_readCommand() {
+	int c;
+	//system("/bin/stty raw");
+	while ((c = getchar()) != 'd') {
+	}
+	//system("/bin/stty cooked");
 }
 
 bool node_init() {
