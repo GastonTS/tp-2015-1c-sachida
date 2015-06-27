@@ -54,11 +54,11 @@ void nodo_escucharAcciones(int fsSocket) {
 		memcpy(&command, buffer, sizeof(uint8_t));
 
 		switch (command) {
-		case COMMAND_NODE_SET_BLOCK:
+		case COMMAND_FS_TO_NODE_SET_BLOCK:
 			// setBloque
 			deserialzeSetBloque(buffer);
 			break;
-		case COMMAND_NODE_GET_BLOCK:
+		case COMMAND_FS_TO_NODE_GET_BLOCK:
 			//getBloque
 			deserialzeGetBloque(buffer, fsSocket);
 			break;

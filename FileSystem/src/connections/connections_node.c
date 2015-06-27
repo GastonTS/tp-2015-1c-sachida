@@ -12,7 +12,6 @@ t_dictionary *standbyNodesSockets;
 void connections_node_initialize() {
 	pthread_mutex_init(&m, NULL);
 
-
 	if (pthread_mutex_init(&activeNodesLock, NULL) != 0 || pthread_mutex_init(&standbyNodesLock, NULL) != 0) {
 		log_error(mdfs_logger, "Error while trying to create new mutex");
 		return;
@@ -22,6 +21,7 @@ void connections_node_initialize() {
 }
 
 void connections_node_shutdown() {
+	// TODO lock desdtroy por nodo.
 	pthread_mutex_destroy(&activeNodesLock);
 	pthread_mutex_destroy(&standbyNodesLock);
 
@@ -126,6 +126,8 @@ void* connections_node_accept(void *param) {
 
 	//  Save the connection as a reference to this node.
 	nodeConnection->listenPort = listenPort;
+	printf("IP NODO : %s\n", nodeConnection->ip);
+
 	connections_node_setNodeConnection(nodeName, nodeConnection);
 
 	log_info(mdfs_logger, "Node connected. Name: %s. listenPort %d. blocksCount %d. New: %s", nodeName, listenPort, blocksCount, isNewNode ? "true" : "false");
