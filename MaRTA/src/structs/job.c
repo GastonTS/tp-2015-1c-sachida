@@ -39,14 +39,21 @@ t_file *CreateFile(char *path) {
 	return file;
 }
 
+t_reduce *CreateReduce() {
+	t_reduce *reduce = malloc(sizeof(t_reduce));
+	reduce->finalNode = NULL;
+	reduce->nodeIP = NULL;
+	reduce->temps = list_create();
+	memset(reduce->tempResultName, '\0', sizeof(char) * 60);
+	return reduce;
+}
+
 t_job *CreateJob(uint16_t id, bool combiner) {
 	t_job *job = malloc(sizeof(t_job));
 	job->id = id;
 	job->combiner = combiner;
 	job->files = list_create();
-	job->finalReduce = malloc(sizeof(t_reduce));
-	job->finalReduce->temps = list_create();
-	memset(job->finalReduce->tempResultName, '\0', sizeof(char) * 60);
+	job->finalReduce = CreateReduce();
 	job->partialReduces = list_create();
 	job->maps = list_create();
 	return job;

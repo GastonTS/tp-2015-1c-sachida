@@ -3,10 +3,10 @@
 #include <stdio.h>
 #include <commons/collections/list.h>
 #include <commons/string.h>
-#include "../../../utils/socket.h"
 #include "serialize.h"
 #include "../Planning/MapPlanning.h"
 #include <arpa/inet.h>
+#include "../MaRTA.h"
 
 //**********************************************************************************//
 //									JOB												//
@@ -33,10 +33,11 @@ t_job *desserealizeJob(int fd, uint16_t id) {
 	size_t scombiner = sizeof(bool);
 	bool combiner;
 	size_t sfiles = sbuffer - scombiner;
-	char *stringFiles = malloc(sfiles);
+	char *stringFiles = malloc(sfiles + 1);
 
 	memcpy(&combiner, buffer, scombiner);
 	memcpy(stringFiles, (buffer + scombiner), sfiles);
+	stringFiles[sfiles] = '\0';
 
 	t_job *job = CreateJob(id, combiner);
 	stringsToPathFile(job->files, stringFiles);
@@ -46,23 +47,29 @@ t_job *desserealizeJob(int fd, uint16_t id) {
 	return job;
 }
 
-void recvResult(int fd, t_job *job) {
+e_socket_status recvResult(int fd, t_job *job) {
 	void *buffer;
 	size_t sbuffer = 0;
-	socket_recv_packet(fd, &buffer, &sbuffer);
-	char resultFrom = '\0';
-	size_t sResult = sizeof(char);
-	memcpy(&resultFrom, buffer, sResult);
-	printf("\nRECVRESULT: %c\n", resultFrom);
+	e_socket_status status = socket_recv_packet(fd, &buffer, &sbuffer);
+	if (0 > status)
+		return status;
+	uint8_t resultFrom;
+	memcpy(&resultFrom, buffer, sizeof(uint8_t));
+	int i;
+	for (i = 0; i < sbuffer; i++)
+		printf("%d \n", *(uint8_t *) (buffer + i));
+	printf("\n\n %d \n\n", resultFrom);
+	fflush(stdout);
 	if (resultFrom == COMMAND_MAP)
-		desserializeMapResult(buffer + sResult, job);
+		desserializeMapResult(buffer + sizeof(uint8_t), job);
 	else if (resultFrom == COMMAND_REDUCE)
-		desserializaReduceResult(buffer + sResult, job);
+		desserializaReduceResult(buffer + sizeof(uint8_t), job);
 	free(buffer);
+	return status;
 }
 
 void sendDieOrder(int fd) {
-	char order = 'd';
+	char order = COMMAND_MARTA_TO_JOB_DIE;
 	size_t sOrder = sizeof(char);
 	size_t sbuffer = sOrder;
 	void *buffer = malloc(sbuffer);
@@ -110,6 +117,7 @@ void desserializeMapResult(void *buffer, t_job *job) {
 	memcpy(&idMap, buffer + sresult, sidMap);
 	idMap = ntohs(idMap);
 
+	log_trace(logger, "\nMap: %d result: %d\n", idMap, result);
 	bool findMap(t_map *map) {
 		return isMap(map, idMap);
 	}
@@ -195,6 +203,8 @@ void desserializaReduceResult(void *buffer, t_job *job) {
 	memcpy(&idReduce, buffer + sresult, sidReduce);
 	memcpy(&failedTemp, buffer + sresult + sidReduce, sizeof(char) * 60);
 	idReduce = ntohs(idReduce);
+
+	log_trace(logger, "\nReduce: %d result: %d\n", idReduce, result);
 
 	if (result) {
 		if (!idReduce)
