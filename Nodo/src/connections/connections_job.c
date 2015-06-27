@@ -47,10 +47,10 @@ void* connections_job_listenActions(void *param) {
 		memcpy(&command, buffer, sizeof(uint8_t));
 
 		switch (command) {
-		case COMMAND_JOB_TO_NODE_DO_MAP:
+		case COMMAND_MAP:
 			connections_job_deserializeMap(buffer);
 			break;
-		case COMMAND_JOB_TO_NODE_DO_REDUCE:
+		case COMMAND_REDUCE:
 			connections_job_deserializeReduce(buffer);
 			break;
 		default:
