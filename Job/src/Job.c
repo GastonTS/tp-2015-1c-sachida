@@ -30,7 +30,7 @@ typedef struct{
 
 int main(int argc, char *argv[]) {
 
-	logger = log_create("Log.txt", "JOB", false, LOG_LEVEL_DEBUG);
+	logger = log_create("Log.log", "JOB", false, LOG_LEVEL_DEBUG);
 
 	if (argc != 2) {
 		printf("ERROR -> La sintaxis es:  ./Job.c \"Ruta_archivo_config\" \n");
