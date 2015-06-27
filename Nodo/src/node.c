@@ -63,19 +63,18 @@ bool node_init() {
 	int fd;
 	if (createFile) {
 		fd = open(node_config->binFilePath, O_TRUNC | O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+		if (fd == -1) {
+			return 0;
+		}
+
+		if (ftruncate(fd, BLOCK_SIZE * node_config->blocksCount) == -1) {
+			return 0;
+		}
+
+		close(fd);
 	} else {
-		fd = open(node_config->binFilePath, O_TRUNC); // Truncate just in case the blokcsCount changed..
+		//fd = open(node_config->binFilePath, O_TRUNC); // Truncate just in case the blokcsCount changed..
 	}
-
-	if (fd == -1) {
-		return 0;
-	}
-
-	if (ftruncate(fd, BLOCK_SIZE * node_config->blocksCount) == -1) {
-		return 0;
-	}
-
-	close(fd);
 
 	return 1;
 }
