@@ -20,7 +20,7 @@ int conectarMarta() {
 			< 0) {
 		log_error(logger, "Error al conectar con MaRTA %d", sock_marta);
 		freeCfg();
-		return EXIT_FAILURE;
+		return -1;
 	}
 
 	log_info(logger, "Coneccion con MaRTA: %d", sock_marta);
@@ -31,7 +31,7 @@ int conectarMarta() {
 		log_error(logger, "Error en handshake con MaRTA");
 		freeCfg();
 		socket_close(sock_marta);
-		return EXIT_FAILURE;
+		return -1;
 	}
 
 	return sock_marta;
@@ -73,15 +73,16 @@ void recvOrder(int fd) {
 	size_t sbuffer = 0;
 	e_socket_status status = 0;
 	if ((status = socket_recv_packet(fd, &buffer, &sbuffer)) < 0) {
-		socket_close(sock_marta);
 		log_error(logger, "ABORT --> MaRTA Disconnect");
+		socket_close(sock_marta);
 		freeCfg(cfgJob);
 		exit(-1);
 	}
 	uint8_t order;
 	size_t sOrder = sizeof(uint8_t);
 	memcpy(&order, buffer, sOrder);
-	log_info(logger, "recOrder");
+
+	free(buffer);
 
 	/* Map */
 	struct parms_threads parms_map;
@@ -93,36 +94,24 @@ void recvOrder(int fd) {
 	parms_reduce.buffer = (buffer + sOrder);
 	parms_reduce.tamanio = sbuffer - sOrder;
 
-	free(buffer);
 	if (order == COMMAND_MAP) {
 		log_info(logger, "Map Recived");
 		pthread_create(&hilo_mapper, NULL, (void*) atenderMapper, &parms_map);
-		/*
-		 hiloMap = malloc(sizeof(t_list_thread));
-		 contMap++;
-		 hiloMap->IdThread = contMap;
-		 hiloMap->Thread = hilo_mapper;
-		 list_add(list_mappers,hiloMap);
-		 */
+		pthread_detach(hilo_mapper);
+
 	} else if (order == COMMAND_REDUCE) {
 		log_info(logger, "Reduce Recived");
 		pthread_create(&hilo_reduce, NULL, (void*) atenderReducer,
 				&parms_reduce);
-		/*
-		 hiloRed = malloc(sizeof(t_list_thread));
-		 contReduce++;
-		 hiloRed->IdThread = contReduce;
-		 hiloRed->Thread = hilo_reduce
-		 list_add(list_reducers,hiloRed);
-		 */
+		pthread_detach(hilo_reduce);
 	}
 	//TODO CAMBIAR A COMMAND_MARTA_TO_JOB_DIE
 	else if (order == 2) {
 		printf("\nDIE JOB\n");
-		free(buffer);
 		freeCfg();
 		exit(-1);
 	}
+	free(buffer);
 }
 
 void atenderMapper(void* parametros) {
@@ -140,12 +129,12 @@ void atenderMapper(void* parametros) {
 
 	int hand_nodo;
 	int sock_nodo;
-	int ret_val = 0;
 
 	if ((sock_nodo = socket_connect(map->ip_nodo, map->port_nodo)) < 0) {
 		log_error(logger, "Error al conectar map con Nodo %d", sock_nodo);
 		freeThreadMap(map);
-		pthread_exit(&ret_val);
+		pthread_exit(&sock_nodo);
+		return;
 	}
 
 	log_info(logger, "Coneccion con Nodo: %d", sock_nodo);
@@ -155,7 +144,8 @@ void atenderMapper(void* parametros) {
 	if (!hand_nodo) {
 		log_error(logger, "Error en map hand_nodo con Nodo %d", hand_nodo);
 		freeThreadMap(map);
-		pthread_exit(&ret_val);
+		pthread_exit(&hand_nodo);
+		return;
 	}
 
 	/* Serializo y mando datos */
@@ -226,6 +216,7 @@ void confirmarMap(bool confirmacion, t_map* map) {
 		log_error(logger, "NO SE RECONOCIO LA CONFIRMACION DEL NODO");
 	}
 	freeThreadMap(map);
+	pthread_exit(NULL);
 	free(buffer);
 }
 
@@ -349,14 +340,14 @@ t_map* desserializeMapOrder(void *buffer) {
 	size_t sIdMap = sizeof(uint16_t);
 	size_t snumblock = sIdMap;
 	size_t snodePort = sizeof(uint16_t);
-	size_t stempName = sizeof(char) * 60;
 	size_t snodeIP;
 	uint16_t idMap;
 	char* nodeIP;
-	uint16_t nodePort;
-	uint16_t numBlock;
-	char tempResultName[60];
+	uint16_t nodePort = 0;
+	uint16_t numBlock = 0;
 	t_map* map;
+	char tempResultName[60];
+	memset(tempResultName, '\0', sizeof(char) * 60);
 
 	memcpy(&idMap, buffer, sIdMap);
 	memcpy(&snodeIP, buffer + sIdMap, sizeof(size_t));
@@ -365,9 +356,9 @@ t_map* desserializeMapOrder(void *buffer) {
 	memcpy(&nodePort, buffer + sIdMap + sizeof(size_t) + snodeIP, snodePort);
 	memcpy(&numBlock, buffer + sIdMap + sizeof(size_t) + snodeIP + snodePort,
 			snumblock);
-	memcpy(tempResultName,
+	memcpy(&tempResultName,
 			buffer + sIdMap + sizeof(size_t) + snodeIP + snodePort + snumblock,
-			stempName);
+			sizeof(char) * 60);
 
 	//TODO GUARDAR EN ESTRUCTURAS
 	idMap = ntohs(idMap);

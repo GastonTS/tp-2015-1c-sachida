@@ -10,23 +10,6 @@
 #include "structs/node.h"
 #include "marta/marta.h"
 
-/*
-typedef struct{
-	uint16_t IdThread;
-	pthread_t Thread;
-} t_list_thread;
-*/
-
-//t_list_thread* hiloMap;
-//t_list_thread* hiloRed;
-
-//void convertirListaArch(char* cadena,t_list* lista);
-
-
-
-
-
-
 
 int main(int argc, char *argv[]) {
 
@@ -43,13 +26,11 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-
 	if((sock_marta = conectarMarta()) >= 0){
 		log_info(logger,"sock_marta: %d",sock_marta);
 		atenderMarta(sock_marta);;
 	}
 
-	freeCfg();
 	return EXIT_SUCCESS;
 }
 
