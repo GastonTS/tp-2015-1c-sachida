@@ -21,7 +21,7 @@ void startMarta() {
 	// TEST PEDIR BLOQUES.
 	pedirBloquesArchivo(fsSocket);
 
-	while(1) {
+	while (1) {
 		//printf("KEEPS CONNECTED");
 	}
 	printf("STATUS CLOSE %d\n", socket_close(fsSocket));
@@ -86,6 +86,13 @@ void pedirBloquesArchivo(int fsSocket) {
 
 	void *bufferOffset = buffer + sizeof(blocksCount);
 
+	if (blocksCount == 0) {
+		// TODO handlear error
+		printf("ERROR: EL ARCHIVO NO ESTA DISPONIBLE.\n");
+		free(buffer);
+		return;
+	}
+
 	printf("Bloques de %s . Tiene %d bloques \n", archivo, blocksCount);
 	fflush(stdout);
 	int fileBlockNumber;
@@ -101,6 +108,9 @@ void pedirBloquesArchivo(int fsSocket) {
 		for (j = 0; j < copyesCount; j++) {
 			uint32_t sNodeId;
 			char *nodeId;
+			uint16_t sNodeIp;
+			char *nodeIp;
+			uint16_t nodePort;
 			uint16_t nodeBlockNumber;
 
 			memcpy(&sNodeId, bufferOffset, sizeof(sNodeId));
@@ -112,12 +122,25 @@ void pedirBloquesArchivo(int fsSocket) {
 			nodeId[sNodeId] = '\0';
 			bufferOffset += sNodeId;
 
+			memcpy(&sNodeIp, bufferOffset, sizeof(sNodeIp));
+			sNodeIp = ntohs(sNodeIp);
+			bufferOffset += sizeof(sNodeIp);
+
+			nodeIp = malloc(sizeof(char) * (sNodeIp + 1));
+			memcpy(nodeIp, bufferOffset, sNodeIp);
+			nodeIp[sNodeIp] = '\0';
+			bufferOffset += sNodeIp;
+
+			memcpy(&nodePort, bufferOffset, sizeof(nodePort));
+			nodePort = ntohs(nodePort);
+			bufferOffset += sizeof(nodePort);
+
 			memcpy(&nodeBlockNumber, bufferOffset, sizeof(nodeBlockNumber));
 			nodeBlockNumber = ntohs(nodeBlockNumber);
 			bufferOffset += sizeof(nodeBlockNumber);
 
 			// TODO, aca guardar en una estructura, o usarlo, nose.
-			printf("\t|\t|---->  Nodo: %s . Bloque nro: %d \n", nodeId, nodeBlockNumber);
+			printf("\t|\t|---->  Nodo: %s (IP: %s:%d). Bloque nro: %d \n", nodeId, nodeIp, nodePort, nodeBlockNumber);
 			fflush(stdout);
 			free(nodeId);
 		}
@@ -125,5 +148,4 @@ void pedirBloquesArchivo(int fsSocket) {
 	printf("---------------------------------------------------------\n");
 	fflush(stdout);
 
-	free(buffer);
 }

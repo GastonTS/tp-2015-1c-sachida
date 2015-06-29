@@ -73,6 +73,23 @@ void *connections_marta_listenActions(void *param) {
 }
 
 bool connection_marta_sendFileBlocks(void *bufferReceived) {
+	bool sendFailed() {
+		uint16_t blocksCount = 0; // We send 0 as an error.
+		uint16_t blocksCountSerialized = htons(blocksCount);
+
+		void *buffer = malloc(sizeof(blocksCount));
+		memcpy(buffer, &blocksCountSerialized, sizeof(blocksCount));
+
+		size_t sBuffer = sizeof(blocksCount);
+
+		e_socket_status status = socket_send_packet(martaSocket, buffer, sBuffer);
+
+		bool success = status == SOCKET_ERROR_NONE;
+		log_info(mdfs_logger, "Error informed to MaRTA %s!", success ? "successfully" : "unsuccessfully");
+
+		return success;
+	}
+
 	uint32_t sFileName;
 	memcpy(&sFileName, bufferReceived + sizeof(uint8_t), sizeof(uint32_t));
 	sFileName = ntohl(sFileName);
@@ -89,11 +106,11 @@ bool connection_marta_sendFileBlocks(void *bufferReceived) {
 
 	if (!file) {
 		log_error(mdfs_logger, "The file that marta requested was not found.");
-		// TODO avisar a marta que no existe el archivo.
-		return 1;
+		return sendFailed();
 	}
 
 	bool fileAvailable = 1;
+
 	// |cantbloques [cantCopias [sizeNodeId|nodeId|blockIndex] ]
 	uint16_t blocksCount = list_size(file->blocks);
 	uint16_t blocksCountSerialized = htons(blocksCount);
@@ -113,19 +130,26 @@ bool connection_marta_sendFileBlocks(void *bufferReceived) {
 		size_t sBlockCopiesBuffer = 0;
 
 		void listBlockCopies(file_block_t *blockCopy) {
-			if (connections_node_isActiveNode(blockCopy->nodeId)) {
+			node_connection_t* nodeConnection = connections_node_getNodeConnection(blockCopy->nodeId);
+			if (nodeConnection) {
 				copyesCount++;
 
-				uint32_t sNode = strlen(blockCopy->nodeId);
-				size_t sBlockCopy = sizeof(sNode) + sNode + sizeof(blockCopy->blockIndex);
+				uint32_t sNodeId = strlen(blockCopy->nodeId);
+				uint16_t sNodeIp = strlen(nodeConnection->ip);
+				size_t sBlockCopy = sizeof(sNodeId) + sNodeId + sizeof(sNodeIp) + sNodeIp + sizeof(nodeConnection->listenPort) + sizeof(blockCopy->blockIndex);
 				blockCopiesBuffer = realloc(blockCopiesBuffer, sBlockCopiesBuffer + sBlockCopy);
 
-				uint32_t sNodeSerialized = htonl(sNode);
+				uint32_t sNodeIdSerialized = htonl(sNodeId);
+				uint16_t sNodeIpSerialized = htons(sNodeIp);
+				uint16_t nodePortSerialized = htons(nodeConnection->listenPort);
 				uint16_t blockIndexSerialized = htons(blockCopy->blockIndex);
 
-				memcpy(blockCopiesBuffer + sBlockCopiesBuffer, &sNodeSerialized, sizeof(sNode));
-				memcpy(blockCopiesBuffer + sBlockCopiesBuffer + sizeof(sNode), blockCopy->nodeId, sNode);
-				memcpy(blockCopiesBuffer + sBlockCopiesBuffer + sizeof(sNode) + sNode, &blockIndexSerialized, sizeof(blockCopy->blockIndex));
+				memcpy(blockCopiesBuffer + sBlockCopiesBuffer, &sNodeIdSerialized, sizeof(sNodeId));
+				memcpy(blockCopiesBuffer + sBlockCopiesBuffer + sizeof(sNodeId), blockCopy->nodeId, sNodeId);
+				memcpy(blockCopiesBuffer + sBlockCopiesBuffer + sizeof(sNodeId) + sNodeId, &sNodeIpSerialized, sizeof(sNodeIp));
+				memcpy(blockCopiesBuffer + sBlockCopiesBuffer + sizeof(sNodeId) + sNodeId + sizeof(sNodeIp), nodeConnection->ip, sNodeIp);
+				memcpy(blockCopiesBuffer + sBlockCopiesBuffer + sizeof(sNodeId) + sNodeId + sizeof(sNodeIp) + sNodeIp, &nodePortSerialized, sizeof(nodeConnection->listenPort));
+				memcpy(blockCopiesBuffer + sBlockCopiesBuffer + sizeof(sNodeId) + sNodeId + sizeof(sNodeIp) + sNodeIp + sizeof(nodeConnection->listenPort), &blockIndexSerialized, sizeof(blockCopy->blockIndex));
 
 				sBlockCopiesBuffer += sBlockCopy;
 			}
@@ -152,10 +176,9 @@ bool connection_marta_sendFileBlocks(void *bufferReceived) {
 	file_free(file);
 
 	if (!fileAvailable) {
-		// TODO avisar a marta.
 		log_error(mdfs_logger, "The file that marta requested is not available because one or more of it's copies are down.");
 		free(buffer);
-		return 1;
+		return sendFailed();
 	}
 
 	e_socket_status status = socket_send_packet(martaSocket, buffer, sBuffer);

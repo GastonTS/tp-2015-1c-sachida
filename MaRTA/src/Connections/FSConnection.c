@@ -66,6 +66,13 @@ void requestFileBlocks(t_file *file) {
 	memcpy(&blocksCount, buffer, sizeof(blocksCount));
 	blocksCount = ntohs(blocksCount);
 
+	if (blocksCount == 0) {
+		// TODO handlear caso el archivo no existe, o no esta disponible por falta de nodos, etc.
+		printf("ARCHIVO NO DISPONIBLE.......... jejejeje");
+		fflush(stdout);
+		free(buffer);
+		return;
+	}
 	void *bufferOffset = buffer + sizeof(blocksCount);
 
 	printf("\nBloques de %s . Tiene %d \n ", file->path, blocksCount);
@@ -84,6 +91,9 @@ void requestFileBlocks(t_file *file) {
 		for (j = 0; j < copyesCount; j++) {
 			uint32_t sNodeId;
 			char *nodeId;
+			uint16_t sNodeIp;
+			char *nodeIp;
+			uint16_t nodePort;
 			uint16_t nodeBlockNumber;
 
 			memcpy(&sNodeId, bufferOffset, sizeof(sNodeId));
@@ -95,18 +105,32 @@ void requestFileBlocks(t_file *file) {
 			nodeId[sNodeId] = '\0';
 			bufferOffset += sNodeId;
 
+			memcpy(&sNodeIp, bufferOffset, sizeof(sNodeIp));
+			sNodeIp = ntohs(sNodeIp);
+			bufferOffset += sizeof(sNodeIp);
+
+			nodeIp = malloc(sizeof(char) * (sNodeIp + 1));
+			memcpy(nodeIp, bufferOffset, sNodeIp);
+			nodeIp[sNodeIp] = '\0';
+			bufferOffset += sNodeIp;
+
+			memcpy(&nodePort, bufferOffset, sizeof(nodePort));
+			nodePort = ntohs(nodePort);
+			bufferOffset += sizeof(nodePort);
+
 			memcpy(&nodeBlockNumber, bufferOffset, sizeof(nodeBlockNumber));
 			nodeBlockNumber = ntohs(nodeBlockNumber);
 			bufferOffset += sizeof(nodeBlockNumber);
 
 			//TODO: segundo y tercer parametro de CreateCopy, IP y Puerto respectivamente.
-			t_copy *copy = CreateCopy(nodeId, "ACAVALAIP", 0000, nodeBlockNumber);
+			t_copy *copy = CreateCopy(nodeId, nodeIp, nodePort, nodeBlockNumber);
 			list_add(copies, copy);
 			printf("\t|\t|---->  Nodo: %s . Bloque nro: %d \n", nodeId, nodeBlockNumber);
 			fflush(stdout);
 			free(nodeId);
+			free(nodeIp);
 		}
-	list_add(file->blocks, copies);
+		list_add(file->blocks, copies);
 	}
 	free(buffer);
 }
