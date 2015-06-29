@@ -106,8 +106,10 @@ void recvOrder(int fd) {
 
 	} else if (order == COMMAND_REDUCE) {
 		log_info(logger, "Reduce Recived");
-		//pthread_create(&hilo_reduce, NULL, (void*) atenderReducer,
-			//	&parms_reduce);
+		t_reduce *reduce = malloc(sizeof(t_reduce));
+		reduce = desserializeReduceOrder(buffer+sOrder, sbuffer-sOrder);
+		pthread_create(&hilo_reduce, NULL, (void*) atenderReducer,
+			(void *) reduce);
 		pthread_detach(hilo_reduce);
 	}
 	//TODO CAMBIAR A COMMAND_MARTA_TO_JOB_DIE
@@ -116,6 +118,7 @@ void recvOrder(int fd) {
 		freeCfg();
 		exit(-1);
 	}
+
 	free(buffer);
 }
 
@@ -153,10 +156,10 @@ void atenderMapper(void * parametros) {
 
 	/* Wait for confirmation */
 	void *buffer;
-	size_t sbuffer = 0;
-	e_socket_status status = 0;
+	size_t sbuffer;
+	e_socket_status status = socket_recv_packet(sock_nodo, &buffer, &sbuffer);
 	/* Si se cae el nodo le mando que murio */
-	if ((status = socket_recv_packet(sock_nodo, &buffer, &sbuffer)) < 0) {
+	if (status < 0) {
 		uint8_t comando = COMMAND_MAP;
 		size_t scomando = sizeof(uint8_t);
 		size_t sbool = sizeof(bool);
@@ -169,9 +172,7 @@ void atenderMapper(void * parametros) {
 		memcpy(bufferConf + scomando, &fallo, sbool);
 		memcpy(bufferConf + scomando + sbool, &map->idJob, sidmap);
 		socket_send_packet(sock_marta, bufferConf, sbufferConf);
-		freeThreadMap(map);
-		pthread_exit(&status);
-		//free(bufferConf);
+		free(bufferConf);
 		//free(buffer);
 	} else {
 		bool conf;
@@ -180,8 +181,10 @@ void atenderMapper(void * parametros) {
 
 		/* Confirmar Map */
 		confirmarMap(conf, map);
-		free(buffer);
 	}
+	freeThreadMap(map);
+	free(buffer);
+	pthread_exit(&status);
 
 }
 
@@ -215,19 +218,20 @@ void confirmarMap(bool confirmacion, t_map* map) {
 		log_error(logger, "NO SE RECONOCIO LA CONFIRMACION DEL NODO");
 	}
 	freeThreadMap(map);
-	pthread_exit(NULL);
 	free(buffer);
+	pthread_exit(NULL);
+
 }
 
-void atenderReducer(void* parametros) {
-	struct parms_threads *p = (struct parms_threads *) parametros;
+void atenderReducer(void * parametros) {
+	//struct parms_threads *p = (struct parms_threads *) parametros;
 	log_info(logger, "Thread reduce created");
-	printf("Thread reduce created \n ");
 
-	t_reduce* reduce;
+	t_reduce *reduce = (t_reduce *) parametros;
+
 
 	/* Desserializo el mensaje de Mapper de MaRTA */
-	reduce = desserializeReduceOrder(p->buffer, p->tamanio);
+	//reduce = desserializeReduceOrder(p->buffer, p->tamanio);
 
 	/* Me conecto al Nodo */
 
