@@ -78,31 +78,36 @@ void recvOrder(int fd) {
 		freeCfg(cfgJob);
 		exit(-1);
 	}
+
 	uint8_t order;
 	size_t sOrder = sizeof(uint8_t);
 	memcpy(&order, buffer, sOrder);
 
-	free(buffer);
-
 	/* Map */
+	/*
 	struct parms_threads parms_map;
 	parms_map.buffer = (buffer + sOrder);
 	parms_map.tamanio = sOrder;
-
+	log_info(logger,"buffer %d", parms_map.buffer);
+	*/
 	/* Reduce */
+	/*
 	struct parms_threads parms_reduce;
 	parms_reduce.buffer = (buffer + sOrder);
 	parms_reduce.tamanio = sbuffer - sOrder;
+	*/
 
 	if (order == COMMAND_MAP) {
 		log_info(logger, "Map Recived");
-		pthread_create(&hilo_mapper, NULL, (void*) atenderMapper, &parms_map);
+		t_map *map = malloc(sizeof(t_map));
+		map = desserializeMapOrder(buffer+sOrder);
+		pthread_create(&hilo_mapper, NULL, (void*) atenderMapper, (void *) map);
 		pthread_detach(hilo_mapper);
 
 	} else if (order == COMMAND_REDUCE) {
 		log_info(logger, "Reduce Recived");
-		pthread_create(&hilo_reduce, NULL, (void*) atenderReducer,
-				&parms_reduce);
+		//pthread_create(&hilo_reduce, NULL, (void*) atenderReducer,
+			//	&parms_reduce);
 		pthread_detach(hilo_reduce);
 	}
 	//TODO CAMBIAR A COMMAND_MARTA_TO_JOB_DIE
@@ -114,16 +119,10 @@ void recvOrder(int fd) {
 	free(buffer);
 }
 
-void atenderMapper(void* parametros) {
-	struct parms_threads *p = (struct parms_threads *) parametros;
+void atenderMapper(void * parametros) {
+	//struct parms_threads *p = (struct parms_threads *) parametros;
 	log_info(logger, "Thread map created");
-	printf("Thread map created");
-
-	t_map* map;
-
-	/* Desserializo el mensaje de Mapper de MaRTA */
-
-	map = desserializeMapOrder(p->buffer);
+	t_map *map = (t_map *) parametros;
 
 	/* Me conecto al Nodo */
 
@@ -223,7 +222,7 @@ void confirmarMap(bool confirmacion, t_map* map) {
 void atenderReducer(void* parametros) {
 	struct parms_threads *p = (struct parms_threads *) parametros;
 	log_info(logger, "Thread reduce created");
-	printf("Thread reduce created");
+	printf("Thread reduce created \n ");
 
 	t_reduce* reduce;
 
@@ -348,6 +347,7 @@ t_map* desserializeMapOrder(void *buffer) {
 	t_map* map;
 	char tempResultName[60];
 	memset(tempResultName, '\0', sizeof(char) * 60);
+
 
 	memcpy(&idMap, buffer, sIdMap);
 	memcpy(&snodeIP, buffer + sIdMap, sizeof(size_t));
