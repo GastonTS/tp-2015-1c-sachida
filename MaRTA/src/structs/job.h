@@ -11,7 +11,6 @@ typedef struct {
 typedef struct {
 	uint16_t id;
 	t_list *copies;
-	//TODO puntero a la copia seleccionada, evita redundancia
 	char *nodeName;
 	char *nodeIP;
 	uint16_t nodePort;
@@ -53,10 +52,12 @@ typedef struct {
 } t_job;
 
 t_copy *CreateCopy(char *nodeName, uint16_t numBlock);
-t_map *CreateMap(uint16_t id, uint16_t numBlock, uint16_t nodePort, char *nodeName, char *nodeIP, char tempResultName[60]);
+t_map *CreateMap(uint16_t id, uint16_t numBlock, uint16_t nodePort, char *nodeName, char *nodeIP, uint16_t jobID);
 t_temp *CreateTemp(char *nodeIP, uint16_t nodePort, uint16_t originMap, char tempName[60]);
 t_file *CreateFile(char *path);
 t_job *CreateJob(uint16_t id, bool combiner);
+void setTempMapName(char tempMapName[60], uint16_t mapID, uint16_t jobID);
+void setTempReduceName(char tempResultName[60], t_job *job, char *tipo);
 void freeMap(t_map* map);
 void freeJob(t_job *job);
 bool isMap(t_map *map, uint16_t idMap);

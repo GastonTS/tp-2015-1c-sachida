@@ -36,7 +36,7 @@ void seializeCompleteJobTest() {
 			else
 				log_info(logger, "Iniciando Job: %d (No combiner)", job->id);
 
-			t_map *map = CreateMap(1, 13, 5001, "NodoX", "192.168.1.113", "temporalMap1.txt");
+			t_map *map = CreateMap(1, 13, 5001, "NodoX", "192.168.1.113", 1);
 			list_add(job->maps, map);
 
 			e_socket_status socketStatus;

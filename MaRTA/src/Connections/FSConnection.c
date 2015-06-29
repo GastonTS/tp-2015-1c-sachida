@@ -46,7 +46,7 @@ void updateNodes(char* nodeID, char *nodeIP, uint16_t nodePort) {
 	}
 }
 
-int requestFileBlocks(t_file *file) {
+int requestFileBlocks(t_file *file) { //TODO: sacar printfs
 	void *buffer;
 	void request() {
 		uint8_t command = COMMAND_MARTA_TO_FS_GET_FILE_BLOCKS;
@@ -59,7 +59,7 @@ int requestFileBlocks(t_file *file) {
 		buffer = malloc(sBuffer);
 		memcpy(buffer, &command, sizeof(command));
 		memcpy(buffer + sizeof(command), &sSerializedFile, sizeof(sfilePath));
-		memcpy(buffer + sizeof(command) + sizeof(sfilePath), &file->path, sfilePath);
+		memcpy(buffer + sizeof(command) + sizeof(sfilePath), file->path, sfilePath);
 
 		while (0 > socket_send_packet(fsSocket, buffer, sBuffer)) {
 			FSConnectionLost();
@@ -79,11 +79,9 @@ int requestFileBlocks(t_file *file) {
 	blocksCount = ntohs(blocksCount);
 
 	if (blocksCount == 0) {
-		// TODO handlear caso el archivo no existe, o no esta disponible por falta de nodos, etc.
-		printf("ARCHIVO NO DISPONIBLE.......... jejejeje");
-		fflush(stdout);
+		log_error(logger, "File: %s not available", file->path);
 		free(buffer);
-		return EXIT_FAILURE;
+		return 0;
 	}
 	void *bufferOffset = buffer + sizeof(blocksCount);
 
@@ -140,11 +138,10 @@ int requestFileBlocks(t_file *file) {
 			printf("\t|\t|---->  Nodo: %s . Bloque nro: %d \n", nodeId, nodeBlockNumber);
 			fflush(stdout);
 			free(nodeId);
-			free(nodeIp);
 		}
 		list_add(file->blocks, copies);
 	}
 	free(buffer);
-	return EXIT_SUCCESS;
+	return 1;
 }
 

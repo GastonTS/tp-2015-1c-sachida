@@ -7,7 +7,38 @@ t_copy *CreateCopy(char *nodeName, uint16_t numBlock) {
 	return copy;
 }
 
-t_map *CreateMap(uint16_t id, uint16_t numBlock, uint16_t nodePort, char *nodeName, char *nodeIP, char tempResultName[60]) {
+char* getTime() { //TODO:revisar si se puede ampliar a mili/microsegundos
+	time_t rawtime;
+	struct tm * timeinfo;
+	time(&rawtime);
+	timeinfo = localtime(&rawtime);
+
+	char * time = asctime(timeinfo);
+	time[3] = '-';
+	time[7] = '-';
+	time[10] = '-';
+	time[19] = '-';
+	time[24] = '\0';
+
+	return time;
+}
+
+void setTempMapName(char tempMapName[60], uint16_t mapID, uint16_t jobID) {
+	char resultName[60] = "\"";
+	strcat(resultName, getTime());
+	strcat(resultName, "-Job(");
+	char idJob[4];
+	sprintf(idJob, "%i", jobID);
+	strcat(resultName, idJob);
+	strcat(resultName, ")-Map(");
+	char numMap[4];
+	sprintf(numMap, "%i", mapID);
+	strcat(resultName, numMap);
+	strcat(resultName, ").txt\"");
+	strcpy(tempMapName, resultName);
+}
+
+t_map *CreateMap(uint16_t id, uint16_t numBlock, uint16_t nodePort, char *nodeName, char *nodeIP, uint16_t jobID) {
 	t_map *map = malloc(sizeof(t_map));
 	map->id = id;
 	map->numBlock = numBlock;
@@ -15,7 +46,7 @@ t_map *CreateMap(uint16_t id, uint16_t numBlock, uint16_t nodePort, char *nodeNa
 	map->nodeName = strdup(nodeName);
 	map->nodeIP = strdup(nodeIP);
 	memset(map->tempResultName, '\0', sizeof(char) * 60);
-	strcpy(map->tempResultName, tempResultName);
+	setTempMapName(map->tempResultName, map->id, jobID);
 	map->done = false;
 	return map;
 }
@@ -35,6 +66,19 @@ t_file *CreateFile(char *path) {
 	file->path = strdup(path);
 	file->blocks = list_create();
 	return file;
+}
+
+void setTempReduceName(char tempResultName[60], t_job *job, char *tipo) {
+	char resultName[60] = "\"";
+	strcat(resultName, getTime());
+	strcat(resultName, "-Job(");
+	char idJob[4];
+	sprintf(idJob, "%i", job->id);
+	strcat(resultName, idJob);
+	strcat(resultName, ")-Red(");
+	strcat(resultName, tipo);
+	strcat(resultName, ").txt\"");
+	strcpy(tempResultName, resultName);
 }
 
 t_reduce *CreateReduce() {

@@ -5,6 +5,8 @@
 //**********************************************************************************//
 //									JOB												//
 //**********************************************************************************//
+//TODO: chequear si muere el job
+
 void *acceptJob(void * param) {
 	cantJobs++; //TODO mutex this
 	int *socketAcceptedPtr = (int *) param;
@@ -116,7 +118,6 @@ void serializeMapToOrder(int socket, t_map *map) {
 	uint16_t nodePort = htons(map->nodePort);
 
 	void *buffer = malloc(sbuffer);
-	buffer = memset(buffer, '\0', sbuffer);
 	memcpy(buffer, &order, sOrder);
 	memcpy(buffer + sOrder, &id, sIpMap);
 	memcpy(buffer + sOrder + sIpMap, &snodeIP, sizeof(snodeIP));

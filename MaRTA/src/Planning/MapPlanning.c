@@ -2,22 +2,6 @@
 #include "../structs/node.h"
 #include "../Connections/Connection.h"
 
-char* getTime() { //TODO:revisar si se puede ampliar a mili/microsegundos
-	time_t rawtime;
-	struct tm * timeinfo;
-	time(&rawtime);
-	timeinfo = localtime(&rawtime);
-
-	char * time = asctime(timeinfo);
-	time[3] = '-';
-	time[7] = '-';
-	time[10] = '-';
-	time[19] = '-';
-	time[24] = '\0';
-
-	return time;
-}
-
 void selectNode(t_copy *copy, t_node **selectedNode, uint16_t *numBlock) {
 	bool lessWorkLoad(t_node *lessBusy, t_node *busy) {
 		if (lessBusy && busy)
@@ -31,21 +15,6 @@ void selectNode(t_copy *copy, t_node **selectedNode, uint16_t *numBlock) {
 		*selectedNode = actualNode;
 		*numBlock = copy->numBlock;
 	}
-}
-
-void setTempMapName(t_map *map, t_job *job) {
-	char resultName[60] = "\"";
-	strcat(resultName, getTime());
-	strcat(resultName, "-Job(");
-	char idJob[4];
-	sprintf(idJob, "%i", job->id);
-	strcat(resultName, idJob);
-	strcat(resultName, ")-Map(");
-	char numMap[4];
-	sprintf(numMap, "%i", map->id);
-	strcat(resultName, numMap);
-	strcat(resultName, ").txt\"");
-	strcpy(map->tempResultName, resultName);
 }
 
 void notificarMap(int jobSocket, t_map *map) {
@@ -88,14 +57,8 @@ int jobMap(t_job *job) {
 			} else {
 				list_add(selectedNode->maps, &numBlock);
 
-				t_map *mapPlanned = malloc(sizeof(t_map));
-				mapPlanned->id = list_size(job->maps);
+				t_map *mapPlanned = CreateMap(list_size(job->maps), numBlock, selectedNode->port, selectedNode->name, selectedNode->ip, job->id);
 				mapPlanned->copies = copies;
-				mapPlanned->nodeName = strdup(selectedNode->name);
-				mapPlanned->nodeIP = strdup(selectedNode->ip);
-				mapPlanned->nodePort = selectedNode->port;
-				mapPlanned->numBlock = numBlock;
-				setTempMapName(mapPlanned, job);
 				list_add(job->maps, mapPlanned);
 				notificarMap(job->jobSocket, mapPlanned);
 			}
@@ -108,6 +71,7 @@ int jobMap(t_job *job) {
 		return EXIT_SUCCESS;
 	} else {
 		log_trace(logger, "Job %d Failed", job->id);
+		sendDieOrder(job->jobSocket);
 		return EXIT_FAILURE;
 	}
 }
@@ -129,7 +93,7 @@ void rePlanMap(t_job *job, t_map *map) {
 	map->nodeIP = strdup(selectedNode->ip);
 	map->nodePort = selectedNode->port;
 	map->numBlock = numBlock;
-	setTempMapName(map, job);
+	setTempMapName(map->tempResultName, map->id, job->id);
 
 	notificarMap(job->jobSocket, map);
 }

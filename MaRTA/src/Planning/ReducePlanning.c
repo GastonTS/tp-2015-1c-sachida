@@ -1,5 +1,5 @@
 #include "ReducePlanning.h"
-#include "MapPlanning.h"
+#include "../structs/job.h"
 #include "../structs/node.h"
 
 typedef struct {
@@ -14,19 +14,6 @@ void notificarReduce(t_reduce *reduce) {
 	t_node *selectedNode = findNode(nodes, reduce->finalNode);
 	list_add(selectedNode->reduces, (void *) reduce->temps);
 	//TODO: enviar reduce al proceso job.
-}
-
-void setTempReduceName(char tempResultName[60], t_job *job, char *tipo) {
-	char resultName[60] = "\"";
-	strcat(resultName, getTime());
-	strcat(resultName, "-Job(");
-	char idJob[4];
-	sprintf(idJob, "%i", job->id);
-	strcat(resultName, idJob);
-	strcat(resultName, ")-Red(");
-	strcat(resultName, tipo);
-	strcat(resultName, ").txt\"");
-	strcpy(tempResultName, resultName);
 }
 
 t_temp * mapToTemporal(t_map *map) {

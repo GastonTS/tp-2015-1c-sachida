@@ -54,8 +54,7 @@ void atenderMarta(int socketMarta) {
 
 /* MANDO MIS CONFIGURACIONES INICIALES A MaRTA */
 void serializeConfigMaRTA(int fd, bool combiner, char* stringFiles) {
-
-	size_t filesLength = sizeof(stringFiles);
+	size_t filesLength = strlen(stringFiles);
 	size_t scombiner = sizeof(combiner);
 	size_t sbuffer = scombiner + filesLength;
 	void *buffer = malloc(sbuffer);
