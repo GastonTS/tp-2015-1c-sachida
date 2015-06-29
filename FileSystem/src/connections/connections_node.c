@@ -81,8 +81,10 @@ void connections_node_deactivateNode(char *nodeId) {
 
 int connections_node_getActiveConnectedCount() {
 	pthread_mutex_lock(&activeNodesLock);
-	return dictionary_size(activeNodesSockets);
+	int size = dictionary_size(activeNodesSockets);
 	pthread_mutex_unlock(&activeNodesLock);
+
+	return size;
 }
 
 bool connections_node_isActiveNode(char *nodeId) {

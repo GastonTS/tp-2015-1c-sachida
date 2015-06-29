@@ -55,7 +55,7 @@ void marta_escucharAcciones(int fsSocket) {
 void pedirBloquesArchivo(int fsSocket) {
 
 	uint8_t command = COMMAND_MARTA_TO_FS_GET_FILE_BLOCKS; // Comando para pedir los bloques del archivo.
-	char archivo[] = "b";
+	char archivo[] = "a";
 	uint32_t sArchivo = strlen(archivo);
 
 	size_t sBuffer = sizeof(command) + sizeof(sArchivo) + sArchivo;

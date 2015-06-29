@@ -88,10 +88,12 @@ bool connection_marta_sendFileBlocks(void *bufferReceived) {
 	free(filePathName);
 
 	if (!file) {
+		log_error(mdfs_logger, "The file that marta requested was not found.");
 		// TODO avisar a marta que no existe el archivo.
 		return 1;
 	}
 
+	bool fileAvailable = 1;
 	// |cantbloques [cantCopias [sizeNodeId|nodeId|blockIndex] ]
 	uint16_t blocksCount = list_size(file->blocks);
 	uint16_t blocksCountSerialized = htons(blocksCount);
@@ -102,11 +104,15 @@ bool connection_marta_sendFileBlocks(void *bufferReceived) {
 	size_t sBuffer = sizeof(blocksCount);
 
 	void listBlocks(t_list* blockCopies) {
+		if (!fileAvailable) {
+			return;
+		}
+
 		uint16_t copyesCount = 0;
 		void *blockCopiesBuffer = NULL;
 		size_t sBlockCopiesBuffer = 0;
 
-		void listBlockCopy(file_block_t *blockCopy) {
+		void listBlockCopies(file_block_t *blockCopy) {
 			if (connections_node_isActiveNode(blockCopy->nodeId)) {
 				copyesCount++;
 
@@ -124,8 +130,11 @@ bool connection_marta_sendFileBlocks(void *bufferReceived) {
 				sBlockCopiesBuffer += sBlockCopy;
 			}
 		}
-
-		list_iterate(blockCopies, (void *) listBlockCopy);
+		list_iterate(blockCopies, (void *) listBlockCopies);
+		if (copyesCount == 0) {
+			fileAvailable = 0;
+			return;
+		}
 
 		uint16_t copyesCountSerialized = htons(copyesCount);
 
@@ -142,9 +151,18 @@ bool connection_marta_sendFileBlocks(void *bufferReceived) {
 	list_iterate(file->blocks, (void *) listBlocks);
 	file_free(file);
 
-	e_socket_status status = socket_send_packet(martaSocket, buffer, sBuffer);
+	if (!fileAvailable) {
+		// TODO avisar a marta.
+		log_error(mdfs_logger, "The file that marta requested is not available because one or more of it's copies are down.");
+		free(buffer);
+		return 1;
+	}
 
+	e_socket_status status = socket_send_packet(martaSocket, buffer, sBuffer);
 	free(buffer);
 
-	return (status == SOCKET_ERROR_NONE);
+	bool success = status == SOCKET_ERROR_NONE;
+	log_info(mdfs_logger, "Blocks sent %s!", success ? "successfully" : "unsuccessfully");
+
+	return success;
 }
