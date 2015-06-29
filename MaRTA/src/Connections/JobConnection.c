@@ -88,10 +88,14 @@ e_socket_status recvResult(int socket, t_job *job) {
 		printf("%d \n", *(uint8_t *) (buffer + i));
 	printf("\n\n %d \n\n", resultFrom);
 	fflush(stdout);
-	if (resultFrom == COMMAND_MAP)
+	switch(resultFrom){
+	case COMMAND_MAP:
 		desserializeMapResult(buffer + sizeof(uint8_t), job);
-	else if (resultFrom == COMMAND_REDUCE)
+		break;
+	case COMMAND_REDUCE:
 		desserializaReduceResult(buffer + sizeof(uint8_t), job);
+		break;
+	}
 	free(buffer);
 	return status;
 }

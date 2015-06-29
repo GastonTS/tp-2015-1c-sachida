@@ -6,12 +6,15 @@
 
 typedef struct {
 	char* nodeName;
+	char *nodeIP;
+	uint16_t nodePort;
 	uint16_t numBlock;
 } t_copy;
 
 typedef struct {
 	uint16_t id;
 	t_list *copies;
+	//TODO puntero a la copia seleccionada, evita redundancia
 	char *nodeName;
 	char *nodeIP;
 	uint16_t nodePort;
@@ -51,7 +54,7 @@ typedef struct {
 	t_reduce *finalReduce;
 } t_job;
 
-t_copy *CreateCopy(char *nodeName, uint16_t numBlock);
+t_copy *CreateCopy(char *nodeName, char *nodeIP, uint16_t nodePort,uint16_t numBlock);
 t_map *CreateMap(uint16_t id, uint16_t numBlock, uint16_t nodePort, char *nodeName, char *nodeIP, char tempResultName[60]);
 t_temp *CreateTemp(char *nodeIP, uint16_t nodePort, uint16_t originMap, char tempName[60]);
 t_file *CreateFile(char *path);

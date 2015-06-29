@@ -8,6 +8,7 @@
 #include <semaphore.h>
 #include <commons/log.h>
 #include "../MaRTA.h"
+#include "../structs/job.h"
 #include "../../../utils/socket.h"
 
 void initConnection();

@@ -2,9 +2,11 @@
 #include <string.h>
 #include "job.h"
 
-t_copy *CreateCopy(char *nodeName, uint16_t numBlock) {
+t_copy *CreateCopy(char *nodeName, char *nodeIP, uint16_t nodePort,uint16_t numBlock) {
 	t_copy *copy = malloc(sizeof(t_copy));
 	copy->nodeName = strdup(nodeName);
+	copy->nodeIP = strdup(nodeIP);
+	copy->nodePort = nodePort;
 	copy->numBlock = numBlock;
 	return copy;
 }
