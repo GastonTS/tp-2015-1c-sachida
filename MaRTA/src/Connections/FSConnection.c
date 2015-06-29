@@ -25,7 +25,7 @@ void connectFS() {
 			fsSocket = socket_connect(cfgMaRTA->fsIP, cfgMaRTA->fsPort);
 		}
 		if (fsSocket >= 0) {
-			if (HANDSHAKE_FILESYSTEM != socket_handshake_to_server(fsSocket, HANDSHAKE_FILESYSTEM, HANDSHAKE_NODO)) {
+			if (HANDSHAKE_FILESYSTEM != socket_handshake_to_server(fsSocket, HANDSHAKE_FILESYSTEM, HANDSHAKE_MARTA)) {
 				log_error(logger, "Handshake to filesystem failed.");
 				FSConnectionLost();
 			} else {
