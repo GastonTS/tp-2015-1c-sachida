@@ -83,6 +83,7 @@ bool connection_marta_sendFileBlocks(void *bufferReceived) {
 		size_t sBuffer = sizeof(blocksCount);
 
 		e_socket_status status = socket_send_packet(martaSocket, buffer, sBuffer);
+		free(buffer);
 
 		bool success = status == SOCKET_ERROR_NONE;
 		log_info(mdfs_logger, "Error informed to MaRTA %s!", success ? "successfully" : "unsuccessfully");

@@ -18,7 +18,6 @@ int main(void) {
 		return EXIT_FAILURE;
 	}
 
-
 	filesystem_initialize();
 	connections_initialize(fsConnectionsConfig);
 	console_start();

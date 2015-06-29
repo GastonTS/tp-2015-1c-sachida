@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
-#include <semaphore.h>
+//#include <semaphore.h>
 #include <commons/log.h>
 #include "../utils/socket.h"
 
