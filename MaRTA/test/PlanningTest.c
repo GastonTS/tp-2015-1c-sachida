@@ -72,29 +72,29 @@ void planningTestSetup() {
 	//Fin Nodos
 
 	//Creacion Job 1
-	copy1 = CreateCopy("Node3", "IP Nodo3", 3003, 2);
-	copy2 = CreateCopy("Node2", "IP Nodo4", 3004, 919);
-	copy3 = CreateCopy("Node5", "IP Nodo5", 3005, 227);
+	copy1 = CreateCopy("Node3", 2);
+	copy2 = CreateCopy("Node2", 919);
+	copy3 = CreateCopy("Node5", 227);
 
 	copies1 = list_create();
 	list_add(copies1, (void *) copy1);
 	list_add(copies1, (void *) copy2);
 	list_add(copies1, (void *) copy3);
 
-	copy2_1 = CreateCopy("Node3", "IP Nodo3", 3003, 7);
-	copy2_2 = CreateCopy("Node5", "IP Nodo5", 3005, 307);
-	copy2_3 = CreateCopy("Node4", "IP Nodo4", 3004, 13);
+	copy2_1 = CreateCopy("Node3", 7);
+	copy2_2 = CreateCopy("Node5", 307);
+	copy2_3 = CreateCopy("Node4", 13);
 
 	copies2 = list_create();
 	list_add(copies2, (void *) copy2_1);
 	list_add(copies2, (void *) copy2_2);
 	list_add(copies2, (void *) copy2_3);
 
-	copy3_1 = CreateCopy("Node1", "IP Nodo1", 3001, 17);
-	copy3_2 = CreateCopy("Node3", "IP Nodo3", 3003, 421);
-	copy3_3 = CreateCopy("Node5", "IP Nodo5", 3005, 23);
-	copy3_4 = CreateCopy("Node2", "IP Nodo2", 3002, 29);
-	copy3_5 = CreateCopy("Node4", "IP Nodo4", 3004, 821);
+	copy3_1 = CreateCopy("Node1", 17);
+	copy3_2 = CreateCopy("Node3", 421);
+	copy3_3 = CreateCopy("Node5", 23);
+	copy3_4 = CreateCopy("Node2", 29);
+	copy3_5 = CreateCopy("Node4", 821);
 
 	copies3 = list_create();
 	list_add(copies3, (void *) copy3_1);
@@ -116,16 +116,16 @@ void planningTestSetup() {
 	//Fin Job 1
 
 	//Creacion Job 2
-	copy4_1 = CreateCopy("Node3", "IP Nodo3", 3003, 7);
-	copy4_2 = CreateCopy("Node5", "IP Nodo5", 3005, 307);
-	copy4_3 = CreateCopy("Node4", "IP Nodo4", 3004, 13);
+	copy4_1 = CreateCopy("Node3", 7);
+	copy4_2 = CreateCopy("Node5", 307);
+	copy4_3 = CreateCopy("Node4", 13);
 
 	copies4 = list_create();
 	list_add(copies4, (void *) copy4_1);
 	list_add(copies4, (void *) copy4_2);
 	list_add(copies4, (void *) copy4_3);
 
-	unavailableCopy = CreateCopy("Node3", "IP Nodo3", 3003, 821);
+	unavailableCopy = CreateCopy("Node3", 821);
 
 	unavailableCopies = list_create();
 	list_add(unavailableCopies, (void *) unavailableCopy);

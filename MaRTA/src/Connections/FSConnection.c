@@ -1,5 +1,6 @@
 #include "Connection.h"
-#include "FSConnection.h"
+#include "../structs/job.h"
+#include "../structs/node.h"
 
 void connectFS();
 
@@ -24,7 +25,7 @@ void connectFS() {
 			fsSocket = socket_connect(cfgMaRTA->fsIP, cfgMaRTA->fsPort);
 		}
 		if (fsSocket >= 0) {
-			if (HANDSHAKE_FILESYSTEM != socket_handshake_to_server(fsSocket, HANDSHAKE_FILESYSTEM, HANDSHAKE_NODO)) {
+			if (HANDSHAKE_FILESYSTEM != socket_handshake_to_server(fsSocket, HANDSHAKE_FILESYSTEM, HANDSHAKE_MARTA)) {
 				log_error(logger, "Handshake to filesystem failed.");
 				FSConnectionLost();
 			} else {
@@ -34,7 +35,18 @@ void connectFS() {
 	}
 }
 
-void requestFileBlocks(t_file *file) {
+void updateNodes(char* nodeID, char *nodeIP, uint16_t nodePort) {
+	t_node *node = findNode(nodes, nodeID);
+	if (node != NULL) { //XXX Es necesario actualizar el ip y el puerto?
+		node->ip = nodeIP;
+		node->port = nodePort;
+	} else {
+		node = CreateNode(1, nodeIP, nodePort, nodeID);
+		list_add(nodes, node);
+	}
+}
+
+int requestFileBlocks(t_file *file) {
 	void *buffer;
 	void request() {
 		uint8_t command = COMMAND_MARTA_TO_FS_GET_FILE_BLOCKS;
@@ -42,11 +54,11 @@ void requestFileBlocks(t_file *file) {
 
 		size_t sBuffer = sizeof(command) + sizeof(sfilePath) + sfilePath;
 
-		uint32_t sArchivoSerialized = htonl(sfilePath);
+		uint32_t sSerializedFile = htonl(sfilePath);
 
 		buffer = malloc(sBuffer);
 		memcpy(buffer, &command, sizeof(command));
-		memcpy(buffer + sizeof(command), &sArchivoSerialized, sizeof(sfilePath));
+		memcpy(buffer + sizeof(command), &sSerializedFile, sizeof(sfilePath));
 		memcpy(buffer + sizeof(command) + sizeof(sfilePath), &file->path, sfilePath);
 
 		while (0 > socket_send_packet(fsSocket, buffer, sBuffer)) {
@@ -71,7 +83,7 @@ void requestFileBlocks(t_file *file) {
 		printf("ARCHIVO NO DISPONIBLE.......... jejejeje");
 		fflush(stdout);
 		free(buffer);
-		return;
+		return EXIT_FAILURE;
 	}
 	void *bufferOffset = buffer + sizeof(blocksCount);
 
@@ -122,8 +134,8 @@ void requestFileBlocks(t_file *file) {
 			nodeBlockNumber = ntohs(nodeBlockNumber);
 			bufferOffset += sizeof(nodeBlockNumber);
 
-			//TODO: segundo y tercer parametro de CreateCopy, IP y Puerto respectivamente.
-			t_copy *copy = CreateCopy(nodeId, nodeIp, nodePort, nodeBlockNumber);
+			updateNodes(nodeId, nodeIp, nodePort);
+			t_copy *copy = CreateCopy(nodeId, nodeBlockNumber);
 			list_add(copies, copy);
 			printf("\t|\t|---->  Nodo: %s . Bloque nro: %d \n", nodeId, nodeBlockNumber);
 			fflush(stdout);
@@ -133,5 +145,6 @@ void requestFileBlocks(t_file *file) {
 		list_add(file->blocks, copies);
 	}
 	free(buffer);
+	return EXIT_SUCCESS;
 }
 

@@ -1,7 +1,7 @@
 #ifndef SRC_STRUCTS_NODE_H_
 #define SRC_STRUCTS_NODE_H_
 
-#include <commons/collections/list.h>
+#include "../MaRTA.h"
 
 typedef struct {
 	char *name;

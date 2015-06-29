@@ -1,11 +1,6 @@
-#include "../structs/job.h"
-#include <stdlib.h>
-#include <string.h>
-#include <commons/collections/list.h>
-#include "../structs/node.h"
-#include "../MaRTA.h"
+#include "ReducePlanning.h"
 #include "MapPlanning.h"
-#include <time.h>
+#include "../structs/node.h"
 
 typedef struct {
 	char *nodeName;

@@ -1,16 +1,7 @@
-#include <stdlib.h>
-#include <string.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <commons/config.h>
-#include <commons/collections/list.h>
-#include "structs/node.h"
-#include "structs/job.h"
 #include "MaRTA.h"
-#include "../../utils/socket.h"
-#include "../test/PlanningTest.h"
-#include "../test/SerializeTest.h"
+#include <commons/config.h>
 #include "Connections/Connection.h"
+#include "structs/node.h"
 
 t_configMaRTA *cfgMaRTA;
 t_log *logger;

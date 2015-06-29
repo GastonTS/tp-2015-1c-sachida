@@ -1,13 +1,10 @@
 #ifndef SRC_STRUCTS_JOB_H_
 #define SRC_STRUCTS_JOB_H_
 
-#include <commons/collections/list.h>
-#include <stdint.h>
+#include "../MaRTA.h"
 
 typedef struct {
 	char* nodeName;
-	char *nodeIP;
-	uint16_t nodePort;
 	uint16_t numBlock;
 } t_copy;
 
@@ -46,6 +43,7 @@ typedef struct {
 } t_file;
 
 typedef struct {
+	int jobSocket;
 	uint16_t id;
 	bool combiner;
 	t_list *files;
@@ -54,7 +52,7 @@ typedef struct {
 	t_reduce *finalReduce;
 } t_job;
 
-t_copy *CreateCopy(char *nodeName, char *nodeIP, uint16_t nodePort,uint16_t numBlock);
+t_copy *CreateCopy(char *nodeName, uint16_t numBlock);
 t_map *CreateMap(uint16_t id, uint16_t numBlock, uint16_t nodePort, char *nodeName, char *nodeIP, char tempResultName[60]);
 t_temp *CreateTemp(char *nodeIP, uint16_t nodePort, uint16_t originMap, char tempName[60]);
 t_file *CreateFile(char *path);

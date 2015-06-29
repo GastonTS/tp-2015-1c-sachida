@@ -1,6 +1,4 @@
 #include "Connection.h"
-#include "FSConnection.h"
-#include "JobConnection.h"
 
 void listenJobs();
 

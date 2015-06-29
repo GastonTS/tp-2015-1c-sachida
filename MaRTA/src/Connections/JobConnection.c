@@ -1,9 +1,6 @@
-#include "JobConnection.h"
-#include <commons/collections/list.h>
-#include <commons/string.h>
+#include "Connection.h"
 #include "../Planning/MapPlanning.h"
-#include <arpa/inet.h>
-#include "../MaRTA.h"
+#include <commons/string.h>
 
 //**********************************************************************************//
 //									JOB												//
@@ -15,21 +12,14 @@ void *acceptJob(void * param) {
 	free(socketAcceptedPtr);
 
 	t_job *job = desserializeJob(jobSocket, cantJobs);
+	job->jobSocket = jobSocket;
 
 	if (job->combiner)
 		log_info(logger, "Iniciando Job: %d (Combiner)", job->id);
 	else
 		log_info(logger, "Iniciando Job: %d (No combiner)", job->id);
 
-	t_map *map = CreateMap(1, 13, 5001, "NodoX", "127.0.0.1", "temporalMap1.txt");
-	list_add(job->maps, map);
-
-	e_socket_status socketStatus;
-	serializeMapToOrder(jobSocket, map);
-	socketStatus = recvResult(jobSocket, job);
-
-	if (0 > socketStatus)
-		log_error(logger, "Murio Job: %d", job->id);
+	jobMap(job);
 
 	freeJob(job);
 	return NULL;
@@ -88,7 +78,7 @@ e_socket_status recvResult(int socket, t_job *job) {
 		printf("%d \n", *(uint8_t *) (buffer + i));
 	printf("\n\n %d \n\n", resultFrom);
 	fflush(stdout);
-	switch(resultFrom){
+	switch (resultFrom) {
 	case COMMAND_MAP:
 		desserializeMapResult(buffer + sizeof(uint8_t), job);
 		break;

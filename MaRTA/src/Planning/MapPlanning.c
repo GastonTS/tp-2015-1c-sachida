@@ -1,10 +1,6 @@
-#include <stdlib.h>
-#include <string.h>
-#include <commons/collections/list.h>
-#include "../structs/node.h"
-#include "../MaRTA.h"
 #include "MapPlanning.h"
-#include <time.h>
+#include "../structs/node.h"
+#include "../Connections/Connection.h"
 
 char* getTime() { //TODO:revisar si se puede ampliar a mili/microsegundos
 	time_t rawtime;
@@ -52,11 +48,11 @@ void setTempMapName(t_map *map, t_job *job) {
 	strcpy(map->tempResultName, resultName);
 }
 
-void notificarMap(t_map *map) {
+void notificarMap(int jobSocket, t_map *map) {
 	log_trace(logger, "\nMap planned: \n\tIP Node: %s \n\tPort node: %d\n\tBlock: %d \n\tStored in: %s", map->nodeIP, map->nodePort, map->numBlock,
 			map->tempResultName);
 	map->done = false;
-	//TODO: enviar map al proceso job.
+	serializeMapToOrder(jobSocket, map);
 }
 
 void removeMapNode(t_map *map) {
@@ -67,9 +63,15 @@ void removeMapNode(t_map *map) {
 	list_remove_by_condition(selectedNode->maps, (void *) isNumBlock);
 }
 
-void jobMap(t_job *job) {//TODO Hacer cambio de estructuras ip y puerto a copias
+int jobMap(t_job *job) {
 	log_trace(logger, "Planning Job %d...", job->id);
 	int filesAvailables = 1;
+	void requestBlocks(t_file *file) {
+		if (!requestFileBlocks(file))
+			filesAvailables = 0;
+	}
+	list_iterate(job->files, (void *) requestBlocks);
+
 	void fileMap(t_file *file) {
 		void mapPlanning(t_list *copies) {
 			t_node* selectedNode = NULL;
@@ -78,42 +80,40 @@ void jobMap(t_job *job) {//TODO Hacer cambio de estructuras ip y puerto a copias
 			void selectNodeToMap(t_copy *copy) {
 				selectNode(copy, &selectedNode, &numBlock);
 			}
+			list_iterate(copies, (void*) selectNodeToMap);
+			if (selectedNode == NULL) {
+				log_info(logger, "File %s not available", file->path);
+				list_iterate(job->maps, (void *) removeMapNode);
+				filesAvailables = 0;
+			} else {
+				list_add(selectedNode->maps, &numBlock);
 
-			if (filesAvailables) {
-				list_iterate(copies, (void*) selectNodeToMap);
-				if (selectedNode == NULL) {
-					log_info(logger, "File %s not available", file->path);
-					list_iterate(job->maps, (void *) removeMapNode);
-					filesAvailables = 0;
-				} else {
-					list_add(selectedNode->maps, &numBlock);
-
-					t_map *mapPlanned = malloc(sizeof(t_map));
-					mapPlanned->id = list_size(job->maps);
-					mapPlanned->copies = copies;
-					mapPlanned->nodeName = strdup(selectedNode->name);
-					mapPlanned->nodeIP = strdup(selectedNode->ip);
-					mapPlanned->nodePort = selectedNode->port;
-					mapPlanned->numBlock = numBlock;
-					setTempMapName(mapPlanned, job);
-					list_add(job->maps, mapPlanned);
-				}
+				t_map *mapPlanned = malloc(sizeof(t_map));
+				mapPlanned->id = list_size(job->maps);
+				mapPlanned->copies = copies;
+				mapPlanned->nodeName = strdup(selectedNode->name);
+				mapPlanned->nodeIP = strdup(selectedNode->ip);
+				mapPlanned->nodePort = selectedNode->port;
+				mapPlanned->numBlock = numBlock;
+				setTempMapName(mapPlanned, job);
+				list_add(job->maps, mapPlanned);
+				notificarMap(job->jobSocket, mapPlanned);
 			}
 		}
-		if (filesAvailables)
-			list_iterate(file->blocks, (void *) mapPlanning);
+		list_iterate(file->blocks, (void *) mapPlanning);
 	}
-	list_iterate(job->files, (void *) fileMap);
-
 	if (filesAvailables) {
-		list_iterate(job->maps, (void *) notificarMap);
+		list_iterate(job->files, (void *) fileMap);
 		log_trace(logger, "Finished Map Planning Job %d...", job->id);
-	} else
+		return EXIT_SUCCESS;
+	} else {
 		log_trace(logger, "Job %d Failed", job->id);
-
+		return EXIT_FAILURE;
+	}
 }
 
 void rePlanMap(t_job *job, t_map *map) {
+	removeMapNode(map);
 	t_node *selectedNode = NULL;
 	uint16_t numBlock;
 
@@ -131,5 +131,5 @@ void rePlanMap(t_job *job, t_map *map) {
 	map->numBlock = numBlock;
 	setTempMapName(map, job);
 
-	notificarMap(map);
+	notificarMap(job->jobSocket, map);
 }
