@@ -39,4 +39,12 @@ void tlog_destroy(t_log* logger);
     pthread_mutex_unlock(&loggerLock);                     \
 } while(0)
 
+/*
+ void tlog_trace(t_log* logger, const char* message, ...);
+ void tlog_debug(t_log* logger, const char* message, ...);
+ void tlog_info(t_log* logger, const char* message, ...);
+ void tlog_warning(t_log* logger, const char* message, ...);
+ void tlog_error(t_log* logger, const char* message, ...);
+ */
+
 #endif

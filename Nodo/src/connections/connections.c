@@ -26,7 +26,7 @@ void connections_shutdown() {
 
 void *connections_listenerThread(void *param) {
 
-	socketListener = socket_listen(node_config->listenPort);
+	socketListener = socket_listen(node_config->listenPort); // TODO testear address already used.
 	int socketAccepted;
 
 	while (1) {
