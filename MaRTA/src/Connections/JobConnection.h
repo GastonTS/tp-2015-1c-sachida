@@ -2,7 +2,6 @@
 #define SRC_CONNECTIONS_JOBCONNECTION_H_
 
 #include "Connection.h"
-#include "../structs/job.h"
 #include "../../../utils/socket.h"
 
 void *acceptJob(void *params);

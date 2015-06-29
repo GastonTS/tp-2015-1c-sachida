@@ -67,7 +67,7 @@ void removeMapNode(t_map *map) {
 	list_remove_by_condition(selectedNode->maps, (void *) isNumBlock);
 }
 
-void jobMap(t_job *job) {
+void jobMap(t_job *job) {//TODO Hacer cambio de estructuras ip y puerto a copias
 	log_trace(logger, "Planning Job %d...", job->id);
 	int filesAvailables = 1;
 	void fileMap(t_file *file) {
