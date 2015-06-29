@@ -1,9 +1,6 @@
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
+#include "JobConnection.h"
 #include <commons/collections/list.h>
 #include <commons/string.h>
-#include "serialize.h"
 #include "../Planning/MapPlanning.h"
 #include <arpa/inet.h>
 #include "../MaRTA.h"
@@ -11,6 +8,33 @@
 //**********************************************************************************//
 //									JOB												//
 //**********************************************************************************//
+void *acceptJob(void * param) {
+	cantJobs++; //TODO mutex this
+	int *socketAcceptedPtr = (int *) param;
+	int jobSocket = *socketAcceptedPtr;
+	free(socketAcceptedPtr);
+
+	t_job *job = desserializeJob(jobSocket, cantJobs);
+
+	if (job->combiner)
+		log_info(logger, "Iniciando Job: %d (Combiner)", job->id);
+	else
+		log_info(logger, "Iniciando Job: %d (No combiner)", job->id);
+
+	t_map *map = CreateMap(1, 13, 5001, "NodoX", "127.0.0.1", "temporalMap1.txt");
+	list_add(job->maps, map);
+
+	e_socket_status socketStatus;
+	serializeMapToOrder(jobSocket, map);
+	socketStatus = recvResult(jobSocket, job);
+
+	if (0 > socketStatus)
+		log_error(logger, "Murio Job: %d", job->id);
+
+	freeJob(job);
+	return NULL;
+}
+
 void stringsToPathFile(t_list *list, char *string) {
 	char **splits = string_split(string, " ");
 	char **auxSplit = splits;
@@ -25,10 +49,14 @@ void stringsToPathFile(t_list *list, char *string) {
 	free(splits);
 }
 
-t_job *desserealizeJob(int fd, uint16_t id) {
+t_job *desserializeJob(int socket, uint16_t id) {
 	size_t sbuffer;
 	void *buffer;
-	socket_recv_packet(fd, &buffer, &sbuffer);
+	e_socket_status status = socket_recv_packet(socket, &buffer, &sbuffer);
+	if (0 > status) {
+		log_error(logger, "Error at socket_recv in dessearializeJob");
+		pthread_exit(NULL);
+	}
 
 	size_t scombiner = sizeof(bool);
 	bool combiner;
@@ -47,10 +75,10 @@ t_job *desserealizeJob(int fd, uint16_t id) {
 	return job;
 }
 
-e_socket_status recvResult(int fd, t_job *job) {
+e_socket_status recvResult(int socket, t_job *job) {
 	void *buffer;
 	size_t sbuffer = 0;
-	e_socket_status status = socket_recv_packet(fd, &buffer, &sbuffer);
+	e_socket_status status = socket_recv_packet(socket, &buffer, &sbuffer);
 	if (0 > status)
 		return status;
 	uint8_t resultFrom;
@@ -68,18 +96,18 @@ e_socket_status recvResult(int fd, t_job *job) {
 	return status;
 }
 
-void sendDieOrder(int fd) {
+void sendDieOrder(int socket) {
 	char order = COMMAND_MARTA_TO_JOB_DIE;
 	size_t sOrder = sizeof(char);
 	size_t sbuffer = sOrder;
 	void *buffer = malloc(sbuffer);
 	buffer = memset(buffer, '\0', sbuffer);
 	memcpy(buffer, &order, sOrder);
-	socket_send_packet(fd, buffer, sbuffer);
+	socket_send_packet(socket, buffer, sbuffer);
 	free(buffer);
 }
 //**********************************MAP*********************************************//
-void serializeMapToOrder(int fd, t_map *map) {
+void serializeMapToOrder(int socket, t_map *map) {
 	uint8_t order = COMMAND_MAP;
 	size_t sOrder = sizeof(uint8_t);
 	size_t sIpMap = sizeof(uint16_t);
@@ -102,7 +130,7 @@ void serializeMapToOrder(int fd, t_map *map) {
 	memcpy(buffer + sOrder + sIpMap + sizeof(snodeIP) + snodeIP, &nodePort, snodePort);
 	memcpy(buffer + sOrder + sIpMap + sizeof(snodeIP) + snodeIP + snodePort, &numBlock, snumBlock);
 	memcpy(buffer + sOrder + sIpMap + sizeof(snodeIP) + snodeIP + snodePort + snumBlock, map->tempResultName, stempName);
-	socket_send_packet(fd, buffer, sbuffer);
+	socket_send_packet(socket, buffer, sbuffer);
 	free(buffer);
 }
 
@@ -154,7 +182,7 @@ void serializeTemp(t_temp *temporal, void *buffer, size_t *sbuffer) {
 	*sbuffer += sizeof(uint16_t) + sizeof(snodeIP) + snodeIP + sizeof(uint16_t) + sizeof(char) * 60;
 }
 
-void serializeReduceToOrder(int fd, t_reduce *reduce) {
+void serializeReduceToOrder(int socket, t_reduce *reduce) {
 	char order = COMMAND_REDUCE;
 	size_t sOrder = sizeof(char);
 	size_t snodeIP = strlen(reduce->nodeIP) + 1;
@@ -185,7 +213,7 @@ void serializeReduceToOrder(int fd, t_reduce *reduce) {
 	memcpy(buffer + sOrder + sizeof(snodeIP) + snodeIP + snodePort + stempName, &countTemps, sizeof(uint16_t));
 	memcpy(buffer + sOrder + sizeof(snodeIP) + snodeIP + snodePort + stempName + sizeof(uint16_t), tempsBuffer, stemps);
 
-	socket_send_packet(fd, buffer, sbuffer);
+	socket_send_packet(socket, buffer, sbuffer);
 	free(tempsBuffer);
 	free(buffer);
 }

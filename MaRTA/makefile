@@ -1,5 +1,5 @@
 NAME=MaRTA
-LIBS= -lcommons
+LIBS= -lcommons -lpthread
 MODS=-Wall -MMD -MP
 CC=gcc -g
 MV=mv -f

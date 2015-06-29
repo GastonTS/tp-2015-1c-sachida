@@ -6,24 +6,30 @@
 #include <commons/collections/list.h>
 #include "../src/structs/node.h"
 #include "../src/structs/job.h"
-#include "../src/Serialize/serialize.h"
 #include "../src/MaRTA.h"
 #include "../../utils/socket.h"
 
+#include "../src/Connections/JobConnection.h"
+
+int fdListener;
+int fdAccepted;
+bool exitMaRTA;
+
 void seializeCompleteJobTest() {
+	fdListener = socket_listen(cfgMaRTA->listenPort);
+	exitMaRTA = false;
 	while (!exitMaRTA) {
 		printf("Waiting conecttion...\n");
 		fflush(stdout);
 		fdAccepted = socket_accept(fdListener);
-		switch (socket_handshake_to_client(fdAccepted, HANDSHAKE_MARTA,
-		HANDSHAKE_FILESYSTEM | HANDSHAKE_JOB)) {
+		switch (socket_handshake_to_client(fdAccepted, HANDSHAKE_MARTA, HANDSHAKE_FILESYSTEM | HANDSHAKE_JOB)) {
 		case HANDSHAKE_FILESYSTEM:
 			printf("\nEl FileSystem!\n");
 			break;
 		case HANDSHAKE_JOB:
 			cantJobs++;
 			//TODO levantar un hilo
-			t_job *job = desserealizeJob(fdAccepted, cantJobs);
+			t_job *job = desserializeJob(fdAccepted, cantJobs);
 
 			if (job->combiner)
 				log_info(logger, "Iniciando Job: %d (Combiner)", job->id);

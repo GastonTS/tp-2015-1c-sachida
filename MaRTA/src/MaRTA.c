@@ -6,25 +6,15 @@
 #include <commons/collections/list.h>
 #include "structs/node.h"
 #include "structs/job.h"
-#include "Serialize/serialize.h"
 #include "MaRTA.h"
 #include "../../utils/socket.h"
 #include "../test/PlanningTest.h"
 #include "../test/SerializeTest.h"
-
-typedef struct {
-	uint16_t listenPort;
-	char *fsIP;
-	uint16_t fsPort;
-} t_configMaRTA;
+#include "Connections/Connection.h"
 
 t_configMaRTA *cfgMaRTA;
 t_log *logger;
 t_list *nodes;
-
-int fdListener;
-int fdAccepted;
-bool exitMaRTA;
 uint16_t cantJobs;
 
 int initConfig(char* configFile);
@@ -33,7 +23,6 @@ void freeMaRTA();
 int main(int argc, char *argv[]) {
 
 	logger = log_create("MaRTA.log", "MaRTA", 1, log_level_from_string("TRACE"));
-	exitMaRTA = false;
 	cantJobs = 0;
 	if (argc != 2) {
 		log_error(logger, "Missing config file");
@@ -48,15 +37,7 @@ int main(int argc, char *argv[]) {
 
 	nodes = list_create();
 
-	//planningTestSetup();
-	//jobMapTest();
-	//RePlanTest();
-	//noCombinerPlanTest();
-	//combinerPlanTest();
-	//planningTestFree();
-
-	fdListener = socket_listen(cfgMaRTA->listenPort);
-	seializeCompleteJobTest();
+	initConnection();
 
 	list_destroy_and_destroy_elements(nodes, (void *) freeNode);
 	freeMaRTA();
