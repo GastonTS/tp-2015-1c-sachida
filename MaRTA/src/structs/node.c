@@ -1,9 +1,5 @@
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
-#include <commons/string.h>
-#include <stdlib.h>
 #include "node.h"
+#include <commons/string.h>
 
 t_node *CreateNode(int active, char *IP, int port, char* name) {
 	t_node *node = malloc(sizeof(t_node));

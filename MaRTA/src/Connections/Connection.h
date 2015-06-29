@@ -1,16 +1,13 @@
 #ifndef SRC_CONNECTIONS_CONNECTION_H_
 #define SRC_CONNECTIONS_CONNECTION_H_
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <pthread.h>
-#include <semaphore.h>
-#include <commons/log.h>
 #include "../MaRTA.h"
-#include "../structs/job.h"
 #include "../../../utils/socket.h"
+#include "FSConnection.h"
+#include "JobConnection.h"
+#include "../structs/job.h"
 
 void initConnection();
+int requestFileBlocks(t_file *file);
 
 #endif

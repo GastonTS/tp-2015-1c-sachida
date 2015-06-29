@@ -2,7 +2,7 @@
 #define SRC_CONNECTIONS_JOBCONNECTION_H_
 
 #include "Connection.h"
-#include "../../../utils/socket.h"
+#include "../structs/job.h"
 
 void *acceptJob(void *params);
 t_job *desserializeJob(int socket, uint16_t id);
