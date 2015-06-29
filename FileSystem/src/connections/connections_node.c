@@ -128,7 +128,6 @@ void* connections_node_accept(void *param) {
 
 	//  Save the connection as a reference to this node.
 	nodeConnection->listenPort = listenPort;
-
 	connections_node_setNodeConnection(nodeName, nodeConnection);
 
 	log_info(mdfs_logger, "Node connected. Name: %s. listenPort %d. blocksCount %d. New: %s", nodeName, listenPort, blocksCount, isNewNode ? "true" : "false");
@@ -141,7 +140,6 @@ void* connections_node_accept(void *param) {
 
 bool connections_node_sendBlock(nodeBlockSendOperation_t *sendOperation) {
 	// TODO, deberia hacer un mutex por socket. SI, hasta el recv e que salio todo ok, sino es un bardo..
-
 	pthread_mutex_lock(&m);
 
 	log_info(mdfs_logger, "Going to SET block %d to node %s.", sendOperation->blockIndex, sendOperation->node->id);
@@ -179,7 +177,7 @@ bool connections_node_sendBlock(nodeBlockSendOperation_t *sendOperation) {
 	}
 
 	pthread_mutex_unlock(&m);
-	// TODO, hacer un recv y esperar espuesta OK (hacer que el nodo mande. )
+
 	return (status == SOCKET_ERROR_NONE);
 }
 

@@ -144,7 +144,7 @@ void connections_fs_deserializeGetBlock(void *buffer) {
 		if (status != SOCKET_ERROR_NONE) {
 			connections_fs_setDisconnected();
 		}
-		node_freeBlock(blockData);
+		free(blockData);
 	} else {
 		// No deberia pasar nunca supuestamente.
 		// TODO handlear error. (mandar al fs un mensaje de error ?).

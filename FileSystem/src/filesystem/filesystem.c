@@ -179,7 +179,7 @@ void filesystem_addNode(char *nodeId, uint16_t blocksCount, bool isNewNode) {
 	node_t *node = filesystem_getNodeById(nodeId);
 	if (node) {
 		if (node->blocksCount != blocksCount) {
-			log_error(mdfs_logger, "The node informed a different blocksCount. %d != %d", node->blocksCount, blocksCount);
+			log_warning(mdfs_logger, "The node informed a different blocksCount. %d != %d", node->blocksCount, blocksCount);
 		} else {
 			if (isNewNode) {
 				// The node exists in the filesystem but he says that is new, so I should delete all blocks copies that are in that node.

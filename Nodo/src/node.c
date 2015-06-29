@@ -16,6 +16,9 @@ void node_free();
 t_log *node_logger;
 t_nodeCfg *node_config;
 
+pthread_mutex_t *blocks_mutex;
+void *binFileMap;
+
 int main(int argc, char *argv[]) {
 	node_logger = log_create("node.log", "Node", 1, log_level_from_string("TRACE"));
 
@@ -69,9 +72,8 @@ bool node_init() {
 		}
 	}
 
-	int fd;
 	if (createFile) {
-		fd = open(node_config->binFilePath, O_TRUNC | O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+		int fd = open(node_config->binFilePath, O_TRUNC | O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
 		if (fd == -1) {
 			return 0;
 		}
@@ -84,6 +86,29 @@ bool node_init() {
 	} else {
 		//fd = open(node_config->binFilePath, O_TRUNC); // Truncate just in case the blokcsCount changed..
 	}
+	// ...
+
+	// Map the file
+	log_info(node_logger, "Mapping the binFile..");
+
+	int fd = open(node_config->binFilePath, O_RDWR);
+	if (fd == -1) {
+		log_error(node_logger, "An error occurred while trying to open the bin file.");
+		return 0;
+	}
+	binFileMap = mmap(0, BLOCK_SIZE * node_config->blocksCount, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+	close(fd);
+	// ...
+
+	// Create mutex for blocks
+	blocks_mutex = malloc(sizeof(pthread_mutex_t) * node_config->blocksCount);
+	int i;
+	for (i = 0; i < node_config->blocksCount; i++) {
+		if (pthread_mutex_init(&blocks_mutex[i], NULL) != 0) {
+			return 0;
+		}
+	}
+	// ...
 
 	return 1;
 }
@@ -91,38 +116,21 @@ bool node_init() {
 char* node_getBlock(uint16_t numBlock) {
 	log_info(node_logger, "Getting block number %d", numBlock);
 
-	int fd = open(node_config->binFilePath, O_RDONLY);
-	if (fd == -1) {
-		log_error(node_logger, "An error occurred while trying to open the bin file.");
-		return NULL;
-	}
+	char *blockStr = malloc(sizeof(char) * BLOCK_SIZE);
 
-	char *blockStr = (char *) mmap(0, BLOCK_SIZE, PROT_READ, MAP_PRIVATE, fd, numBlock * BLOCK_SIZE);
-
-	close(fd);
+	pthread_mutex_lock(&blocks_mutex[numBlock]);
+	memcpy(blockStr, binFileMap + (numBlock * BLOCK_SIZE), BLOCK_SIZE);
+	pthread_mutex_unlock(&blocks_mutex[numBlock]);
 
 	return blockStr;
 }
 
-void node_freeBlock(char *blockStr) {
-	munmap(blockStr, BLOCK_SIZE);
-}
-
-void node_setBlock(uint16_t numBlock, char *blockData) {
+void node_setBlock(uint16_t numBlock, char *blockStr) {
 	log_info(node_logger, "Setting block number %d", numBlock);
 
-	int fd = open(node_config->binFilePath, O_RDWR);
-	if (fd == -1) {
-		log_error(node_logger, "An error occurred while trying to open the bin file.");
-		return;
-	}
-
-	char *fileBlockStr = (char *) mmap(0, BLOCK_SIZE, PROT_WRITE, MAP_SHARED, fd, numBlock * BLOCK_SIZE);
-
-	memcpy(fileBlockStr, blockData, strlen(blockData) + 1);
-
-	munmap(fileBlockStr, BLOCK_SIZE);
-	close(fd);
+	pthread_mutex_lock(&blocks_mutex[numBlock]);
+	memcpy(binFileMap + (numBlock * BLOCK_SIZE), blockStr, strlen(blockStr) + 1);
+	pthread_mutex_unlock(&blocks_mutex[numBlock]);
 }
 
 int node_initConfig(char* configFile) {
@@ -178,6 +186,13 @@ int node_initConfig(char* configFile) {
 }
 
 void node_free() {
+	munmap(binFileMap, BLOCK_SIZE * node_config->blocksCount);
+
+	int i;
+	for (i = 0; i < node_config->blocksCount; i++) {
+		pthread_mutex_destroy(&blocks_mutex[i]);
+	}
+
 	if (node_config) {
 		if (node_config->fsIp) {
 			free(node_config->fsIp);
