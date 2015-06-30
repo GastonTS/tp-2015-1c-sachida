@@ -135,12 +135,12 @@ void* connections_node_accept(void *param) {
 }
 
 bool connections_node_sendBlock(nodeBlockSendOperation_t *sendOperation) {
-	log_info(mdfs_logger, "Going to SET block %d to node %s.", sendOperation->blockIndex, sendOperation->node->id);
-
 	node_connection_t *nodeConnection = connections_node_getNodeConnection(sendOperation->node->id);
 	if (!nodeConnection) {
 		return 0;
 	}
+
+	log_info(mdfs_logger, "Going to SET block %d to node %s.", sendOperation->blockIndex, sendOperation->node->id);
 
 	uint8_t command = COMMAND_FS_TO_NODE_SET_BLOCK;
 	uint16_t numBlock = sendOperation->blockIndex;
@@ -173,12 +173,12 @@ bool connections_node_sendBlock(nodeBlockSendOperation_t *sendOperation) {
 }
 
 char* connections_node_getBlock(file_block_t *fileBlock) {
-	log_info(mdfs_logger, "Going to GET block %d from node %s.", fileBlock->blockIndex, fileBlock->nodeId);
-
 	node_connection_t *nodeConnection = connections_node_getNodeConnection(fileBlock->nodeId);
 	if (!nodeConnection) {
 		return NULL;
 	}
+
+	log_info(mdfs_logger, "Going to GET block %d from node %s.", fileBlock->blockIndex, fileBlock->nodeId);
 
 	uint8_t command = COMMAND_FS_TO_NODE_GET_BLOCK;
 	uint16_t numBlock = fileBlock->blockIndex;

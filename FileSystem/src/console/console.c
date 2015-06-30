@@ -233,9 +233,12 @@ void listResources() {
 	printf("\n");
 
 	void printDir(dir_t *dir) {
-		printf("\t\t\t" ANSI_COLOR_BLUE " %s/ " ANSI_COLOR_RESET "\n", dir->name);
+		printf("\t\t\t" ANSI_COLOR_BLUE " %s" ANSI_COLOR_RESET "/\n", dir->name);
 		//printf("\t\t\t %s/ \n", dir->name);
 	}
+
+	printf("\t\t\t" ANSI_COLOR_BLUE " %s" ANSI_COLOR_RESET "/\n", ".");
+	printf("\t\t\t" ANSI_COLOR_BLUE " %s" ANSI_COLOR_RESET "/\n", "..");
 
 	t_list *dirs = filesystem_getDirsInDir(currentDirId);
 	list_iterate(dirs, (void*) printDir);
