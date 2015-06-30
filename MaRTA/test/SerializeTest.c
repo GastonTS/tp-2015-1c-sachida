@@ -41,7 +41,8 @@ void seializeCompleteJobTest() {
 
 			e_socket_status socketStatus;
 			serializeMapToOrder(fdAccepted, map);
-			socketStatus = recvResult(fdAccepted, job);
+			job->jobSocket = fdAccepted;
+			socketStatus = recvResult(job);
 			/*
 
 			 job->finalReduce->done = 0;

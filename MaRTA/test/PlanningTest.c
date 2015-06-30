@@ -154,15 +154,15 @@ void jobMapTest() {
 	printf("**************************jobMapTest****************************\n");
 	job->finalReduce->finalNode = strdup("");
 	job->finalReduce->nodeIP = strdup("");
-	jobMap(job);
-	jobMap(job2);
+	planMaps(job);
+	planMaps(job2);
 	printf("****************************************************************\n");
 }
 
 void RePlanTest() {
 	printf("**************************RePlanTest****************************\n");
 	printf("************************jobMapPlanning**************************\n");
-	jobMap(job);
+	planMaps(job);
 	job->finalReduce->finalNode = strdup("");
 	job->finalReduce->nodeIP = strdup("");
 	node5->active = 0;
@@ -175,8 +175,8 @@ void RePlanTest() {
 void noCombinerPlanTest() {
 	printf("************************ReducePlanTest**************************\n");
 	printf("************************jobMapPlanning**************************\n");
-	jobMap(job);
-	jobMap(job2);
+	planMaps(job);
+	planMaps(job2);
 	printf("********************noCombinerReducePlanning*********************\n");
 	noCombinerReducePlanning(job);
 	printf("****************************************************************\n");
@@ -186,7 +186,7 @@ void noCombinerPlanTest() {
 void combinerPartialsReducePlanTest() {
 	printf("************************ReducePlanTest**************************\n");
 	printf("************************jobMapPlanning**************************\n");
-	jobMap(job);
+	planMaps(job);
 	printf("******************combinerPartialsReducePlanning*****************\n");
 	combinerPartialsReducePlanning(job);
 	printf("****************************************************************\n");
@@ -195,8 +195,8 @@ void combinerPartialsReducePlanTest() {
 void combinerPlanTest() {
 	printf("************************ReducePlanTest**************************\n");
 	printf("************************jobMapPlanning**************************\n");
-	jobMap(job);
-	jobMap(job2);
+	planMaps(job);
+	planMaps(job2);
 	printf("*********************combinerReducePlanning*********************\n");
 	combinerPartialsReducePlanning(job);
 	combinerFinalReducePlanning(job);

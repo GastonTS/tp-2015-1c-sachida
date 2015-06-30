@@ -46,7 +46,7 @@ void updateNodes(char* nodeID, char *nodeIP, uint16_t nodePort) {
 	}
 }
 
-int requestFileBlocks(t_file *file) { //TODO: sacar printfs
+int requestFileBlocks(t_file *file) {
 	void *buffer;
 	void request() {
 		uint8_t command = COMMAND_MARTA_TO_FS_GET_FILE_BLOCKS;
@@ -85,8 +85,6 @@ int requestFileBlocks(t_file *file) { //TODO: sacar printfs
 	}
 	void *bufferOffset = buffer + sizeof(blocksCount);
 
-	printf("\nBloques de %s . Tiene %d \n ", file->path, blocksCount);
-	fflush(stdout);
 	int fileBlockNumber;
 	for (fileBlockNumber = 0; fileBlockNumber < blocksCount; fileBlockNumber++) {
 		t_list *copies = list_create();
@@ -95,8 +93,6 @@ int requestFileBlocks(t_file *file) { //TODO: sacar printfs
 		copyesCount = ntohs(copyesCount);
 		bufferOffset += sizeof(copyesCount);
 
-		printf("\t|----> Bloque nro %d. Tiene %d copias \n", fileBlockNumber, copyesCount);
-		fflush(stdout);
 		int j;
 		for (j = 0; j < copyesCount; j++) {
 			uint32_t sNodeId;
@@ -135,8 +131,6 @@ int requestFileBlocks(t_file *file) { //TODO: sacar printfs
 			updateNodes(nodeId, nodeIp, nodePort);
 			t_copy *copy = CreateCopy(nodeId, nodeBlockNumber);
 			list_add(copies, copy);
-			printf("\t|\t|---->  Nodo: %s . Bloque nro: %d \n", nodeId, nodeBlockNumber);
-			fflush(stdout);
 			free(nodeId);
 		}
 		list_add(file->blocks, copies);

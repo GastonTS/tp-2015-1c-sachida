@@ -161,6 +161,10 @@ bool isMap(t_map *map, uint16_t idMap) {
 	return map->id == idMap;
 }
 
+bool mapIsDone(t_map *map) {
+	return map->done;
+}
+
 bool isReduce(t_reduce *reduce, uint16_t idReduce) {
 	return reduce->id == idReduce;
 }

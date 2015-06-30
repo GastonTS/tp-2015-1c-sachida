@@ -61,6 +61,7 @@ void setTempReduceName(char tempResultName[60], t_job *job, char *tipo);
 void freeMap(t_map* map);
 void freeJob(t_job *job);
 bool isMap(t_map *map, uint16_t idMap);
+bool mapIsDone(t_map *map);
 bool isReduce(t_reduce *reduce, uint16_t idReduce);
 
 #endif

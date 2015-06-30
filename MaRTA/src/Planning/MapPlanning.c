@@ -18,8 +18,7 @@ void selectNode(t_copy *copy, t_node **selectedNode, uint16_t *numBlock) {
 }
 
 void notificarMap(int jobSocket, t_map *map) {
-	log_trace(logger, "\nMap planned: \n\tIP Node: %s \n\tPort node: %d\n\tBlock: %d \n\tStored in: %s", map->nodeIP, map->nodePort, map->numBlock,
-			map->tempResultName);
+	log_trace(logger, "Planned: %s", map->tempResultName);
 	map->done = false;
 	serializeMapToOrder(jobSocket, map);
 }
@@ -32,7 +31,7 @@ void removeMapNode(t_map *map) {
 	list_remove_by_condition(selectedNode->maps, (void *) isNumBlock);
 }
 
-int jobMap(t_job *job) {
+int planMaps(t_job *job) {
 	log_trace(logger, "Planning Job %d...", job->id);
 	int filesAvailables = 1;
 	void requestBlocks(t_file *file) {
@@ -96,4 +95,5 @@ void rePlanMap(t_job *job, t_map *map) {
 	setTempMapName(map->tempResultName, map->id, job->id);
 
 	notificarMap(job->jobSocket, map);
+	recvResult(job); //XXX test pendiente
 }

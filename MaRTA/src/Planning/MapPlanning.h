@@ -4,7 +4,7 @@
 #include "../MaRTA.h"
 #include "../structs/job.h"
 
-int jobMap(t_job *job);
+int planMaps(t_job *job);
 void rePlanMap(t_job *job, t_map *map);
 char *getTime();
 

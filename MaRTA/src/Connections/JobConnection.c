@@ -2,6 +2,8 @@
 #include "../Planning/MapPlanning.h"
 #include <commons/string.h>
 
+void recvMapsResults(t_job *job);
+
 //**********************************************************************************//
 //									JOB												//
 //**********************************************************************************//
@@ -17,12 +19,14 @@ void *acceptJob(void * param) {
 	job->jobSocket = jobSocket;
 
 	if (job->combiner)
-		log_info(logger, "Iniciando Job: %d (Combiner)", job->id);
+		log_info(logger, "Begin Job: %d (Combiner)", job->id);
 	else
-		log_info(logger, "Iniciando Job: %d (No combiner)", job->id);
+		log_info(logger, "Begin Job: %d (No combiner)", job->id);
 
-	jobMap(job);
+	planMaps(job);
+	recvMapsResults(job);
 
+	log_info(logger, "Finished Job: %d", job->id);
 	freeJob(job);
 	return NULL;
 }
@@ -67,19 +71,14 @@ t_job *desserializeJob(int socket, uint16_t id) {
 	return job;
 }
 
-e_socket_status recvResult(int socket, t_job *job) {
+e_socket_status recvResult(t_job *job) {
 	void *buffer;
 	size_t sbuffer = 0;
-	e_socket_status status = socket_recv_packet(socket, &buffer, &sbuffer);
+	e_socket_status status = socket_recv_packet(job->jobSocket, &buffer, &sbuffer);
 	if (0 > status)
 		return status;
 	uint8_t resultFrom;
 	memcpy(&resultFrom, buffer, sizeof(uint8_t));
-	int i;
-	for (i = 0; i < sbuffer; i++)
-		printf("%d \n", *(uint8_t *) (buffer + i));
-	printf("\n\n %d \n\n", resultFrom);
-	fflush(stdout);
 	switch (resultFrom) {
 	case COMMAND_MAP:
 		desserializeMapResult(buffer + sizeof(uint8_t), job);
@@ -140,7 +139,7 @@ void desserializeMapResult(void *buffer, t_job *job) {
 	memcpy(&idMap, buffer + sresult, sidMap);
 	idMap = ntohs(idMap);
 
-	log_trace(logger, "\nMap: %d result: %d\n", idMap, result);
+	log_trace(logger, "Finished Map: %d -> Result: %d", idMap, result);
 	bool findMap(t_map *map) {
 		return isMap(map, idMap);
 	}
@@ -151,6 +150,13 @@ void desserializeMapResult(void *buffer, t_job *job) {
 	} else {
 		rePlanMap(job, map);
 	}
+}
+
+void recvMapsResults(t_job *job) {
+	int i;
+	int mapsCount = list_size(job->maps);
+	for (i = 0; i < mapsCount; i++)
+		recvResult(job);
 }
 //*********************************REDUCE*******************************************//
 size_t totalTempsSize(t_list *temps) {
