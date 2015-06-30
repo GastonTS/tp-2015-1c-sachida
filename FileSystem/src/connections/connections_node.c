@@ -197,6 +197,9 @@ char* connections_node_getBlock(file_block_t *fileBlock) {
 	free(buffer);
 
 	if (status != SOCKET_ERROR_NONE) {
+		pthread_mutex_unlock(&nodeConnection->mutex);
+		log_info(mdfs_logger, "Removing node %s because it was disconnected", fileBlock->nodeId);
+		connections_node_removeNodeConnection(fileBlock->nodeId);
 		return NULL;
 	}
 
