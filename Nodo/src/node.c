@@ -12,6 +12,7 @@ int node_initConfig(char* configFile);
 void node_readCommand();
 bool node_init();
 void node_free();
+bool node_createExecutableFileFromString(char *pathToFile, char *str);
 
 t_log *node_logger;
 t_nodeCfg *node_config;
@@ -19,7 +20,41 @@ t_nodeCfg *node_config;
 pthread_mutex_t *blocks_mutex;
 void *binFileMap;
 
+/* TESTING........ */
+
+// popen() read
+void popen_read_test() {
+	char line[256];
+	FILE *pipe = popen("/home/utnso/test.sh", "r");
+	if (!pipe) {
+		return; // TODO.
+	}
+	//fread(buffer, 1, 32, md5pipe);
+	while (fgets(line, 255, pipe)) {
+		printf("%s", line);
+	}
+	pclose(pipe);
+}
+
+// popen() write
+void popen_write_test() {
+	char buffer[256] = "how are you?";
+	FILE *pipe = popen("/home/utnso/test.sh", "w");
+
+	// fwrite() TODO, este es por bytes, creo que no va..
+	fputs(buffer, pipe);
+	pclose(pipe);
+}
+/*..................*/
+
 int main(int argc, char *argv[]) {
+	/*
+	 node_createExecutableFileFromString("/home/utnso/test.sh", "#!/bin/bash \n  cat - | awk -F ',' '{print $2 \";\" $1  \";\" $13 \";\" $3}'\n");
+	 popen_write_test();
+
+	 return 1;
+	 */
+
 	node_logger = log_create("node.log", "Node", 1, log_level_from_string("TRACE"));
 
 	if (argc != 2) {
@@ -51,11 +86,43 @@ int main(int argc, char *argv[]) {
 	return EXIT_SUCCESS;
 }
 
+bool node_createExecutableFileFromString(char *pathToFile, char *str) {
+	FILE *fp = fopen(pathToFile, "w");
+	if (!fp) {
+		return 0;
+	}
+
+	if (str) {
+		fputs(str, fp);
+	}
+
+	int fd = fileno(fp);
+	if (!fd) {
+		fclose(fp);
+		return 0;
+	}
+
+	struct stat st;
+	if (fstat(fd, &st)) {
+		fclose(fp);
+		return 0;
+	}
+
+	// Sets exec mode.
+	if (fchmod(fd, 0755)) {
+		fclose(fp);
+		return 0;
+	}
+
+	fclose(fp);
+	return 1;
+}
+
 void node_readCommand() {
 	int c;
 	//system("/bin/stty raw");
-	while ((c = getchar()) != 'd') {
-	}
+	while ((c = getchar()) != 'd')
+		;
 	//system("/bin/stty cooked");
 }
 
