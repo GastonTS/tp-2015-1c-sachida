@@ -82,19 +82,6 @@ void recvOrder(int fd) {
 	size_t sOrder = sizeof(uint8_t);
 	memcpy(&order, buffer, sOrder);
 
-	/* Map */
-	/*
-	struct parms_threads parms_map;
-	parms_map.buffer = (buffer + sOrder);
-	parms_map.tamanio = sOrder;
-	log_info(logger,"buffer %d", parms_map.buffer);
-	*/
-	/* Reduce */
-	/*
-	struct parms_threads parms_reduce;
-	parms_reduce.buffer = (buffer + sOrder);
-	parms_reduce.tamanio = sbuffer - sOrder;
-	*/
 
 	if (order == COMMAND_MAP) {
 		log_info(logger, "Map Recived");
@@ -111,10 +98,11 @@ void recvOrder(int fd) {
 			(void *) reduce);
 		pthread_detach(hilo_reduce);
 	}
-	//TODO CAMBIAR A COMMAND_MARTA_TO_JOB_DIE
-	else if (order == 2) {
-		printf("\nDIE JOB\n");
+
+	else if (order == COMMAND_MARTA_TO_JOB_DIE) {
+		log_info(logger,"Die Job");
 		freeCfg();
+		free(buffer);
 		exit(-1);
 	}
 
