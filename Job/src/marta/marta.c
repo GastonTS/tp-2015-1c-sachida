@@ -103,14 +103,13 @@ void recvOrder(int fd) {
 		log_info(logger,"Die Job");
 		freeCfg();
 		free(buffer);
-		exit(-1);
+		exit(0);
 	}
 
 	free(buffer);
 }
 
 void atenderMapper(void * parametros) {
-	//struct parms_threads *p = (struct parms_threads *) parametros;
 	log_info(logger, "Thread map created");
 	t_map *map = (t_map *) parametros;
 
@@ -142,9 +141,11 @@ void atenderMapper(void * parametros) {
 	serializeMap(sock_nodo, map);
 
 	/* Wait for confirmation */
+
 	void *buffer;
 	size_t sbuffer;
 	e_socket_status status = socket_recv_packet(sock_nodo, &buffer, &sbuffer);
+
 	/* Si se cae el nodo le mando que murio */
 	if (status < 0) {
 		uint8_t comando = COMMAND_MAP;
@@ -195,14 +196,11 @@ void confirmarMap(bool confirmacion, t_map* map) {
 	if (confirmacion == 1) {
 		socket_send_packet(sock_marta, buffer, sbuffer);
 		log_info(logger, "Map %d Successfully Completed", map->idJob);
-		printf("Map %d Successfully Completed \n", map->idJob);
 	} else if (confirmacion == 0) {
 		socket_send_packet(sock_marta, buffer, sbuffer);
 		log_info(logger, "Map %d Failed", map->idJob);
-		printf("Map %d Failed \n", map->idJob);
 	} else {
-		printf("\n NO SE RECONOCIO LA CONFIRMACION DEL NODO \n");
-		log_error(logger, "NO SE RECONOCIO LA CONFIRMACION DEL NODO");
+		log_error(logger, "Unknown command from nodo map confirm");
 	}
 	freeThreadMap(map);
 	free(buffer);
@@ -247,52 +245,66 @@ void atenderReducer(void * parametros) {
 	serializeReduce(sock_nodo, reduce);
 
 	/* Wait for confirmation */
-	void *buffer;
-	size_t sbuffer = 0;
-	socket_recv_packet(sock_nodo, &buffer, &sbuffer);
-	char conf = '\0';
-	size_t sConf = sizeof(char);
-	memcpy(&conf, buffer, sConf);
 
-	/* Confirmar Reduce */
-	confirmarReduce(conf, reduce, buffer);
+	void *buffer;
+	size_t sbuffer;
+	e_socket_status status = socket_recv_packet(sock_nodo, &buffer, &sbuffer);
+
+	/* Si se cae el nodo le mando que murio */
+	if (status < 0) {
+		uint8_t comando = COMMAND_REDUCE;
+		size_t scomando = sizeof(uint8_t);
+		size_t sbool = sizeof(bool);
+		bool fallo = 0;
+		size_t sidreduce = sizeof(uint16_t);
+		size_t sbufferConf = scomando + sbool + sidreduce;
+		void* bufferConf = malloc(sbufferConf);
+		bufferConf = memset(bufferConf, '\0', sbufferConf);
+		memcpy(bufferConf, &comando, scomando);
+		memcpy(bufferConf + scomando, &fallo, sbool);
+		memcpy(bufferConf + scomando + sbool, &reduce->idJob, sidreduce);
+		socket_send_packet(sock_marta, bufferConf, sbufferConf);
+		free(bufferConf);
+		//free(buffer);
+	} else {
+		bool conf;
+		size_t sConf = sizeof(bool);
+		memcpy(&conf, buffer, sConf);
+
+		/* Confirmar Map */
+		confirmarReduce(conf, reduce, buffer);
+	}
+	freeThreadReduce(reduce);
+	free(buffer);
+	pthread_exit(&status);
+
 }
 
 void confirmarReduce(char confirmacion, t_reduce* reduce, void* bufferNodo) {
 
 	/*TODO ARMAR METODO? */
-	size_t sOrder = sizeof(char);
+	uint8_t comando = COMMAND_REDUCE;
+	size_t scomando = sizeof(uint8_t);
+	size_t sOrder = sizeof(bool);
 	size_t sIdJob = sizeof(uint16_t);
-
-	/*
-	 uint16_t idJob = htons(reduce->idJob);
+	uint16_t idJob = htons(reduce->idJob);
 
 
-	 size_t sbuffer = sOrder + sIdJob;
-	 void* buffer = malloc(sbuffer);
-	 buffer = memset(buffer, '\0', sbuffer);
-	 memcpy(buffer, &confirmacion, sOrder);
-	 memcpy(buffer + sOrder, &idJob, sIdJob);
-	 */
-
-	if (confirmacion == 't') {
+	if (confirmacion == 1) {
 		/* Armo el pkg reduce confirmation */
-		uint16_t idJob = htons(reduce->idJob);
-		size_t sbuffer = sOrder + sIdJob;
+		size_t sbuffer = scomando + sOrder + sIdJob;
 		void* buffer = malloc(sbuffer);
 		buffer = memset(buffer, '\0', sbuffer);
-		memcpy(buffer, &confirmacion, sOrder);
-		memcpy(buffer + sOrder, &idJob, sIdJob);
+		memcpy(buffer, &comando, scomando);
+		memcpy(buffer + scomando, &confirmacion, sOrder);
+		memcpy(buffer + scomando + sOrder, &idJob, sIdJob);
 		/* Envio todo a MaRTA */
 		socket_send_packet(sock_marta, &buffer, sbuffer);
-		log_info(logger, "Map %d Successfully Completed", reduce->idJob);
-		printf("Map %d Successfully Completed \n", reduce->idJob);
+		log_info(logger, "Reduce %d Successfully Completed", reduce->idJob);
 		free(bufferNodo);
 		free(buffer);
-	} else if (confirmacion == 'f') {
+	} else if (confirmacion == 0) {
 		/* Armo el pkg reduce confirmation */
-		uint16_t idJob = htons(reduce->idJob);
-
 		char* tmpfail;
 		size_t stmpfail;
 
@@ -300,22 +312,21 @@ void confirmarReduce(char confirmacion, t_reduce* reduce, void* bufferNodo) {
 		tmpfail = malloc(stmpfail);
 		memcpy(tmpfail, bufferNodo + sizeof(stmpfail), stmpfail);
 
-		size_t sbuffer = sOrder + sIdJob + sizeof(size_t) + stmpfail;
+		size_t sbuffer = scomando + sOrder + sIdJob + sizeof(size_t) + stmpfail;
 		void* buffer = malloc(sbuffer);
 		buffer = memset(buffer, '\0', sbuffer);
-		memcpy(buffer, &confirmacion, sOrder);
-		memcpy(buffer + sOrder, &idJob, sIdJob);
-		memcpy(buffer + sOrder + sIdJob, &stmpfail, sizeof(size_t));
-		memcpy(buffer + sOrder + sIdJob + sizeof(size_t), &tmpfail, stmpfail);
+		memcpy(buffer, &comando, scomando);
+		memcpy(buffer + scomando, &confirmacion, sOrder);
+		memcpy(buffer + scomando + sOrder, &idJob, sIdJob);
+		memcpy(buffer + scomando + sOrder + sIdJob, &stmpfail, sizeof(size_t));
+		memcpy(buffer + scomando + sOrder + sIdJob + sizeof(size_t), &tmpfail, stmpfail);
 		/* Envio todo a MaRTA */
 		socket_send_packet(sock_marta, &buffer, sbuffer);
 		log_info(logger, "Map %d Failed", reduce->idJob);
-		printf("Map %d Failed \n", reduce->idJob);
 		free(bufferNodo);
 		free(buffer);
 	} else {
-		printf("\n NO SE RECONOCIO LA CONFIRMACION DEL NODO \n");
-		log_error(logger, "NO SE RECONOCIO LA CONFIRMACION DEL NODO");
+		log_error(logger, "Unknown Command from nodo confirm reduce");
 	}
 	freeThreadReduce(reduce);
 
