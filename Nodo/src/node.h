@@ -11,15 +11,6 @@
 
 #define	BLOCK_SIZE	20 * 1024 * 1024 // 20 MB de bloques
 
-/* TODO, que verga es esto?
-typedef struct {
-	int tipo;
-	int id_proceso;
-	int datosNumericos;
-	char mensaje[16];
-} t_mensaje;
-*/
-
 typedef struct {
 	char *fsIp;
 	uint16_t fsPort;

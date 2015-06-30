@@ -146,8 +146,8 @@ void connections_fs_deserializeGetBlock(void *buffer) {
 		}
 		free(blockData);
 	} else {
-		// No deberia pasar nunca supuestamente.
-		// TODO handlear error. (mandar al fs un mensaje de error ?).
+		// Should not happen EVER.
+		log_error(node_logger, "Cannot get block %d. OMG.", numBlock);
 	}
 }
 

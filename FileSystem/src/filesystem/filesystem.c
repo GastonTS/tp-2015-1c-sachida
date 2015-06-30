@@ -810,7 +810,7 @@ bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 		void runOperations(nodeBlockSendOperation_t *nodeBlockSendOperation) {
 			if (pthread_create(&(threads[count]), NULL, (void *) sendBlockToNode, (void*) nodeBlockSendOperation)) {
 				setFailed();
-				log_error(mdfs_logger, "Error while trying to create new thread: filesystem_sendBlockToNode");
+				log_error(mdfs_logger, "Error while trying to create new thread: sendBlockToNode");
 			}
 			count++;
 		}

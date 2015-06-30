@@ -9,6 +9,7 @@ typedef struct {
 	int socket;
 	char *ip;
 	uint16_t listenPort;
+	pthread_mutex_t mutex;
 } node_connection_t;
 
 node_connection_t* connections_node_connection_create(int socket, char *ip);

@@ -5,13 +5,10 @@
 
 pthread_mutex_t activeNodesLock;
 pthread_mutex_t standbyNodesLock;
-pthread_mutex_t m;
 t_dictionary *activeNodesSockets;
 t_dictionary *standbyNodesSockets;
 
 void connections_node_initialize() {
-	pthread_mutex_init(&m, NULL);
-
 	if (pthread_mutex_init(&activeNodesLock, NULL) != 0 || pthread_mutex_init(&standbyNodesLock, NULL) != 0) {
 		log_error(mdfs_logger, "Error while trying to create new mutex");
 		return;
@@ -21,7 +18,6 @@ void connections_node_initialize() {
 }
 
 void connections_node_shutdown() {
-	// TODO lock desdtroy por nodo.
 	pthread_mutex_destroy(&activeNodesLock);
 	pthread_mutex_destroy(&standbyNodesLock);
 
@@ -139,14 +135,10 @@ void* connections_node_accept(void *param) {
 }
 
 bool connections_node_sendBlock(nodeBlockSendOperation_t *sendOperation) {
-	// TODO, deberia hacer un mutex por socket. SI, hasta el recv e que salio todo ok, sino es un bardo..
-	pthread_mutex_lock(&m);
-
 	log_info(mdfs_logger, "Going to SET block %d to node %s.", sendOperation->blockIndex, sendOperation->node->id);
 
 	node_connection_t *nodeConnection = connections_node_getNodeConnection(sendOperation->node->id);
 	if (!nodeConnection) {
-		pthread_mutex_unlock(&m);
 		return 0;
 	}
 
@@ -165,18 +157,17 @@ bool connections_node_sendBlock(nodeBlockSendOperation_t *sendOperation) {
 	memcpy(buffer + sizeof(command) + sizeof(numBlock), &sBlockDataSerialized, sizeof(sBlockData));
 	memcpy(buffer + sizeof(command) + sizeof(numBlock) + sizeof(sBlockData), sendOperation->block, sBlockData);
 
+	pthread_mutex_lock(&nodeConnection->mutex);
 	e_socket_status status = socket_send_packet(nodeConnection->socket, buffer, sBuffer);
+	pthread_mutex_unlock(&nodeConnection->mutex);
 
 	free(buffer);
 
 	if (0 > status) {
 		log_info(mdfs_logger, "Removing node %s because it was disconnected", sendOperation->node->id);
 		connections_node_removeNodeConnection(sendOperation->node->id);
-		pthread_mutex_unlock(&m);
 		return 0;
 	}
-
-	pthread_mutex_unlock(&m);
 
 	return (status == SOCKET_ERROR_NONE);
 }
@@ -200,6 +191,7 @@ char* connections_node_getBlock(file_block_t *fileBlock) {
 	memcpy(buffer, &command, sizeof(command));
 	memcpy(buffer + sizeof(command), &numBlockSerialized, sizeof(numBlock));
 
+	pthread_mutex_lock(&nodeConnection->mutex);
 	e_socket_status status = socket_send_packet(nodeConnection->socket, buffer, sBuffer);
 
 	free(buffer);
@@ -213,6 +205,7 @@ char* connections_node_getBlock(file_block_t *fileBlock) {
 	buffer = NULL;
 	sBuffer = 0;
 	status = socket_recv_packet(nodeConnection->socket, &buffer, &sBuffer);
+	pthread_mutex_unlock(&nodeConnection->mutex);
 
 	if (0 > status) {
 		log_info(mdfs_logger, "Removing node %s because it was disconnected", fileBlock->nodeId);
@@ -233,6 +226,7 @@ node_connection_t* connections_node_connection_create(int socket, char *ip) {
 	node_connection_t *nodeConnection = malloc(sizeof(node_connection_t));
 	nodeConnection->ip = strdup(ip);
 	nodeConnection->socket = socket;
+	pthread_mutex_init(&nodeConnection->mutex, NULL);
 	return nodeConnection;
 }
 
@@ -241,6 +235,7 @@ void connections_node_connection_free(node_connection_t *nodeConnection) {
 		if (nodeConnection->ip) {
 			free(nodeConnection->ip);
 		}
+		pthread_mutex_destroy(&nodeConnection->mutex);
 		free(nodeConnection);
 	}
 }
