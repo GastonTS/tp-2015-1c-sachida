@@ -2,6 +2,7 @@
 #define CONNECTIONS_JOB_H
 
 #include "connections.h"
+#include <time.h>
 
 void connections_job_initialize();
 void connections_job_shutdown();

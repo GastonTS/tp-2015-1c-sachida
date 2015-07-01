@@ -1,9 +1,15 @@
 #include "connections_job.h"
 #include "connections.h"
+#include "../node.h"
 
 void* connections_job_listenActions(void *param);
 void connections_job_deserializeMap(int socket, void *buffer);
 void connections_job_deserializeReduce(int socket, void *buffer);
+void popen_read(char *path);
+void popen_write(char *blockData, char *path);
+int node_map(uint16_t numBlock, char *mapRutine, char *tmpName);
+
+
 
 void connections_job_initialize() {
 
@@ -84,7 +90,7 @@ void connections_job_deserializeMap(int socket, void *buffer) {
 
 	log_info(node_logger, "Job Requested MAP Rutine. numBlock %d. tmpName: %s", numBlock, tmpName);
 
-	//node_map();
+	node_map(numBlock,mapRutine,tmpName);
 	// OK
 
 	// TODO
@@ -120,16 +126,26 @@ void connections_job_deserializeReduce(int socket, void *buffer) {
 
  }*/
 
-/*int nodeMap (rutinaMap, int nroBloque){
- El Nodo4 guarda el contenido de map.py en un archivo en el filesystem local. Le da permisos de ejecución.
- * El hilo mapper le solicita al Nodo4 que envie el contenido del Bloque6 por entrada estánda a map.py. El STDOUT lo almacena en un archivo temporal (ej: map.py.result.tmp)
- * Usa la tool sort para ordenar el archivo temporal del paso anterior ya en el archivo definitivo
- # cat map.py.result.tmp | sort > librazo12347.tmp
- * El hilo mapper se conecta al nodo, y le indica la rutina de maping, el bloque de datos donde aplicarla y tiene que almacenar
- * los resultados de manera ordenada (sort) en el FS Temporal del nodo. Debera dar una respuesta al hilo MApper
- int lugarDeAlmacenamiento;
- return lugarDeAlmacenamiento;
- }*/
+int node_map(uint16_t numBlock, char *mapRutine, char *tmpName){
+	 //TODO aca habria que hacer un malloc de 20mb no?
+	 char *blockData = node_getBlock(numBlock);
+	 time_t tiempo = time(0);
+	 struct tm *tlocal = localtime(&tiempo);
+	 char date[13];
+	 strftime(date,13,"%d%m%y%H%M%S",tlocal);
+	 char path[28] = "/home/utnso/map";
+	 memcpy(path+15, date ,13 );
+
+	/*node_createExecutableFileFromString(path, mapRutine);
+	popen_write(blockData,path);
+	popen_read(path);*/
+
+	//TODO usa sort para ordenar el temporal ya en el archivo definitivo  # cat map.py.result.tmp | sort > tmpNam
+	free(blockData);
+	/*ree(date);
+	free(path);*/
+	return 1;
+ }
 
 /*void nodeReduce (array[string nameNode, int nroBloque], rutinaReduce, char nombreDondeGuarda){
  //el reduce recibe un nodo y un nombre de archivo (el FS se encargara de rearmar ese archivo y pasarlo)
@@ -138,3 +154,59 @@ void connections_job_deserializeReduce(int socket, void *buffer) {
  * archivo donde se alamcenara. Al finalizar se debe informar al JOB que termino
  return 0;
  }*/
+
+// popen() read
+/*void popen_read(char *path) {
+	char line[256];
+	FILE *pipe = popen(path, "r");
+	if (!pipe) {
+		return; // TODO.
+	}
+	//fread(buffer, 1, 32, md5pipe);
+	while (fgets(line, 255, pipe)) {
+		//TODO aca tendria que escribirlo en el archivo temporal?
+		printf("%s", line);
+	}
+	pclose(pipe);
+}
+
+// popen() write
+void popen_write(char * blockData, char *path) {
+	FILE *pipe = popen(path, "w");
+
+	// fwrite() TODO, este es por bytes, creo que no va..
+	fputs(blockData, pipe);
+	pclose(pipe);
+}
+
+bool node_createExecutableFileFromString(char *pathToFile, char *str) {
+	FILE *fp = fopen(pathToFile, "w");
+	if (!fp) {
+		return 0;
+	}
+
+	if (str) {
+		fputs(str, fp);
+	}
+
+	int fd = fileno(fp);
+	if (!fd) {
+		fclose(fp);
+		return 0;
+	}
+
+	struct stat st;
+	if (fstat(fd, &st)) {
+		fclose(fp);
+		return 0;
+	}
+
+	// Sets exec mode.
+	if (fchmod(fd, 0755)) {
+		fclose(fp);
+		return 0;
+	}
+
+	fclose(fp);
+	return 1;
+}*/
