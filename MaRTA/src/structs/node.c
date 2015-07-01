@@ -8,6 +8,7 @@ t_node *CreateNode(int active, char *IP, int port, char* name) {
 	node->port = port;
 	node->name = strdup(name);
 	node->maps = list_create();
+	node->reduces = 0;
 	return node;
 }
 
