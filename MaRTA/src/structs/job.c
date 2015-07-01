@@ -68,12 +68,12 @@ t_file *CreateFile(char *path) {
 	return file;
 }
 
-void setTempReduceName(char tempResultName[60], t_job *job, char *tipo) {
+void setTempReduceName(char tempResultName[60], uint16_t jobID, char *tipo) {
 	char resultName[60] = "\"";
 	strcat(resultName, getTime());
 	strcat(resultName, "-Job(");
 	char idJob[4];
-	sprintf(idJob, "%i", job->id);
+	sprintf(idJob, "%i", jobID);
 	strcat(resultName, idJob);
 	strcat(resultName, ")-Red(");
 	strcat(resultName, tipo);

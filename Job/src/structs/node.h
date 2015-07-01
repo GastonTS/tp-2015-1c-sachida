@@ -19,7 +19,7 @@
 #include <arpa/inet.h>
 
 typedef struct {
-	uint16_t idJob;
+	uint16_t mapID;
 	char *ip_nodo;
 	uint16_t port_nodo;
 	uint16_t numBlock;
@@ -27,7 +27,7 @@ typedef struct {
 } t_map;
 
 typedef struct{
-	uint16_t idJob;
+	uint16_t reduceID;
 	char *ip_nodo;
 	uint16_t port_nodo;
 	char *tempResultName;

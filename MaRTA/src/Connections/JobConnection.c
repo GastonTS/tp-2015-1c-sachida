@@ -1,5 +1,6 @@
 #include "Connection.h"
 #include "../Planning/MapPlanning.h"
+#include "../Planning/ReducePlanning.h"
 #include <commons/string.h>
 
 void recvMapsResults(t_job *job);
@@ -26,7 +27,15 @@ void *acceptJob(void * param) {
 	planMaps(job);
 	recvMapsResults(job);
 
+	//TODO: Replan reduces
+	if (job->combiner) { //XXX: No probar, probablemente rompa
+		combinerPartialsReducePlanning(job);
+		combinerFinalReducePlanning(job);
+	} else
+		noCombinerReducePlanning(job);
+
 	log_info(logger, "Finished Job: %d", job->id);
+	//sendDieOrder(job->socket);
 	freeJob(job);
 	return NULL;
 }
@@ -190,6 +199,7 @@ void serializeReduceToOrder(int socket, t_reduce *reduce) {
 	size_t snodePort = sizeof(uint16_t);
 	size_t stempName = sizeof(char) * 60;
 
+	uint16_t reduceID = htons(reduce->id);
 	uint16_t nodePort = htons(reduce->nodePort);
 
 	uint16_t countTemps = 0;
@@ -203,16 +213,17 @@ void serializeReduceToOrder(int socket, t_reduce *reduce) {
 	list_iterate(reduce->temps, (void *) serializeTempsToBuffer);
 	countTemps = htons(countTemps);
 
-	size_t sbuffer = sOrder + sizeof(snodeIP) + snodeIP + snodePort + stempName + sizeof(uint16_t) + stemps;
+	size_t sbuffer = sOrder + sizeof(reduceID) + sizeof(snodeIP) + snodeIP + snodePort + stempName + sizeof(uint16_t) + stemps;
 	void *buffer = malloc(sbuffer);
 	buffer = memset(buffer, '\0', sbuffer);
 	memcpy(buffer, &order, sOrder);
-	memcpy(buffer + sOrder, &snodeIP, sizeof(snodeIP));
-	memcpy(buffer + sOrder + sizeof(snodeIP), reduce->nodeIP, snodeIP);
-	memcpy(buffer + sOrder + sizeof(snodeIP) + snodeIP, &nodePort, snodePort);
-	memcpy(buffer + sOrder + sizeof(snodeIP) + snodeIP + snodePort, reduce->tempResultName, stempName);
-	memcpy(buffer + sOrder + sizeof(snodeIP) + snodeIP + snodePort + stempName, &countTemps, sizeof(uint16_t));
-	memcpy(buffer + sOrder + sizeof(snodeIP) + snodeIP + snodePort + stempName + sizeof(uint16_t), tempsBuffer, stemps);
+	memcpy(buffer + sOrder, &reduceID, sizeof(reduceID));
+	memcpy(buffer + sOrder + sizeof(reduceID), &snodeIP, sizeof(snodeIP));
+	memcpy(buffer + sOrder + sizeof(reduceID) + sizeof(snodeIP), reduce->nodeIP, snodeIP);
+	memcpy(buffer + sOrder + sizeof(reduceID) + sizeof(snodeIP) + snodeIP, &nodePort, snodePort);
+	memcpy(buffer + sOrder + sizeof(reduceID) + sizeof(snodeIP) + snodeIP + snodePort, reduce->tempResultName, stempName);
+	memcpy(buffer + sOrder + sizeof(reduceID) + sizeof(snodeIP) + snodeIP + snodePort + stempName, &countTemps, sizeof(uint16_t));
+	memcpy(buffer + sOrder + sizeof(reduceID) + sizeof(snodeIP) + snodeIP + snodePort + stempName + sizeof(uint16_t), tempsBuffer, stemps);
 
 	socket_send_packet(socket, buffer, sbuffer);
 	free(tempsBuffer);
