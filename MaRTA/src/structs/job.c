@@ -81,7 +81,19 @@ void setTempReduceName(char tempResultName[60], uint16_t jobID, char *tipo) {
 	strcpy(tempResultName, resultName);
 }
 
-t_reduce *CreateReduce() {
+t_reduce *CreateReduce(uint16_t id, char *nodeName, char *nodeIP, uint16_t nodePort, uint16_t jobID) {
+	t_reduce *reduce = malloc(sizeof(t_reduce));
+	reduce->id = id;
+	reduce->finalNode = strdup(nodeName);
+	reduce->nodeIP = strdup(nodeIP);
+	reduce->nodePort = nodePort;
+	memset(reduce->tempResultName, '\0', sizeof(char) * 60);
+	setTempReduceName(reduce->tempResultName, jobID, "Par");
+	reduce->temps = list_create();
+	return reduce;
+}
+
+t_reduce *initReduce() {
 	t_reduce *reduce = malloc(sizeof(t_reduce));
 	reduce->finalNode = NULL;
 	reduce->nodeIP = NULL;
@@ -90,13 +102,21 @@ t_reduce *CreateReduce() {
 	return reduce;
 }
 
+void setFinalReduce(t_reduce *reduce, char *nodeName, char *nodeIP, uint16_t nodePort, uint16_t jobID) {
+	reduce->id = 0;
+	reduce->finalNode = strdup(nodeName);
+	reduce->nodeIP = strdup(nodeIP);
+	reduce->nodePort = nodePort;
+	setTempReduceName(reduce->tempResultName, jobID, "Fin");
+}
+
 t_job *CreateJob(uint16_t id, bool combiner) {
 	t_job *job = malloc(sizeof(t_job));
 	job->id = id;
 	job->combiner = combiner;
 	job->files = list_create();
-	job->finalReduce = CreateReduce();
 	job->partialReduces = list_create();
+	job->finalReduce = initReduce();
 	job->maps = list_create();
 	return job;
 }

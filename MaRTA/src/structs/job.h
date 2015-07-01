@@ -53,6 +53,8 @@ typedef struct {
 
 t_copy *CreateCopy(char *nodeName, uint16_t numBlock);
 t_map *CreateMap(uint16_t id, uint16_t numBlock, uint16_t nodePort, char *nodeName, char *nodeIP, uint16_t jobID);
+t_reduce *CreateReduce(uint16_t id, char *nodeName, char *nodeIP, uint16_t nodePort, uint16_t jobID);
+void setFinalReduce(t_reduce *reduce, char *nodeName, char *nodeIP, uint16_t nodePort, uint16_t jobID);
 t_temp *CreateTemp(char *nodeIP, uint16_t nodePort, uint16_t originMap, char tempName[60]);
 t_file *CreateFile(char *path);
 t_job *CreateJob(uint16_t id, bool combiner);

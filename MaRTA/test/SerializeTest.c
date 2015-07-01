@@ -39,10 +39,9 @@ void seializeCompleteJobTest() {
 			t_map *map = CreateMap(1, 13, 5001, "NodoX", "192.168.1.113", 1);
 			list_add(job->maps, map);
 
-			e_socket_status socketStatus;
 			serializeMapToOrder(fdAccepted, map);
 			job->socket = fdAccepted;
-			socketStatus = recvResult(job);
+			recvResult(job);
 			/*
 
 			 job->finalReduce->done = 0;
@@ -55,9 +54,6 @@ void seializeCompleteJobTest() {
 			 serializeReduceToOrder(fdAccepted, job->finalReduce);
 			 recvResult(fdAccepted, job);
 			 sendDieOrder(fdAccepted);*/
-			if (0 > socketStatus)
-				log_error(logger, "Murio Job: %d", job->id);
-
 			freeJob(job);
 
 			if (cantJobs == 3) //XXX

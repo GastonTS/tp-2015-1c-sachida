@@ -62,7 +62,8 @@ t_job *desserializeJob(int socket, uint16_t id) {
 	void *buffer;
 	e_socket_status status = socket_recv_packet(socket, &buffer, &sbuffer);
 	if (0 > status) {
-		log_error(logger, "Error at socket_recv in dessearializeJob");
+		log_error(logger, "Job %d Died when deserializing", id);
+		free(buffer);
 		pthread_exit(NULL);
 	}
 
@@ -83,12 +84,15 @@ t_job *desserializeJob(int socket, uint16_t id) {
 	return job;
 }
 
-e_socket_status recvResult(t_job *job) {
+void recvResult(t_job *job) {
 	void *buffer;
 	size_t sbuffer = 0;
-	e_socket_status status = socket_recv_packet(job->socket, &buffer, &sbuffer);
-	if (0 > status)
-		return status;
+	if (0 > socket_recv_packet(job->socket, &buffer, &sbuffer)) {
+		log_error(logger, "Job %d Died when reciving results", job->id);
+		freeJob(job);
+		pthread_exit(NULL);
+		return;
+	}
 	uint8_t resultFrom;
 	memcpy(&resultFrom, buffer, sizeof(uint8_t));
 	switch (resultFrom) {
@@ -100,21 +104,21 @@ e_socket_status recvResult(t_job *job) {
 		break;
 	}
 	free(buffer);
-	return status;
 }
 
-void sendDieOrder(int socket) {
+e_socket_status sendDieOrder(int socket) {
 	char order = COMMAND_MARTA_TO_JOB_DIE;
 	size_t sOrder = sizeof(char);
 	size_t sbuffer = sOrder;
 	void *buffer = malloc(sbuffer);
 	buffer = memset(buffer, '\0', sbuffer);
 	memcpy(buffer, &order, sOrder);
-	socket_send_packet(socket, buffer, sbuffer);
+	e_socket_status status = socket_send_packet(socket, buffer, sbuffer);
 	free(buffer);
+	return status;
 }
 //**********************************MAP*********************************************//
-void serializeMapToOrder(int socket, t_map *map) {
+e_socket_status serializeMapToOrder(int socket, t_map *map) {
 	uint8_t order = COMMAND_MAP;
 	size_t sOrder = sizeof(uint8_t);
 	size_t sIpMap = sizeof(uint16_t);
@@ -136,8 +140,9 @@ void serializeMapToOrder(int socket, t_map *map) {
 	memcpy(buffer + sOrder + sIpMap + sizeof(snodeIP) + snodeIP, &nodePort, snodePort);
 	memcpy(buffer + sOrder + sIpMap + sizeof(snodeIP) + snodeIP + snodePort, &numBlock, snumBlock);
 	memcpy(buffer + sOrder + sIpMap + sizeof(snodeIP) + snodeIP + snodePort + snumBlock, map->tempResultName, stempName);
-	socket_send_packet(socket, buffer, sbuffer);
+	e_socket_status status = socket_send_packet(socket, buffer, sbuffer);
 	free(buffer);
+	return status;
 }
 
 void desserializeMapResult(void *buffer, t_job *job) {
@@ -195,7 +200,7 @@ void serializeTemp(t_temp *temporal, void *buffer, size_t *sbuffer) {
 	*sbuffer += sizeof(uint16_t) + sizeof(snodeIP) + snodeIP + sizeof(uint16_t) + sizeof(char) * 60;
 }
 
-void serializeReduceToOrder(int socket, t_reduce *reduce) {
+e_socket_status serializeReduceToOrder(int socket, t_reduce *reduce) {
 	char order = COMMAND_REDUCE;
 	size_t sOrder = sizeof(char);
 	size_t snodeIP = strlen(reduce->nodeIP) + 1;
@@ -228,9 +233,10 @@ void serializeReduceToOrder(int socket, t_reduce *reduce) {
 	memcpy(buffer + sOrder + sizeof(reduceID) + sizeof(snodeIP) + snodeIP + snodePort + stempName, &countTemps, sizeof(uint16_t));
 	memcpy(buffer + sOrder + sizeof(reduceID) + sizeof(snodeIP) + snodeIP + snodePort + stempName + sizeof(uint16_t), tempsBuffer, stemps);
 
-	socket_send_packet(socket, buffer, sbuffer);
+	e_socket_status status = socket_send_packet(socket, buffer, sbuffer);
 	free(tempsBuffer);
 	free(buffer);
+	return status;
 }
 
 void desserializaReduceResult(void *buffer, t_job *job) {

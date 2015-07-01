@@ -8,12 +8,16 @@ typedef struct {
 	uint16_t count;
 } t_temporalCount;
 
-void notificarReduce(int jobSocket, t_reduce *reduce) {
+void notificarReduce(t_job *job, t_reduce *reduce) {
 	log_trace(logger, "Planned: %s", reduce->tempResultName);
 	reduce->done = false;
 	t_node *selectedNode = findNode(nodes, reduce->finalNode);
 	list_add(selectedNode->reduces, (void *) reduce->temps);
-	serializeReduceToOrder(jobSocket, reduce);
+	if (0 > serializeReduceToOrder(job->socket, reduce)) {
+		log_error(logger, "Job %d Died when sending reduce order", job->id);
+		freeJob(job);
+		pthread_exit(NULL);
+	}
 }
 
 t_temp * mapToTemporal(t_map *map) {
@@ -64,18 +68,16 @@ void noCombinerReducePlanning(t_job *job) {
 	}
 	list_destroy_and_destroy_elements(counts, (void *) freeCounts);
 
+	setFinalReduce(job->finalReduce, selectedNode->name, selectedNode->ip, selectedNode->port, job->id);
+
 	void createTemporal(t_map *map) {
 		t_temp *temporal = mapToTemporal(map);
 		list_add(job->finalReduce->temps, (void *) temporal);
 	}
 
 	list_iterate(job->maps, (void *) createTemporal);
-	job->finalReduce->id = 0;
-	job->finalReduce->finalNode = strdup(selectedNode->name);
-	job->finalReduce->nodeIP = strdup(selectedNode->ip);
-	job->finalReduce->nodePort = selectedNode->port;
-	setTempReduceName(job->finalReduce->tempResultName, job->id, "Fin");
-	notificarReduce(job->socket, job->finalReduce);
+
+	notificarReduce(job, job->finalReduce);
 }
 
 void combinerPartialsReducePlanning(t_job *job) {
@@ -86,21 +88,18 @@ void combinerPartialsReducePlanning(t_job *job) {
 		}
 		t_reduce *reduce = list_find(job->partialReduces, (void *) findReduce);
 		if (reduce == NULL) {
-			reduce = malloc(sizeof(t_reduce));
-			reduce->id = list_size(job->partialReduces) + 1;
-			reduce->finalNode = strdup(map->nodeName);
-			reduce->nodeIP = strdup(map->nodeIP);
-			reduce->nodePort = map->nodePort;
-			reduce->temps = list_create();
+			reduce = CreateReduce((list_size(job->partialReduces) + 1), map->nodeName, map->nodeIP, map->nodePort, job->id);
 			list_add(reduce->temps, temporal);
-			setTempReduceName(reduce->tempResultName, job->id, "Par");
 			list_add(job->partialReduces, reduce);
 		} else
 			list_add(reduce->temps, temporal);
 	}
 	list_iterate(job->maps, (void *) agregarAPartialReduces);
 
-	list_iterate(job->partialReduces, (void *) notificarReduce);
+	void notificar(t_reduce *reduce) {
+		notificarReduce(job, reduce);
+	}
+	list_iterate(job->partialReduces, (void *) notificar);
 }
 
 void searchNode(t_reduce *reduce, t_node **selectedNode) {
@@ -118,12 +117,6 @@ void searchNode(t_reduce *reduce, t_node **selectedNode) {
 }
 
 void combinerFinalReducePlanning(t_job *job) {
-	void createTemporal(t_reduce *reduce) {
-		t_temp *temporal = reduceToTemporal(reduce);
-		list_add(job->finalReduce->temps, (void *) temporal);
-	}
-	list_iterate(job->partialReduces, (void *) createTemporal);
-
 	t_node *selectedNode = NULL;
 
 	void selectFinalNode(t_reduce *reduce) {
@@ -131,10 +124,13 @@ void combinerFinalReducePlanning(t_job *job) {
 	}
 
 	list_iterate(job->partialReduces, (void *) selectFinalNode);
-	job->finalReduce->id = 0;
-	job->finalReduce->finalNode = strdup(selectedNode->name);
-	job->finalReduce->nodeIP = strdup(selectedNode->ip);
-	job->finalReduce->nodePort = selectedNode->port;
-	setTempReduceName(job->finalReduce->tempResultName, job->id, "Fin");
-	notificarReduce(job->socket, job->finalReduce);
+	setFinalReduce(job->finalReduce, selectedNode->name, selectedNode->ip, selectedNode->port, job->id);
+
+	void createTemporal(t_reduce *reduce) {
+		t_temp *temporal = reduceToTemporal(reduce);
+		list_add(job->finalReduce->temps, (void *) temporal);
+	}
+	list_iterate(job->partialReduces, (void *) createTemporal);
+
+	notificarReduce(job, job->finalReduce);
 }

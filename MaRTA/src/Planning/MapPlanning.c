@@ -17,10 +17,14 @@ void selectNode(t_copy *copy, t_node **selectedNode, uint16_t *numBlock) {
 	}
 }
 
-void notificarMap(int jobSocket, t_map *map) {
+void notificarMap(t_job *job, t_map *map) {
 	log_trace(logger, "Planned: %s", map->tempResultName);
 	map->done = false;
-	serializeMapToOrder(jobSocket, map);
+	if (0 > serializeMapToOrder(job->socket, map)) {
+		log_error(logger, "Job %d Died when sending map order", job->id);
+		freeJob(job);
+		pthread_exit(NULL);
+	}
 }
 
 void removeMapNode(t_map *map) {
@@ -59,7 +63,7 @@ int planMaps(t_job *job) {
 				t_map *mapPlanned = CreateMap(list_size(job->maps), numBlock, selectedNode->port, selectedNode->name, selectedNode->ip, job->id);
 				mapPlanned->copies = copies;
 				list_add(job->maps, mapPlanned);
-				notificarMap(job->socket, mapPlanned);
+				notificarMap(job, mapPlanned);
 			}
 		}
 		list_iterate(file->blocks, (void *) mapPlanning);
@@ -69,7 +73,7 @@ int planMaps(t_job *job) {
 		log_trace(logger, "Finished Map Planning Job %d...", job->id);
 		return EXIT_SUCCESS;
 	} else {
-		log_trace(logger, "Job %d Failed", job->id);
+		log_error(logger, "Job %d Failed", job->id);
 		sendDieOrder(job->socket);
 		return EXIT_FAILURE;
 	}
@@ -94,6 +98,6 @@ void rePlanMap(t_job *job, t_map *map) {
 	map->numBlock = numBlock;
 	setTempMapName(map->tempResultName, map->id, job->id);
 
-	notificarMap(job->socket, map);
+	notificarMap(job, map);
 	recvResult(job); //XXX test pendiente
 }
