@@ -30,12 +30,15 @@ void *acceptJob(void * param) {
 	//TODO: Replan reduces
 	if (job->combiner) { //XXX: No probar, probablemente rompa
 		combinerPartialsReducePlanning(job);
+		//TODO: recibir resultados
 		combinerFinalReducePlanning(job);
 	} else
 		noCombinerReducePlanning(job);
 
+	recvResult(job);
+
 	log_info(logger, "Finished Job: %d", job->id);
-	//sendDieOrder(job->socket);
+	sendDieOrder(job->socket);
 	freeJob(job);
 	return NULL;
 }
@@ -148,7 +151,7 @@ void desserializeMapResult(void *buffer, t_job *job) {
 	memcpy(&idMap, buffer + sresult, sidMap);
 	idMap = ntohs(idMap);
 
-	log_trace(logger, "Finished Map: %d -> Result: %d", idMap, result);
+	log_trace(logger, "Map: %d Done -> Result: %d", idMap, result);
 	bool findMap(t_map *map) {
 		return isMap(map, idMap);
 	}
@@ -244,17 +247,17 @@ void desserializaReduceResult(void *buffer, t_job *job) {
 	memcpy(&failedTemp, buffer + sresult + sidReduce, sizeof(char) * 60);
 	idReduce = ntohs(idReduce);
 
-	log_trace(logger, "\nReduce: %d result: %d\n", idReduce, result);
-
 	if (result) {
-		if (!idReduce)
+		if (!idReduce) {
 			job->finalReduce->done = 1;
-		else {
+			log_trace(logger, "Reduce: %d Done -> Result: %d", idReduce, result);
+		} else {
 			bool findReduce(t_reduce *reduce) {
 				return isReduce(reduce, idReduce);
 			}
 			t_reduce *reduce = list_find(job->partialReduces, (void *) findReduce);
 			reduce->done = 1;
+			log_trace(logger, "Reduce: %d Done -> Result: %d", idReduce, result);
 		}
 
 	} else {
