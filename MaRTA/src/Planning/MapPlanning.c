@@ -59,7 +59,7 @@ int planMaps(t_job *job) {
 				t_map *mapPlanned = CreateMap(list_size(job->maps), numBlock, selectedNode->port, selectedNode->name, selectedNode->ip, job->id);
 				mapPlanned->copies = copies;
 				list_add(job->maps, mapPlanned);
-				notificarMap(job->jobSocket, mapPlanned);
+				notificarMap(job->socket, mapPlanned);
 			}
 		}
 		list_iterate(file->blocks, (void *) mapPlanning);
@@ -70,7 +70,7 @@ int planMaps(t_job *job) {
 		return EXIT_SUCCESS;
 	} else {
 		log_trace(logger, "Job %d Failed", job->id);
-		sendDieOrder(job->jobSocket);
+		sendDieOrder(job->socket);
 		return EXIT_FAILURE;
 	}
 }
@@ -94,6 +94,6 @@ void rePlanMap(t_job *job, t_map *map) {
 	map->numBlock = numBlock;
 	setTempMapName(map->tempResultName, map->id, job->id);
 
-	notificarMap(job->jobSocket, map);
+	notificarMap(job->socket, map);
 	recvResult(job); //XXX test pendiente
 }

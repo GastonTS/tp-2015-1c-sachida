@@ -16,7 +16,7 @@ void *acceptJob(void * param) {
 	free(socketAcceptedPtr);
 
 	t_job *job = desserializeJob(jobSocket, cantJobs);
-	job->jobSocket = jobSocket;
+	job->socket = jobSocket;
 
 	if (job->combiner)
 		log_info(logger, "Begin Job: %d (Combiner)", job->id);
@@ -74,7 +74,7 @@ t_job *desserializeJob(int socket, uint16_t id) {
 e_socket_status recvResult(t_job *job) {
 	void *buffer;
 	size_t sbuffer = 0;
-	e_socket_status status = socket_recv_packet(job->jobSocket, &buffer, &sbuffer);
+	e_socket_status status = socket_recv_packet(job->socket, &buffer, &sbuffer);
 	if (0 > status)
 		return status;
 	uint8_t resultFrom;

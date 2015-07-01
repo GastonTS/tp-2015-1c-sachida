@@ -38,7 +38,7 @@ typedef struct {
 	char* REDUCER;
 	char* RESULTADO;
 	char* LIST_ARCHIVOS;
-	char*  COMBINER;
+	bool  COMBINER;
 } t_configJob;
 
 

@@ -1,19 +1,20 @@
 #include "ReducePlanning.h"
 #include "../structs/job.h"
 #include "../structs/node.h"
+#include "../Connections/Connection.h"
 
 typedef struct {
 	char *nodeName;
 	uint16_t count;
 } t_temporalCount;
 
-void notificarReduce(t_reduce *reduce) {
+void notificarReduce(int jobSocket, t_reduce *reduce) {
 	log_trace(logger, "\nReduce planned: \n\tReduce ID: %d \n\tIP Node: %s \n\tPort node: %d\n\tStored in: %s", reduce->id, reduce->nodeIP, reduce->nodePort,
 			reduce->tempResultName);
 	reduce->done = false;
 	t_node *selectedNode = findNode(nodes, reduce->finalNode);
 	list_add(selectedNode->reduces, (void *) reduce->temps);
-	//TODO: enviar reduce al proceso job.
+	serializeReduceToOrder(jobSocket, reduce);
 }
 
 t_temp * mapToTemporal(t_map *map) {
@@ -40,15 +41,15 @@ void noCombinerReducePlanning(t_job *job) {
 		bool findNodeInMaps(t_temporalCount *count) {
 			return !strcmp(count->nodeName, map->nodeName);
 		}
-		t_temporalCount *node = NULL;
-		node = list_find(counts, (void*) findNodeInMaps);
-		if (node == NULL) {
-			node = malloc(sizeof(t_temporalCount));
-			node->nodeName = strdup(map->nodeName);
-			node->count = 1;
-			list_add(counts, (void *) node);
+		t_temporalCount *nodeCount = NULL;
+		nodeCount = list_find(counts, (void*) findNodeInMaps);
+		if (nodeCount == NULL) {
+			nodeCount = malloc(sizeof(t_temporalCount));
+			nodeCount->nodeName = strdup(map->nodeName);
+			nodeCount->count = 1;
+			list_add(counts, (void *) nodeCount);
 		} else
-			node->count++;
+			nodeCount->count++;
 	}
 	list_iterate(job->maps, (void *) countTemporals);
 
@@ -83,7 +84,7 @@ void noCombinerReducePlanning(t_job *job) {
 	job->finalReduce->nodeIP = strdup(selectedNode->ip);
 	job->finalReduce->nodePort = selectedNode->port;
 	setTempReduceName(job->finalReduce->tempResultName, job, "Fin");
-	notificarReduce(job->finalReduce);
+	notificarReduce(job->socket, job->finalReduce);
 }
 
 void combinerPartialsReducePlanning(t_job *job) {
@@ -144,5 +145,5 @@ void combinerFinalReducePlanning(t_job *job) {
 	job->finalReduce->nodeIP = strdup(selectedNode->ip);
 	job->finalReduce->nodePort = selectedNode->port;
 	setTempReduceName(job->finalReduce->tempResultName, job, "Fin");
-	notificarReduce(job->finalReduce);
+	notificarReduce(job->socket, job->finalReduce);
 }

@@ -53,7 +53,6 @@ void freeCfg() {
 	free(cfgJob->REDUCER);
 	free(cfgJob->RESULTADO);
 	free(cfgJob->LIST_ARCHIVOS);
-	free(cfgJob->COMBINER);
 	free(cfgJob);
 }
 
@@ -106,7 +105,7 @@ int initConfig(char* configFile) {
 	cfgJob->REDUCER = strdup(getConfigString("REDUCER"));
 	cfgJob->RESULTADO = strdup(getConfigString("RESULTADO"));
 	cfgJob->LIST_ARCHIVOS = strdup(getConfigString("LIST_ARCHIVOS"));
-	cfgJob->COMBINER = strdup(getConfigString("COMBINER"));
+	cfgJob->COMBINER = getConfigInt("COMBINER");
 
 	if (!failure) {
 		log_info(logger, "PUERTO MARTA: %d", cfgJob->PUERTO_MARTA);
@@ -115,7 +114,7 @@ int initConfig(char* configFile) {
 		log_info(logger, "REDUCER: %s", cfgJob->REDUCER);
 		log_info(logger, "RESULTADO: %s", cfgJob->RESULTADO);
 		log_info(logger, "ARCHIVOS: %s", cfgJob->LIST_ARCHIVOS);
-		log_info(logger, "COMBINER: %s", cfgJob->COMBINER);
+		log_info(logger, "COMBINER: %d", cfgJob->COMBINER);
 	}
 
 	config_destroy(_config);

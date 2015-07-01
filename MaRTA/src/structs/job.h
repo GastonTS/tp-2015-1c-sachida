@@ -42,7 +42,7 @@ typedef struct {
 } t_file;
 
 typedef struct {
-	int jobSocket;
+	int socket;
 	uint16_t id;
 	bool combiner;
 	t_list *files;
