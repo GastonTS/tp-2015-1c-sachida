@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+#include <time.h>
 
 int node_initConfig(char* configFile);
 void node_readCommand();
@@ -20,41 +21,44 @@ t_nodeCfg *node_config;
 pthread_mutex_t *blocks_mutex;
 void *binFileMap;
 
-/* TESTING........ */
+/* TESTING........*/
 
 // popen() read
-void popen_read_test() {
+void popen_read(char *path) {
 	char line[256];
-	FILE *pipe = popen("/home/utnso/test.sh", "r");
+	FILE *pipe = popen(path, "r");
 	if (!pipe) {
 		return; // TODO.
 	}
 	//fread(buffer, 1, 32, md5pipe);
 	while (fgets(line, 255, pipe)) {
+		//TODO aca tendria que escribirlo en el archivo temporal?
 		printf("%s", line);
 	}
 	pclose(pipe);
 }
 
 // popen() write
-void popen_write_test() {
-	char buffer[256] = "how are you?";
-	FILE *pipe = popen("/home/utnso/test.sh", "w");
+void popen_write(char * blockData, char *path) {
+	FILE *pipe = popen(path, "w");
 
 	// fwrite() TODO, este es por bytes, creo que no va..
-	fputs(buffer, pipe);
+	fputs(blockData, pipe);
 	pclose(pipe);
 }
 /*..................*/
 
 int main(int argc, char *argv[]) {
-	/*
-	 node_createExecutableFileFromString("/home/utnso/test.sh", "#!/bin/bash \n  cat - | awk -F ',' '{print $2 \";\" $1  \";\" $13 \";\" $3}'\n");
-	 popen_write_test();
-
-	 return 1;
-	 */
-
+		 time_t tiempo = time(0);
+		 struct tm *tlocal = localtime(&tiempo);
+		 char date[13];
+		 strftime(date,13,"%d%m%y%H%M%S",tlocal);
+		 char path[28] = "/home/utnso/map";
+		 memcpy(path+15, date ,13 );
+		node_createExecutableFileFromString(path, "#!/bin/bash \n  cat - | awk -F ',' '{print $2 \";\" $1  \";\" $13 \";\" $3}'\n");
+		popen_write("AcaIriaElBloqueDeDatos?",path);
+		popen_read(path); //Adentro del read deberia escribir el archivo temporal?
+		return 1;
 	node_logger = log_create("node.log", "Node", 1, log_level_from_string("TRACE"));
 
 	if (argc != 2) {
@@ -86,14 +90,14 @@ int main(int argc, char *argv[]) {
 	return EXIT_SUCCESS;
 }
 
-bool node_createExecutableFileFromString(char *pathToFile, char *str) {
+bool node_createExecutableFileFromString(char *pathToFile, char *mapRutine) {
 	FILE *fp = fopen(pathToFile, "w");
 	if (!fp) {
 		return 0;
 	}
 
-	if (str) {
-		fputs(str, fp);
+	if (mapRutine) {
+		fputs(mapRutine, fp);
 	}
 
 	int fd = fileno(fp);
@@ -121,8 +125,7 @@ bool node_createExecutableFileFromString(char *pathToFile, char *str) {
 void node_readCommand() {
 	int c;
 	//system("/bin/stty raw");
-	while ((c = getchar()) != 'd')
-		;
+	while ((c = getchar()) != 'd');
 	//system("/bin/stty cooked");
 }
 
