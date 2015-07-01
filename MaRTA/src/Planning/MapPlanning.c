@@ -58,8 +58,7 @@ int planMaps(t_job *job) {
 				list_iterate(job->maps, (void *) removeMapNode);
 				filesAvailables = 0;
 			} else {
-				list_add(selectedNode->maps, &numBlock);
-
+				list_add(selectedNode->maps, (void *) (intptr_t) numBlock);
 				t_map *mapPlanned = CreateMap(list_size(job->maps), numBlock, selectedNode->port, selectedNode->name, selectedNode->ip, job->id);
 				mapPlanned->copies = copies;
 				list_add(job->maps, mapPlanned);

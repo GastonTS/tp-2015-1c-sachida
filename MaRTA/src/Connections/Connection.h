@@ -6,6 +6,7 @@
 #include "FSConnection.h"
 #include "JobConnection.h"
 #include "../structs/job.h"
+#include "../structs/node.h"
 
 void initConnection();
 int requestFileBlocks(t_file *file);

@@ -38,7 +38,8 @@ void connectFS() {
 void updateNodes(char* nodeID, char *nodeIP, uint16_t nodePort) {
 	t_node *node = findNode(nodes, nodeID);
 	if (node != NULL) { //XXX Es necesario actualizar el ip y el puerto?
-		node->ip = nodeIP;
+		free(node->ip);
+		node->ip = strdup(nodeIP);
 		node->port = nodePort;
 	} else {
 		node = CreateNode(1, nodeIP, nodePort, nodeID);

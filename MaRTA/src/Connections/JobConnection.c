@@ -164,9 +164,9 @@ void desserializeMapResult(void *buffer, t_job *job) {
 
 	if (result) {
 		map->done = true;
-	} else {
+		removeMapNode(map);
+	} else
 		rePlanMap(job, map);
-	}
 }
 
 void recvMapsResults(t_job *job) {

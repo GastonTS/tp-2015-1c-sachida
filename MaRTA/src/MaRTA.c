@@ -85,5 +85,6 @@ void freeMaRTA() {
 		free(cfgMaRTA->fsIP);
 	}
 	free(cfgMaRTA);
+	list_destroy_and_destroy_elements(nodes, (void *) freeNode);
 	log_destroy(logger);
 }
