@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <signal.h>
 #include <pthread.h>
 #include <commons/log.h>
 #include <commons/collections/list.h>
