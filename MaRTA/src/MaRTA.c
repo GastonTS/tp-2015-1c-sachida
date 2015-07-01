@@ -26,10 +26,10 @@ int main(int argc, char *argv[]) {
 	}
 
 	nodes = list_create();
+	signal(SIGINT, freeMaRTA);
 
 	initConnection();
 
-	signal(SIGINT, freeMaRTA);
 	list_destroy_and_destroy_elements(nodes, (void *) freeNode);
 	freeMaRTA();
 	return EXIT_SUCCESS;
