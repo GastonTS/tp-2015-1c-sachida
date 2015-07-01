@@ -27,14 +27,6 @@ void notificarMap(t_job *job, t_map *map) {
 	}
 }
 
-void removeMapNode(t_map *map) {
-	t_node *selectedNode = findNode(nodes, map->nodeName);
-	bool isNumBlock(uint16_t numBlock) {
-		return numBlock == map->numBlock;
-	}
-	list_remove_by_condition(selectedNode->maps, (void *) isNumBlock);
-}
-
 int planMaps(t_job *job) {
 	log_trace(logger, "Planning Job %d...", job->id);
 	int filesAvailables = 1;

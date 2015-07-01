@@ -1,6 +1,7 @@
 #include "Connection.h"
 #include "../Planning/MapPlanning.h"
 #include "../Planning/ReducePlanning.h"
+#include "../structs/node.h"
 #include <commons/string.h>
 
 void recvMapsResults(t_job *job);
@@ -256,6 +257,7 @@ void desserializaReduceResult(void *buffer, t_job *job) {
 	if (result) {
 		if (!idReduce) {
 			job->finalReduce->done = 1;
+			removeReduceNode(job->finalReduce);
 			log_trace(logger, "Reduce: %d Done -> Result: %d", idReduce, result);
 		} else {
 			bool findReduce(t_reduce *reduce) {
@@ -263,11 +265,12 @@ void desserializaReduceResult(void *buffer, t_job *job) {
 			}
 			t_reduce *reduce = list_find(job->partialReduces, (void *) findReduce);
 			reduce->done = 1;
+			removeReduceNode(reduce);
 			log_trace(logger, "Reduce: %d Done -> Result: %d", idReduce, result);
 		}
 
 	} else {
 		//TODO RePlanReduce
-		printf("%s\n", failedTemp);
+		printf("Fallo temporal: %s\n", failedTemp);
 	}
 }

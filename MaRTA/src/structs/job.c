@@ -1,4 +1,5 @@
 #include "job.h"
+#include "node.h"
 
 t_copy *CreateCopy(char *nodeName, uint16_t numBlock) {
 	t_copy *copy = malloc(sizeof(t_copy));
@@ -170,6 +171,7 @@ void freeMap(t_map *map) {
 }
 
 void freeJob(t_job *job) {
+	list_iterate(job->maps, (void *) removeMapNode);
 	list_destroy_and_destroy_elements(job->files, (void *) freeFile);
 	list_destroy_and_destroy_elements(job->maps, (void *) freeMap);
 	list_destroy_and_destroy_elements(job->partialReduces, (void *) freeReduce);

@@ -12,7 +12,7 @@ void notificarReduce(t_job *job, t_reduce *reduce) {
 	log_trace(logger, "Planned: %s", reduce->tempResultName);
 	reduce->done = false;
 	t_node *selectedNode = findNode(nodes, reduce->finalNode);
-	list_add(selectedNode->reduces, (void *) reduce->temps);
+	selectedNode->reduces++;
 	if (0 > serializeReduceToOrder(job->socket, reduce)) {
 		log_error(logger, "Job %d Died when sending reduce order", job->id);
 		freeJob(job);

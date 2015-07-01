@@ -54,11 +54,11 @@ void planningTestSetup() {
 	list_add(node1->maps, (void *) 1);
 	list_add(node1->maps, (void *) 1);
 	list_add(node1->maps, (void *) 1);
-	list_add(node1->reduces, (void *) "datos.txt");
+	node1->reduces++;
 
 	node2 = CreateNode(1, "IP Nodo2", 3002, "Node2");
 	list_add(node2->maps, (void *) 1);
-	list_add(node2->reduces, (void *) "datos.txt");
+	node2->reduces++;
 
 	node3 = CreateNode(0, "IP Nodo3", 3003, "Node3");
 	node4 = CreateNode(1, "IP Nodo4", 3004, "Node4");

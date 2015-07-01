@@ -6,7 +6,5 @@
 
 int planMaps(t_job *job);
 void rePlanMap(t_job *job, t_map *map);
-void removeMapNode(t_map *map);
-char *getTime();
 
 #endif

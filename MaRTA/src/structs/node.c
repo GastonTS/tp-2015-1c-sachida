@@ -8,7 +8,6 @@ t_node *CreateNode(int active, char *IP, int port, char* name) {
 	node->port = port;
 	node->name = strdup(name);
 	node->maps = list_create();
-	node->reduces = list_create();
 	return node;
 }
 
@@ -16,8 +15,8 @@ bool nodeByName(t_node *node, char nombre[25]) {
 	return string_equals_ignore_case(node->name, nombre);
 }
 
-int workLoad(t_list *maps, t_list *reduces) {
-	return list_size(maps) + list_size(reduces);
+int workLoad(t_list *maps, uint16_t reduces) {
+	return list_size(maps) + reduces;
 }
 
 void freeNode(t_node *node) {
@@ -28,7 +27,6 @@ void freeNode(t_node *node) {
 		free(node->name);
 	}
 	list_destroy(node->maps);
-	list_destroy(node->reduces);
 	free(node);
 }
 
@@ -45,5 +43,18 @@ t_node *findNode(t_list *nodes, char *nodeName) {
 }
 
 void showTasks(t_node *node) {
-	printf("%s(Maps:%d-Reduces:%d)\n", node->name, list_size(node->maps), list_size(node->reduces));
+	printf("%s(Maps:%d-Reduces:%d)\n", node->name, list_size(node->maps), node->reduces);
+}
+
+void removeMapNode(t_map *map) {
+	t_node *selectedNode = findNode(nodes, map->nodeName);
+	bool isNumBlock(uint16_t numBlock) {
+		return numBlock == map->numBlock;
+	}
+	list_remove_by_condition(selectedNode->maps, (void *) isNumBlock);
+}
+
+void removeReduceNode(t_reduce *reduce) {
+	t_node *node = findNode(nodes, reduce->finalNode);
+	node->reduces--;
 }
