@@ -45,6 +45,7 @@ void updateNodes(char* nodeID, char *nodeIP, uint16_t nodePort) {
 		node = CreateNode(1, nodeIP, nodePort, nodeID);
 		list_add(nodes, node);
 	}
+	free(nodeID);
 }
 
 int requestFileBlocks(t_file *file) {

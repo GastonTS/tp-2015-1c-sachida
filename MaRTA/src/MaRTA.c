@@ -1,4 +1,5 @@
 #include "MaRTA.h"
+#include <signal.h>
 #include <commons/config.h>
 #include "Connections/Connection.h"
 #include "structs/node.h"
@@ -12,7 +13,6 @@ int initConfig(char* configFile);
 void freeMaRTA();
 
 int main(int argc, char *argv[]) {
-
 	logger = log_create("MaRTA.log", "MaRTA", 1, log_level_from_string("TRACE"));
 	cantJobs = 0;
 	if (argc != 2) {
@@ -28,6 +28,7 @@ int main(int argc, char *argv[]) {
 
 	nodes = list_create();
 
+	signal(SIGINT, freeMaRTA);
 	initConnection();
 
 	list_destroy_and_destroy_elements(nodes, (void *) freeNode);
@@ -87,4 +88,5 @@ void freeMaRTA() {
 	free(cfgMaRTA);
 	list_destroy_and_destroy_elements(nodes, (void *) freeNode);
 	log_destroy(logger);
+	exit(0);
 }
