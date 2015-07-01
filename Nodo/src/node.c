@@ -90,14 +90,14 @@ int main(int argc, char *argv[]) {
 	return EXIT_SUCCESS;
 }
 
-bool node_createExecutableFileFromString(char *pathToFile, char *mapRutine) {
+bool node_createExecutableFileFromString(char *pathToFile, char *str) {
 	FILE *fp = fopen(pathToFile, "w");
 	if (!fp) {
 		return 0;
 	}
 
-	if (mapRutine) {
-		fputs(mapRutine, fp);
+	if (str) {
+		fputs(str, fp);
 	}
 
 	int fd = fileno(fp);

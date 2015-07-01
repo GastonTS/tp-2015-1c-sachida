@@ -179,7 +179,7 @@ void popen_write(char * blockData, char *path) {
 	pclose(pipe);
 }
 
-bool node_createExecutableFileFromString(char *pathToFile, char *mapRutine) {
+bool node_createExecutableFileFromString(char *pathToFile, char *str) {
 	FILE *fp = fopen(pathToFile, "w");
 	if (!fp) {
 		return 0;
