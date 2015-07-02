@@ -8,12 +8,17 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <time.h>
+// TODO #include <signal.h>
 
 int node_initConfig(char* configFile);
 void node_readCommand();
 bool node_init();
 void node_free();
+
+char* node_popen_read(char *command);
+bool node_popen_write(char *command, char *data);
 bool node_createExecutableFileFromString(char *pathToFile, char *str);
+bool node_executeMapRutine(char *mapRutine, char *blockData);
 
 t_log *node_logger;
 t_nodeCfg *node_config;
@@ -21,44 +26,9 @@ t_nodeCfg *node_config;
 pthread_mutex_t *blocks_mutex;
 void *binFileMap;
 
-/* TESTING........*/
-
-// popen() read
-void popen_read(char *path) {
-	char line[256];
-	FILE *pipe = popen(path, "r");
-	if (!pipe) {
-		return; // TODO.
-	}
-	//fread(buffer, 1, 32, md5pipe);
-	while (fgets(line, 255, pipe)) {
-		//TODO aca tendria que escribirlo en el archivo temporal?
-		printf("%s", line);
-	}
-	pclose(pipe);
-}
-
-// popen() write
-void popen_write(char * blockData, char *path) {
-	FILE *pipe = popen(path, "w");
-
-	// fwrite() TODO, este es por bytes, creo que no va..
-	fputs(blockData, pipe);
-	pclose(pipe);
-}
-/*..................*/
-
 int main(int argc, char *argv[]) {
-		 time_t tiempo = time(0);
-		 struct tm *tlocal = localtime(&tiempo);
-		 char date[13];
-		 strftime(date,13,"%d%m%y%H%M%S",tlocal);
-		 char path[28] = "/home/utnso/map";
-		 memcpy(path+15, date ,13 );
-		node_createExecutableFileFromString(path, "#!/bin/bash \n  cat - | awk -F ',' '{print $2 \";\" $1  \";\" $13 \";\" $3}'\n");
-		popen_write("AcaIriaElBloqueDeDatos?",path);
-		popen_read(path); //Adentro del read deberia escribir el archivo temporal?
-		return 1;
+	//node_executeMapRutine("#!/bin/bash \n  cat - | awk -F ',' '{print $2 \";\" $1  \";\" $13 \";\" $3}'\n", ",primero\n,segundo\n,tercero\n,cuarto");
+	//return 1;
 	node_logger = log_create("node.log", "Node", 1, log_level_from_string("TRACE"));
 
 	if (argc != 2) {
@@ -122,10 +92,83 @@ bool node_createExecutableFileFromString(char *pathToFile, char *str) {
 	return 1;
 }
 
+char* node_popen_read(char *command) {
+	char line[256];
+	FILE *pipe = popen(command, "r");
+	if (!pipe) {
+		return NULL;
+	}
+
+	while (fgets(line, 255, pipe)) {
+		// TODO, do we need popen_read?
+		printf("%s", line);
+	}
+	pclose(pipe);
+
+	return NULL; //  TODO
+}
+
+bool node_popen_write(char *command, char *data) {
+	FILE *pipe = popen(command, "w");
+	if (!pipe) {
+		free(command);
+		return 0;
+	}
+
+	fputs(data, pipe);
+	pclose(pipe);
+	return 1;
+}
+
+bool node_executeMapRutine(char *mapRutine, char *blockData) {
+	size_t commandSize;
+	char *command;
+
+	char pathToMapRutine[] = "/home/utnso/script/test.sh"; // TODO paths.
+	char pathToSTDOUTFile[] = "/home/utnso/script/stdout.txt";
+	char pathToSTDERRFile[] = "/home/utnso/script/stderr.txt";
+	char pathToFinalSortedFile[] = "/home/utnso/script/final.txt";
+
+	node_createExecutableFileFromString(pathToMapRutine, mapRutine);
+
+	commandSize = strlen(pathToMapRutine) + strlen(pathToSTDOUTFile) + strlen(pathToSTDERRFile) + 6;
+	command = malloc(commandSize);
+	snprintf(command, commandSize, "%s >%s 2>%s", pathToMapRutine, pathToSTDOUTFile, pathToSTDERRFile);
+
+	bool result = node_popen_write(command, blockData);
+	free(command);
+
+	if (!result) {
+		return 0;
+	}
+
+	// SORT the results.. TODO check the stderr ??
+
+	char sortCommand[] = "/usr/bin/sort";
+	commandSize = strlen(sortCommand) + strlen(pathToSTDOUTFile) + strlen(pathToFinalSortedFile) + 5;
+	command = malloc(commandSize);
+	snprintf(command, commandSize, "%s %s > %s", sortCommand, pathToSTDOUTFile, pathToFinalSortedFile);
+
+	if (system(command) == -1) {
+		result = 0;
+	}
+
+	free(command);
+
+	return result;
+}
+
 void node_readCommand() {
+	/*void hola() {
+	 printf("jose");
+	 fflush(stdout);
+	 }
+	 signal(SIGINT, hola);*/
+
 	int c;
 	//system("/bin/stty raw");
-	while ((c = getchar()) != 'd');
+	while ((c = getchar()) != 'd')
+		;
 	//system("/bin/stty cooked");
 }
 
