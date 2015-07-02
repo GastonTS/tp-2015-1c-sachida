@@ -64,8 +64,8 @@ int planMaps(t_job *job) {
 		log_trace(logger, "Finished Map Planning Job %d...", job->id);
 		return EXIT_SUCCESS;
 	} else {
-		log_error(logger, "Job %d Failed", job->id);
-		sendDieOrder(job->socket);
+		log_error(logger, "Job %d Failed: One file is unavailable", job->id);
+		sendDieOrder(job->socket, COMMAND_RESULT_FILEUNAVAILABLE);
 		return EXIT_FAILURE;
 	}
 }

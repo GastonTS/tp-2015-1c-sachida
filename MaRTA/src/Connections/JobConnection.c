@@ -28,8 +28,7 @@ void *acceptJob(void * param) {
 	planMaps(job);
 	recvMapsResults(job);
 
-	//TODO: Replan reduces
-	if (job->combiner) { //XXX: No probar, probablemente rompa
+	if (job->combiner) {
 		combinerPartialsReducePlanning(job);
 		//TODO: recibir resultados
 		combinerFinalReducePlanning(job);
@@ -39,7 +38,7 @@ void *acceptJob(void * param) {
 	recvResult(job);
 
 	log_info(logger, "Finished Job: %d", job->id);
-	sendDieOrder(job->socket);
+	sendDieOrder(job->socket, COMMAND_RESULT_OK);
 	freeJob(job);
 	return NULL;
 }
@@ -107,13 +106,14 @@ void recvResult(t_job *job) {
 	free(buffer);
 }
 
-e_socket_status sendDieOrder(int socket) {
+e_socket_status sendDieOrder(int socket, uint8_t result) {
 	char order = COMMAND_MARTA_TO_JOB_DIE;
 	size_t sOrder = sizeof(char);
 	size_t sbuffer = sOrder;
 	void *buffer = malloc(sbuffer);
 	buffer = memset(buffer, '\0', sbuffer);
 	memcpy(buffer, &order, sOrder);
+	memcpy(buffer, &result, sizeof(uint8_t));
 	e_socket_status status = socket_send_packet(socket, buffer, sbuffer);
 	free(buffer);
 	return status;
@@ -270,7 +270,7 @@ void desserializaReduceResult(void *buffer, t_job *job) {
 		}
 
 	} else {
-		//TODO RePlanReduce
-		printf("Fallo temporal: %s\n", failedTemp);
+		sendDieOrder(job->socket, COMMAND_RESULT_REDUCEFAILED);
+		log_info(logger, "Job %d Failed: Temporal: %s failed", failedTemp);
 	}
 }

@@ -99,13 +99,23 @@ void recvOrder(int fd) {
 	}
 
 	else if (order == COMMAND_MARTA_TO_JOB_DIE) {
-		log_info(logger, "Die Job");
-		freeCfg();
-		free(buffer);
-		exit(0);
 	}
 
 	free(buffer);
+}
+
+t_map* desserializeDierder(void *buffer){
+	uint8_t finalResult;
+	memcpy(&finalResult, buffer, sizeof(uint8_t));
+	if(finalResult == COMMAND_RESULT_OK)
+		log_info(logger, "Job Success!");
+	else if(finalResult == COMMAND_RESULT_FILEUNAVAILABLE)
+		log_info(logger, "Job Failed: One of the files is unavailable");
+	else if(finalResult == COMMAND_RESULT_REDUCEFAILED)
+		log_info(logger, "Job Failed: Reduce failed");
+	freeCfg();
+	free(buffer);
+	exit(0);
 }
 
 void atenderMapper(void * parametros) {
