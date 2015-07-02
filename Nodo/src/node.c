@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	// TODO just testing.
-	//node_executeMapRutine("#!/bin/bash \n  cat - | awk -F ',' '{print $2 \";\" $1  \";\" $13 \";\" $3}'\n", 0, "archivo1");
+	//node_executeMapRutine("#!/bin/bash \n  cat - | awk -F ',' '{print $2 \";\" $1  \";\" $13 \";\" $3}'\n", 0, "testingfilea");
 	//return 1;
 
 	connections_initialize();

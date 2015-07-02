@@ -17,10 +17,10 @@ void connections_initialize(fs_connections_cfg_t *config) {
 }
 
 void connections_shutdown() {
+	socket_close(socketListener);
 	connections_node_shutdown();
 	connections_marta_shutdown();
 
-	socket_close(socketListener);
 	pthread_join(listenerThread, NULL);
 }
 
