@@ -63,8 +63,8 @@ void serializeMap(int sock_nodo, t_map* map){
 //**********************************Send Reduce Nodo************************************//
 
 void serializeReduce(int sock_nodo, t_reduce* reduce){
-	char order = 'r';
-	size_t sOrder = sizeof(char);
+	uint8_t order  = COMMAND_REDUCE;
+	size_t sOrder = sizeof(uint8_t);
 	char* fileReduce;
 	size_t sTempName = strlen(reduce->tempResultName);
 
