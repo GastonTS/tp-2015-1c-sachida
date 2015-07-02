@@ -4,15 +4,14 @@
 #include "../structs/node.h"
 #include <commons/string.h>
 
-void recvMapsResults(t_job *job);
-
 //**********************************************************************************//
 //									JOB												//
 //**********************************************************************************//
-//TODO: chequear si muere el job
 
 void *acceptJob(void * param) {
-	cantJobs++; //TODO mutex this
+	pthread_mutex_lock(&McantJobs);
+	cantJobs++;
+	pthread_mutex_unlock(&McantJobs);
 	int *socketAcceptedPtr = (int *) param;
 	int jobSocket = *socketAcceptedPtr;
 	free(socketAcceptedPtr);
@@ -26,11 +25,19 @@ void *acceptJob(void * param) {
 		log_info(logger, "Begin Job: %d (No combiner)", job->id);
 
 	planMaps(job);
-	recvMapsResults(job);
+
+	void recvListResults(t_list *list) {
+		int i;
+		int count = list_size(list);
+		for (i = 0; i < count; i++)
+			recvResult(job);
+	}
+
+	recvListResults(job->maps);
 
 	if (job->combiner) {
 		combinerPartialsReducePlanning(job);
-		//TODO: recibir resultados
+		recvListResults(job->partialReduces);
 		combinerFinalReducePlanning(job);
 	} else
 		noCombinerReducePlanning(job);
@@ -170,12 +177,6 @@ void desserializeMapResult(void *buffer, t_job *job) {
 		rePlanMap(job, map);
 }
 
-void recvMapsResults(t_job *job) {
-	int i;
-	int mapsCount = list_size(job->maps);
-	for (i = 0; i < mapsCount; i++)
-		recvResult(job);
-}
 //*********************************REDUCE*******************************************//
 size_t totalTempsSize(t_list *temps) {
 	size_t stemps = 0;

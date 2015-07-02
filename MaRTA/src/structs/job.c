@@ -8,7 +8,7 @@ t_copy *CreateCopy(char *nodeName, uint16_t numBlock) {
 	return copy;
 }
 
-char* getTime() { //TODO:revisar si se puede ampliar a mili/microsegundos
+char* getTime() {
 	time_t rawtime;
 	struct tm * timeinfo;
 	time(&rawtime);

@@ -6,6 +6,7 @@
 t_configMaRTA *cfgMaRTA;
 t_log *logger;
 t_list *nodes;
+pthread_mutex_t McantJobs;
 uint16_t cantJobs;
 
 int initConfig(char* configFile);

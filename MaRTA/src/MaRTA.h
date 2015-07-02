@@ -19,6 +19,7 @@ typedef struct {
 extern t_configMaRTA *cfgMaRTA;
 extern t_list *nodes;
 extern t_log *logger;
+extern pthread_mutex_t McantJobs;
 extern uint16_t cantJobs;
 
 #endif

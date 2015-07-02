@@ -92,5 +92,5 @@ void rePlanMap(t_job *job, t_map *map) {
 	setTempMapName(map->tempResultName, map->id, job->id);
 
 	notificarMap(job, map);
-	recvResult(job); //XXX test pendiente
+	recvResult(job);
 }
