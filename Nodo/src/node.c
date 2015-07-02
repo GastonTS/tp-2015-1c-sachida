@@ -206,14 +206,15 @@ char* node_getFileContent(char *tmpName) {
 }
 
 void node_waitUntilExit() {
-	int keepRunning = 1;
+	pthread_mutex_t keepRunning = PTHREAD_MUTEX_INITIALIZER;
+
 	void intHandler(int dummy) {
-		keepRunning = 0;
+		pthread_mutex_unlock(&keepRunning);
 	}
 
 	signal(SIGINT, intHandler);
-	while (keepRunning)
-		;
+	pthread_mutex_lock(&keepRunning); // Locks it
+	pthread_mutex_lock(&keepRunning); // Waits till it is unlocked.
 }
 
 bool node_init() {
@@ -350,6 +351,7 @@ void node_free() {
 	for (i = 0; i < node_config->blocksCount; i++) {
 		pthread_mutex_destroy(&blocks_mutex[i]);
 	}
+	free(blocks_mutex);
 
 	if (node_config) {
 		if (node_config->fsIp) {

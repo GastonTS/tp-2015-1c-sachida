@@ -55,7 +55,7 @@ int socket_listen(t_port port) {
 
 // Accept without getting the client's IP
 int socket_accept(int fdListener) {
-	char *IP;
+	char *IP = NULL;
 	int fd = socket_accept_and_get_ip(fdListener, &IP);
 	if (IP) {
 		free(IP);
