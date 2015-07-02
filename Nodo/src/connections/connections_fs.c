@@ -10,20 +10,20 @@ void connections_fs_deserializeGetBlock(void *buffer);
 
 int fsSocket;
 int exitFsConnections;
+pthread_t fsTh;
 
 void connections_fs_initialize() {
 	exitFsConnections = 0;
 	fsSocket = -1;
 
-	pthread_t fsTh;
 	if (pthread_create(&fsTh, NULL, (void *) connections_fs_connect, NULL)) {
 		log_error(node_logger, "Error while trying to create new thread: connections_fs_connect");
 	}
-	pthread_detach(fsTh);
 }
 
 void connections_fs_shutdown() {
 	exitFsConnections = 1;
+	pthread_join(fsTh, NULL);
 }
 
 void connections_fs_setDisconnected() {

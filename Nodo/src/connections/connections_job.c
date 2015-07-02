@@ -5,8 +5,6 @@
 void* connections_job_listenActions(void *param);
 void connections_job_deserializeMap(int socket, void *buffer);
 void connections_job_deserializeReduce(int socket, void *buffer);
-void popen_read(char *path);
-void popen_write(char *blockData, char *path);
 
 void connections_job_initialize() {
 
