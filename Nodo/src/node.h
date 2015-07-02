@@ -29,4 +29,6 @@ char* node_getBlock(uint16_t numBlock);
 void node_freeBlock(char *blockStr);
 void node_setBlock(uint16_t numBlock, char *blockData);
 
+bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpName);
+
 #endif

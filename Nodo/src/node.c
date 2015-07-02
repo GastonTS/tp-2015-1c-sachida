@@ -18,7 +18,6 @@ void node_free();
 char* node_popen_read(char *command);
 bool node_popen_write(char *command, char *data);
 bool node_createExecutableFileFromString(char *pathToFile, char *str);
-bool node_executeMapRutine(char *mapRutine, char *blockData);
 
 t_log *node_logger;
 t_nodeCfg *node_config;
@@ -27,8 +26,6 @@ pthread_mutex_t *blocks_mutex;
 void *binFileMap;
 
 int main(int argc, char *argv[]) {
-	//node_executeMapRutine("#!/bin/bash \n  cat - | awk -F ',' '{print $2 \";\" $1  \";\" $13 \";\" $3}'\n", ",primero\n,segundo\n,tercero\n,cuarto");
-	//return 1;
 	node_logger = log_create("node.log", "Node", 1, log_level_from_string("TRACE"));
 
 	if (argc != 2) {
@@ -50,6 +47,10 @@ int main(int argc, char *argv[]) {
 		node_free();
 		return EXIT_FAILURE;
 	}
+
+	// TODO just testing.
+	//node_executeMapRutine("#!/bin/bash \n  cat - | awk -F ',' '{print $2 \";\" $1  \";\" $13 \";\" $3}'\n", 0, "archivo1");
+	//return 1;
 
 	connections_initialize();
 	log_info(node_logger, "Node Initialized, press 'd' and enter to exit.");
@@ -120,14 +121,41 @@ bool node_popen_write(char *command, char *data) {
 	return 1;
 }
 
-bool node_executeMapRutine(char *mapRutine, char *blockData) {
+bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpName) {
+	log_info(node_logger, "Executing map rutine on block number %d. Saving to file in tmp dir as: %s", numBlock, tmpName);
+	// First, get the block data..
+	char *blockData = node_getBlock(numBlock);
+
 	size_t commandSize;
 	char *command;
 
-	char pathToMapRutine[] = "/home/utnso/script/test.sh"; // TODO paths.
-	char pathToSTDOUTFile[] = "/home/utnso/script/stdout.txt";
-	char pathToSTDERRFile[] = "/home/utnso/script/stderr.txt";
-	char pathToFinalSortedFile[] = "/home/utnso/script/final.txt";
+	/************** WRITE ALL FILE PATHS. ******************/
+	size_t pathToTmpFileSize = strlen(node_config->tmpDir) + 1 + strlen(tmpName) + 1;
+
+	char pathToMapRutine[pathToTmpFileSize + 10];
+	char pathToSTDOUTFile[pathToTmpFileSize + 10];
+	char pathToSTDERRFile[+pathToTmpFileSize + 10];
+	char pathToFinalSortedFile[pathToTmpFileSize];
+
+	strcpy(pathToMapRutine, node_config->tmpDir);
+	strcpy(pathToSTDOUTFile, node_config->tmpDir);
+	strcpy(pathToSTDERRFile, node_config->tmpDir);
+	strcpy(pathToFinalSortedFile, node_config->tmpDir);
+
+	strcat(pathToMapRutine, "/");
+	strcat(pathToSTDOUTFile, "/");
+	strcat(pathToSTDERRFile, "/");
+	strcat(pathToFinalSortedFile, "/");
+
+	strcat(pathToMapRutine, tmpName);
+	strcat(pathToSTDOUTFile, tmpName);
+	strcat(pathToSTDERRFile, tmpName);
+	strcat(pathToFinalSortedFile, tmpName);
+
+	strcat(pathToMapRutine, "_maprutine");
+	strcat(pathToSTDOUTFile, "_stdout");
+	strcat(pathToSTDERRFile, "_stderr");
+	/************** WRITE ALL FILE PATHS. ******************/
 
 	node_createExecutableFileFromString(pathToMapRutine, mapRutine);
 
@@ -137,6 +165,7 @@ bool node_executeMapRutine(char *mapRutine, char *blockData) {
 
 	bool result = node_popen_write(command, blockData);
 	free(command);
+	free(blockData);
 
 	if (!result) {
 		return 0;
@@ -232,6 +261,7 @@ char* node_getBlock(uint16_t numBlock) {
 	char *blockStr = malloc(sizeof(char) * BLOCK_SIZE);
 
 	pthread_mutex_lock(&blocks_mutex[numBlock]);
+	// TODO remove, just testing strcpy(blockStr, ",primero\n,segundo\n,tercero\n,cuarto");
 	memcpy(blockStr, binFileMap + (numBlock * BLOCK_SIZE), BLOCK_SIZE);
 	pthread_mutex_unlock(&blocks_mutex[numBlock]);
 
