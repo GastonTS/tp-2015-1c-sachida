@@ -36,14 +36,14 @@ void connectFS() {
 }
 
 void updateNodes(char* nodeID, char *nodeIP, uint16_t nodePort) {
-	t_node *node = findNode(nodes, nodeID);
+	t_node *node = findNode(nodes, nodeID);//TODO:Mutex Nodo
 	if (node != NULL) { //XXX Es necesario actualizar el ip y el puerto?
 		free(node->ip);
 		node->ip = strdup(nodeIP);
 		node->port = nodePort;
 	} else {
 		node = CreateNode(1, nodeIP, nodePort, nodeID);
-		list_add(nodes, node);
+		list_add(nodes, node);//XXX Mutex lista?
 	}
 }
 

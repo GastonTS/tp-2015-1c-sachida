@@ -12,7 +12,7 @@ void notificarReduce(t_job *job, t_reduce *reduce) {
 	log_trace(logger, "Planned: %s", reduce->tempResultName);
 	reduce->done = false;
 	t_node *selectedNode = findNode(nodes, reduce->finalNode);
-	selectedNode->reduces++;
+	selectedNode->reduces++;//TODO: mutex nodo
 	if (0 > serializeReduceToOrder(job->socket, reduce)) {
 		log_error(logger, "Job %d Died when sending reduce order", job->id);
 		freeJob(job);
@@ -68,7 +68,7 @@ void noCombinerReducePlanning(t_job *job) {
 	}
 	list_destroy_and_destroy_elements(counts, (void *) freeCounts);
 
-	setFinalReduce(job->finalReduce, selectedNode->name, selectedNode->ip, selectedNode->port, job->id);
+	setFinalReduce(job->finalReduce, selectedNode->name, selectedNode->ip, selectedNode->port, job->id);//TODO: Mutex nodo
 
 	void createTemporal(t_map *map) {
 		t_temp *temporal = mapToTemporal(map);
@@ -103,7 +103,7 @@ void combinerPartialsReducePlanning(t_job *job) {
 }
 
 void searchNode(t_reduce *reduce, t_node **selectedNode) {
-	bool lessWorkLoad(t_node *lessBusy, t_node *busy) {
+	bool lessWorkLoad(t_node *lessBusy, t_node *busy) {//TODO: mutex nodo
 		if (lessBusy && busy)
 			return workLoad(lessBusy->maps, lessBusy->reduces) < workLoad(busy->maps, busy->reduces);
 		return 0;

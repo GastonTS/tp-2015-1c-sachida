@@ -123,7 +123,7 @@ t_job *CreateJob(uint16_t id, bool combiner) {
 }
 
 void freeCopy(t_copy *copy) {
-	if (copy->nodeName) { //FIXME si viene sin inicializar estallan los ifs
+	if (copy->nodeName) {
 		free(copy->nodeName);
 	}
 	free(copy);

@@ -3,7 +3,7 @@
 #include "../Connections/Connection.h"
 
 void selectNode(t_copy *copy, t_node **selectedNode, uint16_t *numBlock) {
-	bool lessWorkLoad(t_node *lessBusy, t_node *busy) {
+	bool lessWorkLoad(t_node *lessBusy, t_node *busy) {//TODO: Mutex nodos
 		if (lessBusy && busy)
 			return workLoad(lessBusy->maps, lessBusy->reduces) < workLoad(busy->maps, busy->reduces);
 		return 0;
