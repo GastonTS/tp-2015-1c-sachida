@@ -109,11 +109,11 @@ void recvResult(t_job *job) {
 e_socket_status sendDieOrder(int socket, uint8_t result) {
 	char order = COMMAND_MARTA_TO_JOB_DIE;
 	size_t sOrder = sizeof(char);
-	size_t sbuffer = sOrder;
+	size_t sbuffer = sOrder + sizeof(uint8_t);
 	void *buffer = malloc(sbuffer);
 	buffer = memset(buffer, '\0', sbuffer);
 	memcpy(buffer, &order, sOrder);
-	memcpy(buffer, &result, sizeof(uint8_t));
+	memcpy(buffer + sOrder, &result, sizeof(uint8_t));
 	e_socket_status status = socket_send_packet(socket, buffer, sbuffer);
 	free(buffer);
 	return status;
@@ -270,7 +270,9 @@ void desserializaReduceResult(void *buffer, t_job *job) {
 		}
 
 	} else {
-		sendDieOrder(job->socket, COMMAND_RESULT_REDUCEFAILED);
 		log_info(logger, "Job %d Failed: Temporal: %s failed", failedTemp);
+		sendDieOrder(job->socket, COMMAND_RESULT_REDUCEFAILED);
+		freeJob(job);
+		pthread_exit(0);
 	}
 }

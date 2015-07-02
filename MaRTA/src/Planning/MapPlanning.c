@@ -66,6 +66,8 @@ int planMaps(t_job *job) {
 	} else {
 		log_error(logger, "Job %d Failed: One file is unavailable", job->id);
 		sendDieOrder(job->socket, COMMAND_RESULT_FILEUNAVAILABLE);
+		freeJob(job);
+		pthread_exit(0);
 		return EXIT_FAILURE;
 	}
 }

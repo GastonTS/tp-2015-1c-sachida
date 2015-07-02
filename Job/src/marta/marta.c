@@ -66,6 +66,19 @@ void serializeConfigMaRTA(int fd, bool combiner, char* stringFiles) {
 }
 
 /* RECIBO ORDEN DE MAP O REDUCE DE MaRTA */
+void desserializeDieOrder(void *buffer) {
+	uint8_t finalResult;
+	memcpy(&finalResult, buffer, sizeof(uint8_t));
+	if (finalResult == COMMAND_RESULT_OK)
+		log_info(logger, "Job Success!");
+	else if (finalResult == COMMAND_RESULT_FILEUNAVAILABLE)
+		log_info(logger, "Job Failed: One of the files is unavailable");
+	else if (finalResult == COMMAND_RESULT_REDUCEFAILED)
+		log_info(logger, "Job Failed: Reduce failed");
+	else if (finalResult == COMMAND_RESULT_REDUCEFAILED)
+		log_info(logger, "Job Failed: don't know why");
+}
+
 void recvOrder(int fd) {
 	void *buffer;
 	size_t sbuffer = 0;
@@ -98,24 +111,14 @@ void recvOrder(int fd) {
 		pthread_detach(hilo_reduce);
 	}
 
-	else if (order == COMMAND_MARTA_TO_JOB_DIE) {
+	else if (order == COMMAND_MARTA_TO_JOB_DIE){
+		desserializeDieOrder(buffer + sOrder);
+		freeCfg();
+		free(buffer);
+		exit(0);
 	}
 
 	free(buffer);
-}
-
-t_map* desserializeDierder(void *buffer){
-	uint8_t finalResult;
-	memcpy(&finalResult, buffer, sizeof(uint8_t));
-	if(finalResult == COMMAND_RESULT_OK)
-		log_info(logger, "Job Success!");
-	else if(finalResult == COMMAND_RESULT_FILEUNAVAILABLE)
-		log_info(logger, "Job Failed: One of the files is unavailable");
-	else if(finalResult == COMMAND_RESULT_REDUCEFAILED)
-		log_info(logger, "Job Failed: Reduce failed");
-	freeCfg();
-	free(buffer);
-	exit(0);
 }
 
 void atenderMapper(void * parametros) {
