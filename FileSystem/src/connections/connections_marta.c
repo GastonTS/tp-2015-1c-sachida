@@ -131,7 +131,7 @@ bool connection_marta_sendFileBlocks(void *bufferReceived) {
 		size_t sBlockCopiesBuffer = 0;
 
 		void listBlockCopies(file_block_t *blockCopy) {
-			node_connection_t* nodeConnection = connections_node_getNodeConnection(blockCopy->nodeId);
+			node_connection_t* nodeConnection = connections_node_getActiveNodeConnection(blockCopy->nodeId);
 			if (nodeConnection) {
 				copyesCount++;
 

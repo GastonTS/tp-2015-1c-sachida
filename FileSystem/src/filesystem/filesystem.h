@@ -43,8 +43,8 @@ bool filesystem_addDir(dir_t *dir);
 
 node_t* filesystem_getNodeById(char *nodeId);
 void filesystem_addNode(char *nodeId, uint16_t blocksCount, bool isNewNode);
-void filesystem_deactivateNode(node_t *node);
-void filesystem_activateNode(node_t *node);
+bool filesystem_deactivateNode(node_t *node);
+bool filesystem_activateNode(node_t *node);
 
 char* filesystem_md5sum(file_t* file);
 

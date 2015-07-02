@@ -17,10 +17,10 @@ void connections_initialize() {
 }
 
 void connections_shutdown() {
+	socket_close(socketListener);
 	connections_fs_shutdown();
 	connections_job_shutdown();
 
-	socket_close(socketListener);
 	pthread_join(listenerThread, NULL);
 }
 

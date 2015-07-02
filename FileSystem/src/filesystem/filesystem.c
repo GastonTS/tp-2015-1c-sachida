@@ -218,16 +218,18 @@ void filesystem_addNode(char *nodeId, uint16_t blocksCount, bool isNewNode) {
 	node_free(node);
 }
 
-void filesystem_activateNode(node_t *node) {
+bool filesystem_activateNode(node_t *node) {
 	if (node) {
-		connections_node_activateNode(node->id);
+		return connections_node_activateNode(node->id);
 	}
+	return 0;
 }
 
-void filesystem_deactivateNode(node_t *node) {
+bool filesystem_deactivateNode(node_t *node) {
 	if (node) {
-		connections_node_deactivateNode(node->id);
+		return connections_node_deactivateNode(node->id);
 	}
+	return 0;
 }
 
 char* filesystem_md5sum(file_t* file) {

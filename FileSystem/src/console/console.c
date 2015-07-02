@@ -486,7 +486,9 @@ void enableNode(char *nodeName) {
 	if (!isNull(nodeName)) {
 		node_t *node = filesystem_getNodeById(nodeName);
 		if (node) {
-			filesystem_activateNode(node);
+			if (!filesystem_activateNode(node)) {
+				printf("Node '%s' is not connected or is already activated!\n", nodeName);
+			}
 			node_free(node);
 		} else {
 			printf("Node '%s' does not exist.\n", nodeName);
@@ -498,7 +500,9 @@ void disableNode(char *nodeName) {
 	if (!isNull(nodeName)) {
 		node_t *node = filesystem_getNodeById(nodeName);
 		if (node) {
-			filesystem_deactivateNode(node);
+			if (!filesystem_deactivateNode(node)) {
+				printf("Node '%s' is not connected or is already deactivated!\n", nodeName);
+			}
 			node_free(node);
 		} else {
 			printf("Node '%s' does not exist.\n", nodeName);

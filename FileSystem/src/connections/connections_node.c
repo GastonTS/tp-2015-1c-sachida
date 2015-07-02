@@ -18,8 +18,8 @@ void connections_node_initialize() {
 }
 
 void connections_node_shutdown() {
-	pthread_mutex_destroy(&activeNodesLock);
-	pthread_mutex_destroy(&standbyNodesLock);
+	pthread_mutex_lock(&activeNodesLock);
+	pthread_mutex_lock(&standbyNodesLock);
 
 	void disconnectNode(node_connection_t *nodeConnection) {
 		socket_close(nodeConnection->socket);
@@ -27,9 +27,12 @@ void connections_node_shutdown() {
 	}
 	dictionary_destroy_and_destroy_elements(activeNodesSockets, (void*) disconnectNode);
 	dictionary_destroy_and_destroy_elements(standbyNodesSockets, (void*) disconnectNode);
+
+	pthread_mutex_destroy(&activeNodesLock);
+	pthread_mutex_destroy(&standbyNodesLock);
 }
 
-node_connection_t* connections_node_getNodeConnection(char *nodeId) {
+node_connection_t* connections_node_getActiveNodeConnection(char *nodeId) {
 	pthread_mutex_lock(&activeNodesLock);
 	node_connection_t *nodeConnection = dictionary_get(activeNodesSockets, nodeId);
 	pthread_mutex_unlock(&activeNodesLock);
@@ -37,13 +40,7 @@ node_connection_t* connections_node_getNodeConnection(char *nodeId) {
 	return nodeConnection;
 }
 
-void connections_node_setNodeConnection(char *nodeId, node_connection_t *nodeConnection) {
-	pthread_mutex_lock(&standbyNodesLock);
-	dictionary_put(standbyNodesSockets, nodeId, nodeConnection);
-	pthread_mutex_unlock(&standbyNodesLock);
-}
-
-void connections_node_removeNodeConnection(char *nodeId) {
+void connections_node_removeActiveNodeConnection(char *nodeId) {
 	pthread_mutex_lock(&activeNodesLock);
 	node_connection_t *nodeConnection = dictionary_remove(activeNodesSockets, nodeId);
 	pthread_mutex_unlock(&activeNodesLock);
@@ -51,7 +48,19 @@ void connections_node_removeNodeConnection(char *nodeId) {
 	connections_node_connection_free(nodeConnection);
 }
 
-void connections_node_activateNode(char *nodeId) {
+void connections_node_setAcceptedNodeConnection(char *nodeId, node_connection_t *nodeConnection) {
+	// Remove it if it was "active"
+	connections_node_removeActiveNodeConnection(nodeId);
+
+	pthread_mutex_lock(&standbyNodesLock);
+	node_connection_t *nodeConnectionOld = dictionary_remove(standbyNodesSockets, nodeId);
+	dictionary_put(standbyNodesSockets, nodeId, nodeConnection);
+	pthread_mutex_unlock(&standbyNodesLock);
+
+	connections_node_connection_free(nodeConnectionOld);
+}
+
+bool connections_node_activateNode(char *nodeId) {
 	pthread_mutex_lock(&standbyNodesLock);
 	node_connection_t *nodeConnection = dictionary_remove(standbyNodesSockets, nodeId);
 	pthread_mutex_unlock(&standbyNodesLock);
@@ -60,10 +69,13 @@ void connections_node_activateNode(char *nodeId) {
 		pthread_mutex_lock(&activeNodesLock);
 		dictionary_put(activeNodesSockets, nodeId, nodeConnection);
 		pthread_mutex_unlock(&activeNodesLock);
+		return 1;
+	} else {
+		return 0;
 	}
 }
 
-void connections_node_deactivateNode(char *nodeId) {
+bool connections_node_deactivateNode(char *nodeId) {
 	pthread_mutex_lock(&activeNodesLock);
 	node_connection_t *nodeConnection = dictionary_remove(activeNodesSockets, nodeId);
 	pthread_mutex_unlock(&activeNodesLock);
@@ -72,6 +84,9 @@ void connections_node_deactivateNode(char *nodeId) {
 		pthread_mutex_lock(&standbyNodesLock);
 		dictionary_put(standbyNodesSockets, nodeId, nodeConnection);
 		pthread_mutex_unlock(&standbyNodesLock);
+		return 1;
+	} else {
+		return 0;
 	}
 }
 
@@ -84,7 +99,7 @@ int connections_node_getActiveConnectedCount() {
 }
 
 bool connections_node_isActiveNode(char *nodeId) {
-	return (bool) connections_node_getNodeConnection(nodeId);
+	return (bool) connections_node_getActiveNodeConnection(nodeId);
 }
 
 void* connections_node_accept(void *param) {
@@ -124,7 +139,7 @@ void* connections_node_accept(void *param) {
 
 	//  Save the connection as a reference to this node.
 	nodeConnection->listenPort = listenPort;
-	connections_node_setNodeConnection(nodeName, nodeConnection);
+	connections_node_setAcceptedNodeConnection(nodeName, nodeConnection);
 
 	log_info(mdfs_logger, "Node connected. Name: %s. listenPort %d. blocksCount %d. New: %s", nodeName, listenPort, blocksCount, isNewNode ? "true" : "false");
 	filesystem_addNode(nodeName, blocksCount, (bool) isNewNode);
@@ -135,7 +150,7 @@ void* connections_node_accept(void *param) {
 }
 
 bool connections_node_sendBlock(nodeBlockSendOperation_t *sendOperation) {
-	node_connection_t *nodeConnection = connections_node_getNodeConnection(sendOperation->node->id);
+	node_connection_t *nodeConnection = connections_node_getActiveNodeConnection(sendOperation->node->id);
 	if (!nodeConnection) {
 		return 0;
 	}
@@ -165,7 +180,7 @@ bool connections_node_sendBlock(nodeBlockSendOperation_t *sendOperation) {
 
 	if (0 > status) {
 		log_info(mdfs_logger, "Removing node %s because it was disconnected", sendOperation->node->id);
-		connections_node_removeNodeConnection(sendOperation->node->id);
+		connections_node_removeActiveNodeConnection(sendOperation->node->id);
 		return 0;
 	}
 
@@ -173,7 +188,7 @@ bool connections_node_sendBlock(nodeBlockSendOperation_t *sendOperation) {
 }
 
 char* connections_node_getBlock(file_block_t *fileBlock) {
-	node_connection_t *nodeConnection = connections_node_getNodeConnection(fileBlock->nodeId);
+	node_connection_t *nodeConnection = connections_node_getActiveNodeConnection(fileBlock->nodeId);
 	if (!nodeConnection) {
 		return NULL;
 	}
@@ -199,7 +214,7 @@ char* connections_node_getBlock(file_block_t *fileBlock) {
 	if (status != SOCKET_ERROR_NONE) {
 		pthread_mutex_unlock(&nodeConnection->mutex);
 		log_info(mdfs_logger, "Removing node %s because it was disconnected", fileBlock->nodeId);
-		connections_node_removeNodeConnection(fileBlock->nodeId);
+		connections_node_removeActiveNodeConnection(fileBlock->nodeId);
 		return NULL;
 	}
 
@@ -212,7 +227,7 @@ char* connections_node_getBlock(file_block_t *fileBlock) {
 
 	if (0 > status) {
 		log_info(mdfs_logger, "Removing node %s because it was disconnected", fileBlock->nodeId);
-		connections_node_removeNodeConnection(fileBlock->nodeId);
+		connections_node_removeActiveNodeConnection(fileBlock->nodeId);
 		return NULL;
 	}
 
