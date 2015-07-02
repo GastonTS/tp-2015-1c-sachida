@@ -60,7 +60,7 @@ void connections_node_setAcceptedNodeConnection(char *nodeId, node_connection_t 
 	connections_node_connection_free(nodeConnectionOld);
 }
 
-void connections_node_activateNode(char *nodeId) {
+bool connections_node_activateNode(char *nodeId) {
 	pthread_mutex_lock(&standbyNodesLock);
 	node_connection_t *nodeConnection = dictionary_remove(standbyNodesSockets, nodeId);
 	pthread_mutex_unlock(&standbyNodesLock);
@@ -69,10 +69,13 @@ void connections_node_activateNode(char *nodeId) {
 		pthread_mutex_lock(&activeNodesLock);
 		dictionary_put(activeNodesSockets, nodeId, nodeConnection);
 		pthread_mutex_unlock(&activeNodesLock);
+		return 1;
+	} else {
+		return 0;
 	}
 }
 
-void connections_node_deactivateNode(char *nodeId) {
+bool connections_node_deactivateNode(char *nodeId) {
 	pthread_mutex_lock(&activeNodesLock);
 	node_connection_t *nodeConnection = dictionary_remove(activeNodesSockets, nodeId);
 	pthread_mutex_unlock(&activeNodesLock);
@@ -81,6 +84,9 @@ void connections_node_deactivateNode(char *nodeId) {
 		pthread_mutex_lock(&standbyNodesLock);
 		dictionary_put(standbyNodesSockets, nodeId, nodeConnection);
 		pthread_mutex_unlock(&standbyNodesLock);
+		return 1;
+	} else {
+		return 0;
 	}
 }
 

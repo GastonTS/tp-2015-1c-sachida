@@ -17,8 +17,8 @@ void connections_node_connection_free(node_connection_t *nodeConnection);
 
 node_connection_t* connections_node_getActiveNodeConnection(char *nodeId);
 int connections_node_getActiveConnectedCount();
-void connections_node_activateNode(char *nodeId);
-void connections_node_deactivateNode(char *nodeId);
+bool connections_node_activateNode(char *nodeId);
+bool connections_node_deactivateNode(char *nodeId);
 bool connections_node_isActiveNode(char *nodeId);
 
 void connections_node_initialize();
