@@ -122,7 +122,7 @@ bool node_popen_write(char *command, char *data) {
 }
 
 bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpName) {
-	log_info(node_logger, "Executing map rutine on block number %d. Saving to file in tmp dir as: %s", numBlock, tmpName);
+	log_info(node_logger, "Executing MAP rutine on block number %d. Saving sorted to file in tmp dir as: %s", numBlock, tmpName);
 	// First, get the block data..
 	char *blockData = node_getBlock(numBlock);
 
@@ -185,6 +185,12 @@ bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpName) {
 	free(command);
 
 	return result;
+}
+
+bool node_executeReduceRutine(char *mapRutine, uint16_t numBlock) {
+	log_info(node_logger, "Executing REDUCE rutine on block number %d.", numBlock);
+	// TODO ..
+	return 1;
 }
 
 void node_readCommand() {

@@ -9,8 +9,6 @@ void popen_read(char *path);
 void popen_write(char *blockData, char *path);
 int node_map(uint16_t numBlock, char *mapRutine, char *tmpName);
 
-
-
 void connections_job_initialize() {
 
 }
@@ -72,29 +70,26 @@ void connections_job_deserializeMap(int socket, void *buffer) {
 	memcpy(&numBlock, buffer + sizeof(uint8_t), sizeof(uint16_t));
 	numBlock = ntohs(numBlock);
 
-	uint32_t sizeMap;
-	memcpy(&sizeMap, buffer + sizeof(uint8_t) + sizeof(uint16_t), sizeof(uint32_t));
-	sizeMap = ntohl(sizeMap);
+	uint32_t sMapRutine;
+	memcpy(&sMapRutine, buffer + sizeof(uint8_t) + sizeof(uint16_t), sizeof(uint32_t));
+	sMapRutine = ntohl(sMapRutine);
 
-	char* mapRutine = malloc(sizeof(char) * (sizeMap + 1));
-	memcpy(mapRutine, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint32_t), sizeMap);
-	mapRutine[sizeMap] = '\0';
+	char* mapRutine = malloc(sizeof(char) * (sMapRutine + 1));
+	memcpy(mapRutine, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint32_t), sMapRutine);
+	mapRutine[sMapRutine] = '\0';
 
-	uint32_t sizeTmpName;
-	memcpy(&sizeTmpName, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint32_t) + sizeMap, sizeof(uint32_t));
-	sizeTmpName = ntohl(sizeTmpName);
+	uint32_t sTmpName;
+	memcpy(&sTmpName, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint32_t) + sMapRutine, sizeof(uint32_t));
+	sTmpName = ntohl(sTmpName);
 
-	char* tmpName = malloc(sizeof(char) * (sizeTmpName + 1));
-	memcpy(tmpName, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint32_t) + sizeMap + sizeof(uint32_t), sizeTmpName);
-	tmpName[sizeTmpName] = '\0';
+	char* tmpName = malloc(sizeof(char) * (sTmpName + 1));
+	memcpy(tmpName, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint32_t) + sMapRutine + sizeof(uint32_t), sTmpName);
+	tmpName[sTmpName] = '\0';
 
 	log_info(node_logger, "Job Requested MAP Rutine. numBlock %d. tmpName: %s", numBlock, tmpName);
 
-	node_map(numBlock,mapRutine,tmpName);
-	// OK
+	bool ok = node_executeMapRutine(mapRutine, numBlock, tmpName);
 
-	// TODO
-	bool ok = 1;
 	socket_send_packet(socket, &ok, sizeof(ok));
 
 	free(mapRutine);
@@ -106,15 +101,17 @@ void connections_job_deserializeReduce(int socket, void *buffer) {
 	memcpy(&numBlock, buffer + sizeof(uint8_t), sizeof(uint16_t));
 	numBlock = ntohs(numBlock);
 
-	uint16_t sizeReduce;
-	memcpy(&sizeReduce, buffer + sizeof(uint8_t) + sizeof(uint16_t), sizeof(uint16_t));
-	sizeReduce = ntohl(sizeReduce);
+	uint32_t sReduceRutine; // TODO , avisar a JOB que esto va a ser de 32 bits
+	memcpy(&sReduceRutine, buffer + sizeof(uint8_t) + sizeof(uint16_t), sizeof(uint32_t));
+	sReduceRutine = ntohl(sReduceRutine);
 
-	char* reduce = malloc(sizeof(char) * (sizeReduce));
-	memcpy(reduce, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint16_t), sizeReduce);
-	//node_reduce();
-	printf("llego al deseralize reduce\n");
-	free(reduce);
+	char* reduceRutine = malloc(sizeof(char) * (sReduceRutine + 1));
+	memcpy(reduceRutine, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint32_t), sReduceRutine);
+	reduceRutine[sReduceRutine] = '\0';
+
+	node_executeReduceRutine(reduceRutine, numBlock);
+
+	free(reduceRutine);
 }
 
 /*void getFileContent(){
@@ -126,27 +123,6 @@ void connections_job_deserializeReduce(int socket, void *buffer) {
 
  }*/
 
-int node_map(uint16_t numBlock, char *mapRutine, char *tmpName){
-	 //TODO aca habria que hacer un malloc de 20mb no?
-	 char *blockData = node_getBlock(numBlock);
-	 time_t tiempo = time(0);
-	 struct tm *tlocal = localtime(&tiempo);
-	 char date[13];
-	 strftime(date,13,"%d%m%y%H%M%S",tlocal);
-	 char path[28] = "/home/utnso/map";
-	 memcpy(path+15, date ,13 );
-
-	/*node_createExecutableFileFromString(path, mapRutine);
-	popen_write(blockData,path);
-	popen_read(path);*/
-
-	//TODO usa sort para ordenar el temporal ya en el archivo definitivo  # cat map.py.result.tmp | sort > tmpNam
-	free(blockData);
-	/*ree(date);
-	free(path);*/
-	return 1;
- }
-
 /*void nodeReduce (array[string nameNode, int nroBloque], rutinaReduce, char nombreDondeGuarda){
  //el reduce recibe un nodo y un nombre de archivo (el FS se encargara de rearmar ese archivo y pasarlo)
  El hilo reduce, indica aplicar la rutina sobre varios archvos del espacio temporal, de los cuales uno debe ser siempre local al nodo
@@ -155,58 +131,3 @@ int node_map(uint16_t numBlock, char *mapRutine, char *tmpName){
  return 0;
  }*/
 
-// popen() read
-/*void popen_read(char *path) {
-	char line[256];
-	FILE *pipe = popen(path, "r");
-	if (!pipe) {
-		return; // TODO.
-	}
-	//fread(buffer, 1, 32, md5pipe);
-	while (fgets(line, 255, pipe)) {
-		//TODO aca tendria que escribirlo en el archivo temporal?
-		printf("%s", line);
-	}
-	pclose(pipe);
-}
-
-// popen() write
-void popen_write(char * blockData, char *path) {
-	FILE *pipe = popen(path, "w");
-
-	// fwrite() TODO, este es por bytes, creo que no va..
-	fputs(blockData, pipe);
-	pclose(pipe);
-}
-
-bool node_createExecutableFileFromString(char *pathToFile, char *str) {
-	FILE *fp = fopen(pathToFile, "w");
-	if (!fp) {
-		return 0;
-	}
-
-	if (str) {
-		fputs(str, fp);
-	}
-
-	int fd = fileno(fp);
-	if (!fd) {
-		fclose(fp);
-		return 0;
-	}
-
-	struct stat st;
-	if (fstat(fd, &st)) {
-		fclose(fp);
-		return 0;
-	}
-
-	// Sets exec mode.
-	if (fchmod(fd, 0755)) {
-		fclose(fp);
-		return 0;
-	}
-
-	fclose(fp);
-	return 1;
-}*/
