@@ -189,8 +189,21 @@ bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpName) {
 
 bool node_executeReduceRutine(char *mapRutine, uint16_t numBlock) {
 	log_info(node_logger, "Executing REDUCE rutine on block number %d.", numBlock);
-	// TODO ..
+	// TODO
+	 /*el reduce recibe un nodo y un nombre de archivo (el FS se encargara de rearmar ese archivo y pasarlo)
+	 El hilo reduce, indica aplicar la rutina sobre varios archvos del espacio temporal, de los cuales uno debe ser siempre local al nodo
+	 * El reduce le manda el nombre de los bloques y los nodos donde se encuentran, el codigo de la rutina de reduce y el nombre del
+	 * archivo donde se alamcenara. Al finalizar se debe informar al JOB que termino*/
 	return 1;
+}
+
+char* node_getFileContent(char *tmpName){
+/*Devolverá   el   contenido   del   archivo   de   Espacio   Temporal solicitado.
+Se usara en el return de las funciones para devolver los archivos almencenadaso en memoria temporal
+getFileContent probablemente no sea tan "útil" como usuario, pero sí la usan los Nodos para pasarse datos para el Reduce, y, ya que está, exponérsela al FS ayuda a que,
+por ejemplo, mientras desarrollan puedan chequear de manera "fácil" que los temporales se estén generando bien. Poder inspeccionar lo que está pasando en el sistema siempre
+es bueno, y si encima viene casi gratis en cuanto a esfuerzo de desarrollo, mejor.*/
+	return "LoVemo";
 }
 
 void node_readCommand() {

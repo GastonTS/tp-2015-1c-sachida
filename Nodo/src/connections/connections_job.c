@@ -7,7 +7,6 @@ void connections_job_deserializeMap(int socket, void *buffer);
 void connections_job_deserializeReduce(int socket, void *buffer);
 void popen_read(char *path);
 void popen_write(char *blockData, char *path);
-int node_map(uint16_t numBlock, char *mapRutine, char *tmpName);
 
 void connections_job_initialize() {
 
@@ -113,21 +112,3 @@ void connections_job_deserializeReduce(int socket, void *buffer) {
 
 	free(reduceRutine);
 }
-
-/*void getFileContent(){
- Devolverá   el   contenido   del   archivo   de   Espacio   Temporal solicitado.
- Se usara en el return de las funciones para devolver los archivos almencenadaso en memoria temporal
- getFileContent probablemente no sea tan "útil" como usuario, pero sí la usan los Nodos para pasarse datos para el Reduce, y, ya que está, exponérsela al FS ayuda a que,
- por ejemplo, mientras desarrollan puedan chequear de manera "fácil" que los temporales se estén generando bien. Poder inspeccionar lo que está pasando en el sistema siempre
- es bueno, y si encima viene casi gratis en cuanto a esfuerzo de desarrollo, mejor.
-
- }*/
-
-/*void nodeReduce (array[string nameNode, int nroBloque], rutinaReduce, char nombreDondeGuarda){
- //el reduce recibe un nodo y un nombre de archivo (el FS se encargara de rearmar ese archivo y pasarlo)
- El hilo reduce, indica aplicar la rutina sobre varios archvos del espacio temporal, de los cuales uno debe ser siempre local al nodo
- * El reduce le manda el nombre de los bloques y los nodos donde se encuentran, el codigo de la rutina de reduce y el nombre del
- * archivo donde se alamcenara. Al finalizar se debe informar al JOB que termino
- return 0;
- }*/
-
