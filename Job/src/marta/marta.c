@@ -322,21 +322,21 @@ void confirmarReduce(char confirmacion, t_reduce* reduce, void* bufferNodo) {
 		free(buffer);
 	} else if (confirmacion == 0) {
 		/* Armo el pkg reduce confirmation */
-		char* tmpfail;
+		/*char* tmpfail;
 		size_t stmpfail;
 
 		memcpy(&stmpfail, bufferNodo + sIdJob, sizeof(size_t));
 		tmpfail = malloc(stmpfail);
-		memcpy(tmpfail, bufferNodo + sizeof(stmpfail), stmpfail);
+		memcpy(tmpfail, bufferNodo + sizeof(stmpfail), stmpfail);*/
 
-		size_t sbuffer = scomando + sOrder + sIdJob + sizeof(size_t) + stmpfail;
+		size_t sbuffer = scomando + sOrder + sIdJob + sizeof(size_t); //+ stmpfail;
 		void* buffer = malloc(sbuffer);
 		buffer = memset(buffer, '\0', sbuffer);
 		memcpy(buffer, &comando, scomando);
 		memcpy(buffer + scomando, &confirmacion, sOrder);
 		memcpy(buffer + scomando + sOrder, &idJob, sIdJob);
-		memcpy(buffer + scomando + sOrder + sIdJob, &stmpfail, sizeof(size_t));
-		memcpy(buffer + scomando + sOrder + sIdJob + sizeof(size_t), &tmpfail, stmpfail);
+		//memcpy(buffer + scomando + sOrder + sIdJob, &stmpfail, sizeof(size_t));
+		//memcpy(buffer + scomando + sOrder + sIdJob + sizeof(size_t), &tmpfail, stmpfail);
 		/* Envio todo a MaRTA */
 		socket_send_packet(sock_marta, &buffer, sbuffer);
 		log_info(logger, "Map %d Failed", reduce->reduceID);
