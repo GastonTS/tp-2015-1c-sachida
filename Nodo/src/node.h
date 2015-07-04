@@ -9,7 +9,7 @@
 #include <commons/log.h>
 #include <commons/string.h>
 
-#define	BLOCK_SIZE	20 * 1024 * 1024 // 20 MB de bloques
+#define BLOCK_SIZE 20 * 1024 * 1024 // 20 MB de bloques
 
 typedef struct {
 	char *fsIp;
@@ -30,7 +30,7 @@ void node_freeBlock(char *blockStr);
 void node_setBlock(uint16_t numBlock, char *blockData);
 
 bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpName);
-bool node_executeReduceRutine(char *mapRutine, uint16_t numBlock);
+bool node_executeReduceRutine(char *reduceRutine, char *tmpFilePathToReduce, char *finalFileName);
 char* node_getFileContent(char *tmpName);
 
 #endif

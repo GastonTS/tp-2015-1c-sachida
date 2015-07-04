@@ -23,13 +23,18 @@ void connections_fs_initialize() {
 
 void connections_fs_shutdown() {
 	exitFsConnections = 1;
+	connections_fs_setDisconnected();
 	pthread_join(fsTh, NULL);
 }
 
 void connections_fs_setDisconnected() {
-	log_error(node_logger, "Connection to FS was lost.");
 	socket_close(fsSocket);
 	fsSocket = -1;
+}
+
+void connections_fs_setConnectionLost() {
+	log_error(node_logger, "Connection to FS was lost.");
+	connections_fs_setDisconnected();
 }
 
 void *connections_fs_connect(void *param) {
@@ -76,7 +81,7 @@ void connections_fs_sendInfo() {
 
 	e_socket_status status = socket_send_packet(fsSocket, pBuffer, sBuffer);
 	if (0 > status) {
-		connections_fs_setDisconnected();
+		connections_fs_setConnectionLost();
 	} else {
 		connections_fs_listenActions();
 	}
@@ -85,13 +90,13 @@ void connections_fs_sendInfo() {
 }
 
 void connections_fs_listenActions() {
-	while (1) {
+	while (!exitFsConnections) {
 		size_t sBuffer;
 		void *buffer = NULL;
 
 		e_socket_status status = socket_recv_packet(fsSocket, &buffer, &sBuffer);
 		if (0 > status) {
-			connections_fs_setDisconnected();
+			connections_fs_setConnectionLost();
 			return;
 		}
 
@@ -142,7 +147,7 @@ void connections_fs_deserializeGetBlock(void *buffer) {
 		e_socket_status status = socket_send_packet(fsSocket, blockData, strlen(blockData));
 
 		if (status != SOCKET_ERROR_NONE) {
-			connections_fs_setDisconnected();
+			connections_fs_setConnectionLost();
 		}
 		free(blockData);
 	} else {

@@ -1,4 +1,7 @@
 #!/usr/bin/perl
+# This script takes data with the folowing format ordered by DATE;WBAN and returns the day, the WBAN, the greater temperature and what time that measure was sampled
+# Input (ordered!) DATE;WBAN;TEMP;TIME
+# Output: DATE;WBAN;MAX_DAILY_TEMP_IN_WBAN;TIME_OF_MEASUREMENT
 
 $old_key = '';
 $wban_max = '';
@@ -16,7 +19,7 @@ while(<stdin>) {
 		}
 	} else {
 		if ($old_key ne '') {
-			print "Fecha: ". $old_key . " - Wban:" . $wban_max . " - Temp Max: " . $key_max . " - Hora: " . $max_hour;
+			print $old_key . ";" . $wban_max . ";" . $key_max . ";" . $max_hour;
 		}
 		$old_key = $chunks[0];
 		$wban_max = $chunks[1];
@@ -24,3 +27,8 @@ while(<stdin>) {
 		$max_hour = $chunks[3];
 	}
 }
+
+if ($old_key ne "Date") {
+	print $old_key . ";" . $wban_max . ";" . $key_max . ";" . $max_hour;
+}
+

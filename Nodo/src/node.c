@@ -21,8 +21,8 @@ bool node_createExecutableFileFromString(char *pathToFile, char *str);
 t_log *node_logger;
 t_nodeCfg *node_config;
 
-pthread_mutex_t *blocks_mutex;
-void *binFileMap;
+pthread_mutex_t *blocks_mutex = NULL;
+void *binFileMap = NULL;
 
 int main(int argc, char *argv[]) {
 	node_logger = log_create("node.log", "Node", 1, log_level_from_string("TRACE"));
@@ -48,8 +48,14 @@ int main(int argc, char *argv[]) {
 	}
 
 	// TODO just testing.
-	//node_executeMapRutine("#!/bin/bash \n  cat - | awk -F ',' '{print $2 \";\" $1  \";\" $13 \";\" $3}'\n", 0, "testingfilea");
-	//return 1;
+	if (0) {
+		char reduceRutine[] =
+				"#!/usr/bin/perl\n# This script takes data with the folowing format ordered by DATE;WBAN and returns the day, the WBAN, the greater temperature and what time that measure was sampled\n# Input (ordered!) DATE;WBAN;TEMP;TIME\n# Output: DATE;WBAN;MAX_DAILY_TEMP_IN_WBAN;TIME_OF_MEASUREMENT\n\n$old_key = '';\n$wban_max = '';\n$key_max = '';\n$max_hour = '';\nwhile(<stdin>) {\n\n @chunks = split(';', $_);\n \n\n if (($old_key eq $chunks[0]) && ($wban_max eq $chunks[1])){\n if($chunks[2] > $key_max) {\n $key_max = $chunks[2];\n $max_hour = $chunks[3];\n }\n } else {\n if ($old_key ne '') {\n print $old_key . \";\" . $wban_max . \";\" . $key_max . \";\" . $max_hour;\n }\n $old_key = $chunks[0];\n $wban_max = $chunks[1];\n $key_max = $chunks[2]; \n $max_hour = $chunks[3];\n }\n}\n\nif ($old_key ne \"Date\") {\n print $old_key . \";\" . $wban_max . \";\" . $key_max . \";\" . $max_hour;\n}\n";
+		char mapRutine[] = "#!/bin/bash \n cat - | awk -F ',' '{print $2 \";\" $1  \";\" $13 \";\" $3}'\n";
+		node_executeMapRutine(mapRutine, 0, "mapeado");
+		node_executeReduceRutine(reduceRutine, "mapeado", "reducido");
+		return 1;
+	}
 
 	connections_initialize();
 	log_info(node_logger, "Node Initialized successfully.");
@@ -131,9 +137,9 @@ bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpName) {
 	/************** WRITE ALL FILE PATHS. ******************/
 	size_t pathToTmpFileSize = strlen(node_config->tmpDir) + 1 + strlen(tmpName) + 1;
 
-	char pathToMapRutine[pathToTmpFileSize + 10];
-	char pathToSTDOUTFile[pathToTmpFileSize + 10];
-	char pathToSTDERRFile[+pathToTmpFileSize + 10];
+	char pathToMapRutine[pathToTmpFileSize + 20];
+	char pathToSTDOUTFile[pathToTmpFileSize + 20];
+	char pathToSTDERRFile[+pathToTmpFileSize + 20];
 	char pathToFinalSortedFile[pathToTmpFileSize];
 
 	strcpy(pathToMapRutine, node_config->tmpDir);
@@ -186,14 +192,64 @@ bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpName) {
 	return result;
 }
 
-bool node_executeReduceRutine(char *mapRutine, uint16_t numBlock) {
-	log_info(node_logger, "Executing REDUCE rutine on block number %d.", numBlock);
+bool node_executeReduceRutine(char *reduceRutine, char *tmpFilePathToReduce, char *finalFileName) {
 	// TODO
 	/*el reduce recibe un nodo y un nombre de archivo (el FS se encargara de rearmar ese archivo y pasarlo)
 	 El hilo reduce, indica aplicar la rutina sobre varios archvos del espacio temporal, de los cuales uno debe ser siempre local al nodo
 	 * El reduce le manda el nombre de los bloques y los nodos donde se encuentran, el codigo de la rutina de reduce y el nombre del
 	 * archivo donde se alamcenara. Al finalizar se debe informar al JOB que termino*/
-	return 1;
+
+	log_info(node_logger, "Executing REDUCE rutine to %s. Saving final result to file in tmp dir as: %s ", tmpFilePathToReduce, finalFileName);
+
+	size_t commandSize;
+	char *command;
+
+	/************** WRITE ALL FILE PATHS. ******************/
+	size_t pathToTmpFileSize = strlen(node_config->tmpDir) + 1 + strlen(finalFileName) + 1;
+
+	char pathToReduceRutine[pathToTmpFileSize + 20];
+	char pathToSTDOUTFile[pathToTmpFileSize + 20];
+	char pathToSTDERRFile[pathToTmpFileSize + 20];
+	char pathToFinalFile[pathToTmpFileSize];
+
+	strcpy(pathToReduceRutine, node_config->tmpDir);
+	strcpy(pathToSTDOUTFile, node_config->tmpDir);
+	strcpy(pathToSTDERRFile, node_config->tmpDir);
+	strcpy(pathToFinalFile, node_config->tmpDir);
+
+	strcat(pathToReduceRutine, "/");
+	strcat(pathToSTDOUTFile, "/");
+	strcat(pathToSTDERRFile, "/");
+	strcat(pathToFinalFile, "/");
+
+	strcat(pathToReduceRutine, finalFileName);
+	strcat(pathToSTDOUTFile, finalFileName);
+	strcat(pathToSTDERRFile, finalFileName);
+	strcat(pathToFinalFile, finalFileName);
+
+	strcat(pathToReduceRutine, "_reducerutine");
+	strcat(pathToSTDOUTFile, "_stdout");
+	strcat(pathToSTDERRFile, "_stderr");
+	printf("PATHS: \n\n%s\n%s\n%s\n%s\n\n", pathToReduceRutine, pathToSTDOUTFile, pathToSTDERRFile, pathToFinalFile);
+	fflush(stdout);
+	/************** WRITE ALL FILE PATHS. ******************/
+
+	node_createExecutableFileFromString(pathToReduceRutine, reduceRutine);
+
+	commandSize = 4 + strlen(node_config->tmpDir) + 1 + strlen(tmpFilePathToReduce) + 3 + strlen(pathToReduceRutine) + 2 + strlen(pathToSTDOUTFile) + 3 + strlen(pathToSTDERRFile) + 1;
+	command = malloc(commandSize);
+	snprintf(command, commandSize, "cat %s/%s | %s >%s 2>%s", node_config->tmpDir, tmpFilePathToReduce, pathToReduceRutine, pathToSTDOUTFile, pathToSTDERRFile);
+
+	printf("COM\n\n%s\n\n", command);
+	fflush(stdout);
+	bool result = 1;
+	if (system(command) == -1) {
+		result = 0;
+	}
+
+	free(command);
+
+	return result;
 }
 
 char* node_getFileContent(char *tmpName) {
@@ -206,7 +262,12 @@ char* node_getFileContent(char *tmpName) {
 }
 
 void node_waitUntilExit() {
-	pthread_mutex_t keepRunning = PTHREAD_MUTEX_INITIALIZER;
+	pthread_mutex_t keepRunning;
+
+	if (pthread_mutex_init(&keepRunning, NULL) != 0) {
+		log_error(node_logger, "Error while trying to create new mutex: keepRunning");
+		return;
+	}
 
 	void intHandler(int dummy) {
 		pthread_mutex_unlock(&keepRunning);
@@ -215,6 +276,7 @@ void node_waitUntilExit() {
 	signal(SIGINT, intHandler);
 	pthread_mutex_lock(&keepRunning); // Locks it
 	pthread_mutex_lock(&keepRunning); // Waits till it is unlocked.
+	pthread_mutex_destroy(&keepRunning);
 }
 
 bool node_init() {
@@ -233,10 +295,12 @@ bool node_init() {
 	if (createFile) {
 		int fd = open(node_config->binFilePath, O_TRUNC | O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
 		if (fd == -1) {
+			log_error(node_logger, "Error while trying to open the binFile.");
 			return 0;
 		}
 
 		if (ftruncate(fd, BLOCK_SIZE * node_config->blocksCount) == -1) {
+			log_error(node_logger, "Error while trying to truncate the binFile.");
 			return 0;
 		}
 
@@ -254,8 +318,13 @@ bool node_init() {
 		log_error(node_logger, "An error occurred while trying to open the bin file.");
 		return 0;
 	}
-	binFileMap = mmap(0, BLOCK_SIZE * node_config->blocksCount, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+	binFileMap = mmap(0, BLOCK_SIZE * node_config->blocksCount, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, fd, 0);
 	close(fd);
+
+	if (!binFileMap) {
+		log_error(node_logger, "Error while trying to map the binFile.");
+		return 0;
+	}
 	// ...
 
 	// Create mutex for blocks
@@ -263,6 +332,7 @@ bool node_init() {
 	int i;
 	for (i = 0; i < node_config->blocksCount; i++) {
 		if (pthread_mutex_init(&blocks_mutex[i], NULL) != 0) {
+			log_error(node_logger, "Error while trying to create the block mutex.");
 			return 0;
 		}
 	}
@@ -271,6 +341,7 @@ bool node_init() {
 	return 1;
 }
 
+// TODO no conviene hacer el map completo porque tira SEGAFULT,... nose que onda, hacer un mmap usando la parte del bloque y fue?
 char* node_getBlock(uint16_t numBlock) {
 	log_info(node_logger, "Getting block number %d", numBlock);
 
@@ -345,15 +416,19 @@ int node_initConfig(char* configFile) {
 }
 
 void node_free() {
-	munmap(binFileMap, BLOCK_SIZE * node_config->blocksCount);
-
-	int i;
-	for (i = 0; i < node_config->blocksCount; i++) {
-		pthread_mutex_destroy(&blocks_mutex[i]);
+	if (binFileMap) {
+		munmap(binFileMap, BLOCK_SIZE * node_config->blocksCount);
 	}
-	free(blocks_mutex);
 
 	if (node_config) {
+		if (blocks_mutex) {
+			int i;
+			for (i = 0; i < node_config->blocksCount; i++) {
+				pthread_mutex_destroy(&blocks_mutex[i]);
+			}
+			free(blocks_mutex);
+		}
+
 		if (node_config->fsIp) {
 			free(node_config->fsIp);
 		}
