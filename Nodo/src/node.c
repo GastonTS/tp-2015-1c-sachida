@@ -14,7 +14,6 @@ void node_waitUntilExit();
 bool node_init();
 void node_free();
 
-char* node_popen_read(char *command);
 bool node_popen_write(char *command, char *data);
 bool node_createExecutableFileFromString(char *pathToFile, char *str);
 
@@ -128,8 +127,8 @@ bool node_popen_write(char *command, char *data) {
 	return 1;
 }
 
-bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpName) {
-	log_info(node_logger, "Executing MAP rutine on block number %d. Saving sorted to file in tmp dir as: %s", numBlock, tmpName);
+bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpFileName) {
+	log_info(node_logger, "Executing MAP rutine on block number %d. Saving sorted to file in tmp dir as: %s", numBlock, tmpFileName);
 	// First, get the block data..
 	char *blockData = node_getBlock(numBlock);
 
@@ -137,7 +136,7 @@ bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpName) {
 	char *command;
 
 	/************** WRITE ALL FILE PATHS. ******************/
-	size_t pathToTmpFileSize = strlen(node_config->tmpDir) + 1 + strlen(tmpName) + 1;
+	size_t pathToTmpFileSize = strlen(node_config->tmpDir) + 1 + strlen(tmpFileName) + 1;
 
 	char pathToMapRutine[pathToTmpFileSize + 20];
 	char pathToSTDOUTFile[pathToTmpFileSize + 20];
@@ -154,10 +153,10 @@ bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpName) {
 	strcat(pathToSTDERRFile, "/");
 	strcat(pathToFinalSortedFile, "/");
 
-	strcat(pathToMapRutine, tmpName);
-	strcat(pathToSTDOUTFile, tmpName);
-	strcat(pathToSTDERRFile, tmpName);
-	strcat(pathToFinalSortedFile, tmpName);
+	strcat(pathToMapRutine, tmpFileName);
+	strcat(pathToSTDOUTFile, tmpFileName);
+	strcat(pathToSTDERRFile, tmpFileName);
+	strcat(pathToFinalSortedFile, tmpFileName);
 
 	strcat(pathToMapRutine, "_maprutine");
 	strcat(pathToSTDOUTFile, "_stdout");
@@ -246,7 +245,7 @@ bool node_executeReduceRutine(char *reduceRutine, char *tmpFilePathToReduce, cha
 	return result;
 }
 
-char* node_getFileContent(char *tmpName) {
+char* node_getFileContent(char *tmpFileName) {
 	// TODO .
 	/*Devolverá   el   contenido   del   archivo   de   Espacio   Temporal solicitado.
 	 Se usara en el return de las funciones para devolver los archivos almencenadaso en memoria temporal
@@ -278,41 +277,40 @@ bool node_init() {
 	bool createFile = 0;
 	bool binFileExists = access(node_config->binFilePath, F_OK) != -1;
 
-	if (node_config->newNode) {
+	if (node_config->newNode || !binFileExists) {
 		createFile = 1;
+	}
+
+	int fd;
+	if (createFile) {
+		fd = open(node_config->binFilePath, O_TRUNC | O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
 	} else {
-		if (!binFileExists) {
-			// If it is not a new node but the file does not exist, then I create it. Otherwise it will be kept intact.
-			createFile = 1;
-		}
+		fd = open(node_config->binFilePath, O_RDWR);
+	}
+
+	if (fd == -1) {
+		log_error(node_logger, "Error while trying to open the binFile.");
+		return 0;
 	}
 
 	if (createFile) {
-		int fd = open(node_config->binFilePath, O_TRUNC | O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-		if (fd == -1) {
-			log_error(node_logger, "Error while trying to open the binFile.");
-			return 0;
-		}
-
 		if (ftruncate(fd, BLOCK_SIZE * node_config->blocksCount) == -1) {
 			log_error(node_logger, "Error while trying to truncate the binFile.");
 			return 0;
 		}
-
-		close(fd);
 	} else {
-		//fd = open(node_config->binFilePath, O_TRUNC); // Truncate just in case the blokcsCount changed..
+		// File exists, should check that size matches
+		struct stat stat;
+		fstat(fd, &stat);
+		if (stat.st_size != BLOCK_SIZE * node_config->blocksCount) {
+			log_error(node_logger, "You cannot change the size of the bin file if you are not a new node..");
+			return 0;
+		}
 	}
 	// ...
 
 	// Map the file
 	log_info(node_logger, "Mapping the binFile..");
-
-	int fd = open(node_config->binFilePath, O_RDWR);
-	if (fd == -1) {
-		log_error(node_logger, "An error occurred while trying to open the bin file.");
-		return 0;
-	}
 	binFileMap = mmap(0, BLOCK_SIZE * node_config->blocksCount, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, fd, 0);
 	close(fd);
 

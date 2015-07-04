@@ -29,8 +29,8 @@ char* node_getBlock(uint16_t numBlock);
 void node_freeBlock(char *blockStr);
 void node_setBlock(uint16_t numBlock, char *blockData);
 
-bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpName);
+bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpFileName);
 bool node_executeReduceRutine(char *reduceRutine, char *tmpFilePathToReduce, char *finalFileName);
-char* node_getFileContent(char *tmpName);
+char* node_getFileContent(char *tmpFileName);
 
 #endif
