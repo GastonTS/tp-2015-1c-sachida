@@ -130,56 +130,36 @@ bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpFileName
 	size_t pathToTmpFileSize = strlen(node_config->tmpDir) + 1 + strlen(tmpFileName) + 1;
 
 	char pathToMapRutine[pathToTmpFileSize + 20];
-	char pathToSTDOUTFile[pathToTmpFileSize + 20];
 	char pathToSTDERRFile[pathToTmpFileSize + 20];
 	char pathToFinalSortedFile[pathToTmpFileSize];
 
 	strcpy(pathToMapRutine, node_config->tmpDir);
-	strcpy(pathToSTDOUTFile, node_config->tmpDir);
 	strcpy(pathToSTDERRFile, node_config->tmpDir);
 	strcpy(pathToFinalSortedFile, node_config->tmpDir);
 
 	strcat(pathToMapRutine, "/");
-	strcat(pathToSTDOUTFile, "/");
 	strcat(pathToSTDERRFile, "/");
 	strcat(pathToFinalSortedFile, "/");
 
 	strcat(pathToMapRutine, tmpFileName);
-	strcat(pathToSTDOUTFile, tmpFileName);
 	strcat(pathToSTDERRFile, tmpFileName);
 	strcat(pathToFinalSortedFile, tmpFileName);
 
 	strcat(pathToMapRutine, "_maprutine");
-	strcat(pathToSTDOUTFile, "_stdout");
 	strcat(pathToSTDERRFile, "_stderr");
 	/************** WRITE ALL FILE PATHS. ******************/
 
 	node_createExecutableFileFromString(pathToMapRutine, mapRutine);
 
-	commandSize = strlen(pathToMapRutine) + strlen(pathToSTDOUTFile) + strlen(pathToSTDERRFile) + 6;
+	commandSize = strlen(pathToMapRutine) + 9 + strlen(pathToFinalSortedFile) + 3 + strlen(pathToSTDERRFile) + 1;
 	command = malloc(commandSize);
-	snprintf(command, commandSize, "%s >%s 2>%s", pathToMapRutine, pathToSTDOUTFile, pathToSTDERRFile);
+	snprintf(command, commandSize, "%s | sort >%s 2>%s", pathToMapRutine, pathToFinalSortedFile, pathToSTDERRFile);
 
 	bool result = node_popen_write(command, blockData);
 	free(command);
 	free(blockData);
 
-	if (!result) {
-		return 0;
-	}
-
-	// SORT the results.. TODO check the stderr ??
-
-	char sortCommand[] = "/usr/bin/sort";
-	commandSize = strlen(sortCommand) + strlen(pathToSTDOUTFile) + strlen(pathToFinalSortedFile) + 5;
-	command = malloc(commandSize);
-	snprintf(command, commandSize, "%s %s > %s", sortCommand, pathToSTDOUTFile, pathToFinalSortedFile);
-
-	if (system(command) == -1) {
-		result = 0;
-	}
-
-	free(command);
+	// TODO chech stderr ?
 
 	return result;
 }
@@ -200,38 +180,35 @@ bool node_executeReduceRutine(char *reduceRutine, char *tmpFilePathToReduce, cha
 	size_t pathToTmpFileSize = strlen(node_config->tmpDir) + 1 + strlen(finalFileName) + 1;
 
 	char pathToReduceRutine[pathToTmpFileSize + 20];
-	char pathToSTDOUTFile[pathToTmpFileSize + 20];
 	char pathToSTDERRFile[pathToTmpFileSize + 20];
 	char pathToFinalFile[pathToTmpFileSize];
 
 	strcpy(pathToReduceRutine, node_config->tmpDir);
-	strcpy(pathToSTDOUTFile, node_config->tmpDir);
 	strcpy(pathToSTDERRFile, node_config->tmpDir);
 	strcpy(pathToFinalFile, node_config->tmpDir);
 
 	strcat(pathToReduceRutine, "/");
-	strcat(pathToSTDOUTFile, "/");
 	strcat(pathToSTDERRFile, "/");
 	strcat(pathToFinalFile, "/");
 
 	strcat(pathToReduceRutine, finalFileName);
-	strcat(pathToSTDOUTFile, finalFileName);
 	strcat(pathToSTDERRFile, finalFileName);
 	strcat(pathToFinalFile, finalFileName);
 
 	strcat(pathToReduceRutine, "_reducerutine");
-	strcat(pathToSTDOUTFile, "_stdout");
 	strcat(pathToSTDERRFile, "_stderr");
 	/************** WRITE ALL FILE PATHS. ******************/
 
 	node_createExecutableFileFromString(pathToReduceRutine, reduceRutine);
 
-	commandSize = 4 + strlen(node_config->tmpDir) + 1 + strlen(tmpFilePathToReduce) + 3 + strlen(pathToReduceRutine) + 2 + strlen(pathToSTDOUTFile) + 3 + strlen(pathToSTDERRFile) + 1;
+	commandSize = 4 + strlen(node_config->tmpDir) + 1 + strlen(tmpFilePathToReduce) + 3 + strlen(pathToReduceRutine) + 2 + strlen(pathToFinalFile) + 3 + strlen(pathToSTDERRFile) + 1;
 	command = malloc(commandSize);
-	snprintf(command, commandSize, "cat %s/%s | %s >%s 2>%s", node_config->tmpDir, tmpFilePathToReduce, pathToReduceRutine, pathToSTDOUTFile, pathToSTDERRFile);
+	snprintf(command, commandSize, "cat %s/%s | %s >%s 2>%s", node_config->tmpDir, tmpFilePathToReduce, pathToReduceRutine, pathToFinalFile, pathToSTDERRFile);
 
 	bool result = system(command) != -1;
 	free(command);
+
+	// TODO chech stderr ?
 
 	return result;
 }
