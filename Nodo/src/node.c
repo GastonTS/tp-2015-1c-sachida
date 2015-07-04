@@ -98,21 +98,23 @@ bool node_createExecutableFileFromString(char *pathToFile, char *str) {
 	return 1;
 }
 
-char* node_popen_read(char *command) {
-	char line[256];
-	FILE *pipe = popen(command, "r");
-	if (!pipe) {
-		return NULL;
-	}
+/* TODO reomve, i don't think we need it.
+ char* node_popen_read(char *command) {
+ char line[256];
+ FILE *pipe = popen(command, "r");
+ if (!pipe) {
+ return NULL;
+ }
 
-	while (fgets(line, 255, pipe)) {
-		// TODO, do we need popen_read?
-		printf("%s", line);
-	}
-	pclose(pipe);
+ while (fgets(line, 255, pipe)) {
+ // TODO, do we need popen_read?
+ printf("%s", line);
+ }
+ pclose(pipe);
 
-	return NULL; //  TODO
-}
+ return NULL; //  TODO
+ }
+ */
 
 bool node_popen_write(char *command, char *data) {
 	FILE *pipe = popen(command, "w");
@@ -230,8 +232,6 @@ bool node_executeReduceRutine(char *reduceRutine, char *tmpFilePathToReduce, cha
 	strcat(pathToReduceRutine, "_reducerutine");
 	strcat(pathToSTDOUTFile, "_stdout");
 	strcat(pathToSTDERRFile, "_stderr");
-	printf("PATHS: \n\n%s\n%s\n%s\n%s\n\n", pathToReduceRutine, pathToSTDOUTFile, pathToSTDERRFile, pathToFinalFile);
-	fflush(stdout);
 	/************** WRITE ALL FILE PATHS. ******************/
 
 	node_createExecutableFileFromString(pathToReduceRutine, reduceRutine);
@@ -240,19 +240,14 @@ bool node_executeReduceRutine(char *reduceRutine, char *tmpFilePathToReduce, cha
 	command = malloc(commandSize);
 	snprintf(command, commandSize, "cat %s/%s | %s >%s 2>%s", node_config->tmpDir, tmpFilePathToReduce, pathToReduceRutine, pathToSTDOUTFile, pathToSTDERRFile);
 
-	printf("COM\n\n%s\n\n", command);
-	fflush(stdout);
-	bool result = 1;
-	if (system(command) == -1) {
-		result = 0;
-	}
-
+	bool result = system(command) != -1;
 	free(command);
 
 	return result;
 }
 
 char* node_getFileContent(char *tmpName) {
+	// TODO .
 	/*Devolverá   el   contenido   del   archivo   de   Espacio   Temporal solicitado.
 	 Se usara en el return de las funciones para devolver los archivos almencenadaso en memoria temporal
 	 getFileContent probablemente no sea tan "útil" como usuario, pero sí la usan los Nodos para pasarse datos para el Reduce, y, ya que está, exponérsela al FS ayuda a que,
