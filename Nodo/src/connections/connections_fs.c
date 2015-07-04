@@ -1,5 +1,4 @@
 #include "connections_fs.h"
-#include "connections.h"
 
 void connections_fs_setDisconnected();
 void *connections_fs_connect(void *param);

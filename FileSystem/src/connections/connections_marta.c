@@ -19,7 +19,9 @@ void connections_marta_shutdown() {
 }
 
 void* connections_marta_accept(void *param) {
-	int socketAccepted = *(int *) param;
+	int *socketAcceptedPtr = (int *) param;
+	int socketAccepted = *socketAcceptedPtr;
+	free(socketAcceptedPtr);
 
 	if (martaSocket != -1) {
 		log_error(mdfs_logger, "Marta tried to connect but rejected because there was another Marta connected");

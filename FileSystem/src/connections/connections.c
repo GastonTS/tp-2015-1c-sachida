@@ -52,7 +52,10 @@ void *connections_listenerThread(void *param) {
 				log_info(mdfs_logger, "Marta connected but rejected because minimum nodes count was not reached\n");
 				socket_close(socketAccepted);
 			} else {
-				if (pthread_create(&acceptedConnectionTh, NULL, (void *) connections_marta_accept, (void *) &socketAccepted)) {
+				int *socketAcceptedPtr = malloc(sizeof(socketAccepted));
+				*socketAcceptedPtr = socketAccepted;
+				if (pthread_create(&acceptedConnectionTh, NULL, (void *) connections_marta_accept, (void *) socketAcceptedPtr)) {
+					free(socketAcceptedPtr);
 					log_error(mdfs_logger, "Error while trying to create new thread: connections_marta_accept");
 				}
 				pthread_detach(acceptedConnectionTh);

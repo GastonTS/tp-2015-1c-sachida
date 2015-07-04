@@ -1,6 +1,7 @@
 #include "connections.h"
 #include "connections_fs.h"
 #include "connections_job.h"
+#include "connections_node.h"
 
 void *connections_listenerThread(void *param);
 
@@ -37,13 +38,22 @@ void *connections_listenerThread(void *param) {
 		}
 
 		pthread_t acceptedConnectionTh;
-		int handshake = socket_handshake_to_client(socketAccepted, HANDSHAKE_NODO, HANDSHAKE_JOB);
+		int handshake = socket_handshake_to_client(socketAccepted, HANDSHAKE_NODO, HANDSHAKE_JOB | HANDSHAKE_NODO);
 
 		if (handshake == HANDSHAKE_JOB) {
 			int *socketAcceptedPtr = malloc(sizeof(socketAccepted));
 			*socketAcceptedPtr = socketAccepted;
 			if (pthread_create(&acceptedConnectionTh, NULL, (void *) connections_job_accept, (void *) socketAcceptedPtr)) {
+				free(socketAcceptedPtr);
 				log_error(node_logger, "Error while trying to create new thread: connections_job_accept");
+			}
+			pthread_detach(acceptedConnectionTh);
+		} else if (handshake == HANDSHAKE_NODO) {
+			int *socketAcceptedPtr = malloc(sizeof(socketAccepted));
+			*socketAcceptedPtr = socketAccepted;
+			if (pthread_create(&acceptedConnectionTh, NULL, (void *) connections_node_accept, (void *) socketAcceptedPtr)) {
+				free(socketAcceptedPtr);
+				log_error(node_logger, "Error while trying to create new thread: connections_node_accept");
 			}
 			pthread_detach(acceptedConnectionTh);
 		}

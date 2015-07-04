@@ -1,5 +1,4 @@
 #include "connections_job.h"
-#include "connections.h"
 #include "../node.h"
 
 void* connections_job_listenActions(void *param);
