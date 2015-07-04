@@ -48,13 +48,22 @@ int main(int argc, char *argv[]) {
 
 	// TODO just testing.
 	if (0) {
+		char *str = node_getTmpFileContent("reducido_reducerutine");
+		printf("%s", str);
+		free(str);
+		node_free();
+		exit(1);
+	}
+	if (0) {
 		char reduceRutine[] =
 				"#!/usr/bin/perl\n# This script takes data with the folowing format ordered by DATE;WBAN and returns the day, the WBAN, the greater temperature and what time that measure was sampled\n# Input (ordered!) DATE;WBAN;TEMP;TIME\n# Output: DATE;WBAN;MAX_DAILY_TEMP_IN_WBAN;TIME_OF_MEASUREMENT\n\n$old_key = '';\n$wban_max = '';\n$key_max = '';\n$max_hour = '';\nwhile(<stdin>) {\n\n @chunks = split(';', $_);\n \n\n if (($old_key eq $chunks[0]) && ($wban_max eq $chunks[1])){\n if($chunks[2] > $key_max) {\n $key_max = $chunks[2];\n $max_hour = $chunks[3];\n }\n } else {\n if ($old_key ne '') {\n print $old_key . \";\" . $wban_max . \";\" . $key_max . \";\" . $max_hour;\n }\n $old_key = $chunks[0];\n $wban_max = $chunks[1];\n $key_max = $chunks[2]; \n $max_hour = $chunks[3];\n }\n}\n\nif ($old_key ne \"Date\") {\n print $old_key . \";\" . $wban_max . \";\" . $key_max . \";\" . $max_hour;\n}\n";
 		char mapRutine[] = "#!/bin/bash \n cat - | awk -F ',' '{print $2 \";\" $1  \";\" $13 \";\" $3}'\n";
 		node_executeMapRutine(mapRutine, 0, "mapeado");
 		node_executeReduceRutine(reduceRutine, "mapeado", "reducido");
-		return 1;
+		node_free();
+		exit(1);
 	}
+	//.... TODO delete
 
 	connections_initialize();
 	log_info(node_logger, "Node Initialized successfully.");
@@ -97,24 +106,6 @@ bool node_createExecutableFileFromString(char *pathToFile, char *str) {
 	return 1;
 }
 
-/* TODO reomve, i don't think we need it.
- char* node_popen_read(char *command) {
- char line[256];
- FILE *pipe = popen(command, "r");
- if (!pipe) {
- return NULL;
- }
-
- while (fgets(line, 255, pipe)) {
- // TODO, do we need popen_read?
- printf("%s", line);
- }
- pclose(pipe);
-
- return NULL; //  TODO
- }
- */
-
 bool node_popen_write(char *command, char *data) {
 	FILE *pipe = popen(command, "w");
 	if (!pipe) {
@@ -140,7 +131,7 @@ bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpFileName
 
 	char pathToMapRutine[pathToTmpFileSize + 20];
 	char pathToSTDOUTFile[pathToTmpFileSize + 20];
-	char pathToSTDERRFile[+pathToTmpFileSize + 20];
+	char pathToSTDERRFile[pathToTmpFileSize + 20];
 	char pathToFinalSortedFile[pathToTmpFileSize];
 
 	strcpy(pathToMapRutine, node_config->tmpDir);
@@ -245,14 +236,28 @@ bool node_executeReduceRutine(char *reduceRutine, char *tmpFilePathToReduce, cha
 	return result;
 }
 
-char* node_getFileContent(char *tmpFileName) {
-	// TODO .
-	/*Devolverá   el   contenido   del   archivo   de   Espacio   Temporal solicitado.
-	 Se usara en el return de las funciones para devolver los archivos almencenadaso en memoria temporal
-	 getFileContent probablemente no sea tan "útil" como usuario, pero sí la usan los Nodos para pasarse datos para el Reduce, y, ya que está, exponérsela al FS ayuda a que,
-	 por ejemplo, mientras desarrollan puedan chequear de manera "fácil" que los temporales se estén generando bien. Poder inspeccionar lo que está pasando en el sistema siempre
-	 es bueno, y si encima viene casi gratis en cuanto a esfuerzo de desarrollo, mejor.*/
-	return "LoVemo";
+char* node_getTmpFileContent(char *tmpFileName) {
+	char pathToTmpFileName[strlen(node_config->tmpDir) + 1 + strlen(tmpFileName)];
+	strcpy(pathToTmpFileName, node_config->tmpDir);
+	strcat(pathToTmpFileName, "/");
+	strcat(pathToTmpFileName, tmpFileName);
+
+	int fd = open(pathToTmpFileName, O_RDONLY);
+	if (fd == -1) {
+		return NULL;
+	}
+
+	//Get the size of the file.
+	struct stat stat;
+	fstat(fd, &stat);
+
+	char *fileMap = (char *) mmap(0, stat.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	char *fileStr = strdup(fileMap);
+
+	munmap(fileMap, stat.st_size);
+	close(fd);
+
+	return fileStr;
 }
 
 void node_waitUntilExit() {
@@ -341,7 +346,6 @@ char* node_getBlock(uint16_t numBlock) {
 	char *blockStr = malloc(sizeof(char) * BLOCK_SIZE);
 
 	pthread_mutex_lock(&blocks_mutex[numBlock]);
-	// TODO remove, just testing strcpy(blockStr, ",primero\n,segundo\n,tercero\n,cuarto");
 	memcpy(blockStr, binFileMap + (numBlock * BLOCK_SIZE), BLOCK_SIZE);
 	pthread_mutex_unlock(&blocks_mutex[numBlock]);
 

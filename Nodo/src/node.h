@@ -31,6 +31,6 @@ void node_setBlock(uint16_t numBlock, char *blockData);
 
 bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpFileName);
 bool node_executeReduceRutine(char *reduceRutine, char *tmpFilePathToReduce, char *finalFileName);
-char* node_getFileContent(char *tmpFileName);
+char* node_getTmpFileContent(char *tmpFileName);
 
 #endif
