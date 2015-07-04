@@ -74,50 +74,6 @@ int main(int argc, char *argv[]) {
 	return EXIT_SUCCESS;
 }
 
-bool node_createExecutableFileFromString(char *pathToFile, char *str) {
-	FILE *fp = fopen(pathToFile, "w");
-	if (!fp) {
-		return 0;
-	}
-
-	if (str) {
-		fputs(str, fp);
-	}
-
-	int fd = fileno(fp);
-	if (!fd) {
-		fclose(fp);
-		return 0;
-	}
-
-	struct stat st;
-	if (fstat(fd, &st)) {
-		fclose(fp);
-		return 0;
-	}
-
-	// Sets exec mode.
-	if (fchmod(fd, 0755)) {
-		fclose(fp);
-		return 0;
-	}
-
-	fclose(fp);
-	return 1;
-}
-
-bool node_popen_write(char *command, char *data) {
-	FILE *pipe = popen(command, "w");
-	if (!pipe) {
-		free(command);
-		return 0;
-	}
-
-	fputs(data, pipe);
-	pclose(pipe);
-	return 1;
-}
-
 bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpFileName) {
 	log_info(node_logger, "Executing MAP rutine on block number %d. Saving sorted to file in tmp dir as: %s", numBlock, tmpFileName);
 	// First, get the block data..
@@ -237,22 +193,69 @@ char* node_getTmpFileContent(char *tmpFileName) {
 	return fileStr;
 }
 
-void node_waitUntilExit() {
-	pthread_mutex_t keepRunning;
+// TODO no conviene hacer el map completo porque tira SEGAFULT,... nose que onda, hacer un mmap usando la parte del bloque y fue?
+char* node_getBlock(uint16_t numBlock) {
+	log_info(node_logger, "Getting block number %d", numBlock);
 
-	if (pthread_mutex_init(&keepRunning, NULL) != 0) {
-		log_error(node_logger, "Error while trying to create new mutex: keepRunning");
-		return;
+	char *blockStr = malloc(sizeof(char) * BLOCK_SIZE);
+
+	pthread_mutex_lock(&blocks_mutex[numBlock]);
+	memcpy(blockStr, binFileMap + (numBlock * BLOCK_SIZE), BLOCK_SIZE);
+	pthread_mutex_unlock(&blocks_mutex[numBlock]);
+
+	return blockStr;
+}
+
+void node_setBlock(uint16_t numBlock, char *blockStr) {
+	log_info(node_logger, "Setting block number %d", numBlock);
+
+	pthread_mutex_lock(&blocks_mutex[numBlock]);
+	memcpy(binFileMap + (numBlock * BLOCK_SIZE), blockStr, strlen(blockStr) + 1);
+	pthread_mutex_unlock(&blocks_mutex[numBlock]);
+}
+
+bool node_createExecutableFileFromString(char *pathToFile, char *str) {
+	FILE *fp = fopen(pathToFile, "w");
+	if (!fp) {
+		return 0;
 	}
 
-	void intHandler(int dummy) {
-		pthread_mutex_unlock(&keepRunning);
+	if (str) {
+		fputs(str, fp);
 	}
 
-	signal(SIGINT, intHandler);
-	pthread_mutex_lock(&keepRunning); // Locks it
-	pthread_mutex_lock(&keepRunning); // Waits till it is unlocked.
-	pthread_mutex_destroy(&keepRunning);
+	int fd = fileno(fp);
+	if (!fd) {
+		fclose(fp);
+		return 0;
+	}
+
+	struct stat st;
+	if (fstat(fd, &st)) {
+		fclose(fp);
+		return 0;
+	}
+
+	// Sets exec mode.
+	if (fchmod(fd, 0755)) {
+		fclose(fp);
+		return 0;
+	}
+
+	fclose(fp);
+	return 1;
+}
+
+bool node_popen_write(char *command, char *data) {
+	FILE *pipe = popen(command, "w");
+	if (!pipe) {
+		free(command);
+		return 0;
+	}
+
+	fputs(data, pipe);
+	pclose(pipe);
+	return 1;
 }
 
 bool node_init() {
@@ -316,27 +319,6 @@ bool node_init() {
 	return 1;
 }
 
-// TODO no conviene hacer el map completo porque tira SEGAFULT,... nose que onda, hacer un mmap usando la parte del bloque y fue?
-char* node_getBlock(uint16_t numBlock) {
-	log_info(node_logger, "Getting block number %d", numBlock);
-
-	char *blockStr = malloc(sizeof(char) * BLOCK_SIZE);
-
-	pthread_mutex_lock(&blocks_mutex[numBlock]);
-	memcpy(blockStr, binFileMap + (numBlock * BLOCK_SIZE), BLOCK_SIZE);
-	pthread_mutex_unlock(&blocks_mutex[numBlock]);
-
-	return blockStr;
-}
-
-void node_setBlock(uint16_t numBlock, char *blockStr) {
-	log_info(node_logger, "Setting block number %d", numBlock);
-
-	pthread_mutex_lock(&blocks_mutex[numBlock]);
-	memcpy(binFileMap + (numBlock * BLOCK_SIZE), blockStr, strlen(blockStr) + 1);
-	pthread_mutex_unlock(&blocks_mutex[numBlock]);
-}
-
 int node_initConfig(char* configFile) {
 	t_config* config;
 	int failure = 0;
@@ -387,6 +369,24 @@ int node_initConfig(char* configFile) {
 
 	config_destroy(config);
 	return !failure;
+}
+
+void node_waitUntilExit() {
+	pthread_mutex_t keepRunning;
+
+	if (pthread_mutex_init(&keepRunning, NULL) != 0) {
+		log_error(node_logger, "Error while trying to create new mutex: keepRunning");
+		return;
+	}
+
+	void intHandler(int dummy) {
+		pthread_mutex_unlock(&keepRunning);
+	}
+
+	signal(SIGINT, intHandler);
+	pthread_mutex_lock(&keepRunning); // Locks it
+	pthread_mutex_lock(&keepRunning); // Waits till it is unlocked.
+	pthread_mutex_destroy(&keepRunning);
 }
 
 void node_free() {
