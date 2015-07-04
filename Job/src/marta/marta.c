@@ -66,6 +66,19 @@ void serializeConfigMaRTA(int fd, bool combiner, char* stringFiles) {
 }
 
 /* RECIBO ORDEN DE MAP O REDUCE DE MaRTA */
+void desserializeDieOrder(void *buffer) {
+	uint8_t finalResult;
+	memcpy(&finalResult, buffer, sizeof(uint8_t));
+	if (finalResult == COMMAND_RESULT_OK)
+		log_info(logger, "Job Success!");
+	else if (finalResult == COMMAND_RESULT_FILEUNAVAILABLE)
+		log_info(logger, "Job Failed: One of the files is unavailable");
+	else if (finalResult == COMMAND_RESULT_REDUCEFAILED)
+		log_info(logger, "Job Failed: Reduce failed");
+	else if (finalResult == COMMAND_RESULT_REDUCEFAILED)
+		log_info(logger, "Job Failed: don't know why");
+}
+
 void recvOrder(int fd) {
 	void *buffer;
 	size_t sbuffer = 0;
@@ -98,8 +111,8 @@ void recvOrder(int fd) {
 		pthread_detach(hilo_reduce);
 	}
 
-	else if (order == COMMAND_MARTA_TO_JOB_DIE) {
-		log_info(logger, "Die Job");
+	else if (order == COMMAND_MARTA_TO_JOB_DIE){
+		desserializeDieOrder(buffer + sOrder);
 		freeCfg();
 		free(buffer);
 		exit(0);
@@ -119,6 +132,7 @@ void atenderMapper(void * parametros) {
 
 	if ((sock_nodo = socket_connect(map->ip_nodo, map->port_nodo)) < 0) {
 		log_error(logger, "Error al conectar map con Nodo %d", sock_nodo);
+		failMap(map);
 		freeThreadMap(map);
 		pthread_exit(&sock_nodo);
 		return;
@@ -147,19 +161,7 @@ void atenderMapper(void * parametros) {
 
 	/* Si se cae el nodo le mando que murio */
 	if (status < 0) {
-		uint8_t comando = COMMAND_MAP;
-		size_t scomando = sizeof(uint8_t);
-		size_t sbool = sizeof(bool);
-		bool fallo = 0;
-		size_t sidmap = sizeof(uint16_t);
-		size_t sbufferConf = scomando + sbool + sidmap;
-		void* bufferConf = malloc(sbufferConf);
-		bufferConf = memset(bufferConf, '\0', sbufferConf);
-		memcpy(bufferConf, &comando, scomando);
-		memcpy(bufferConf + scomando, &fallo, sbool);
-		memcpy(bufferConf + scomando + sbool, &map->mapID, sidmap);
-		socket_send_packet(sock_marta, bufferConf, sbufferConf);
-		free(bufferConf);
+		failMap(map);
 		//free(buffer);
 	} else {
 		bool conf;
@@ -175,6 +177,21 @@ void atenderMapper(void * parametros) {
 
 }
 
+void failMap(t_map* map){
+	uint8_t comando = COMMAND_MAP;
+	size_t scomando = sizeof(uint8_t);
+	size_t sbool = sizeof(bool);
+	bool fallo = 0;
+	size_t sidmap = sizeof(uint16_t);
+	size_t sbufferConf = scomando + sbool + sidmap;
+	void* bufferConf = malloc(sbufferConf);
+	bufferConf = memset(bufferConf, '\0', sbufferConf);
+	memcpy(bufferConf, &comando, scomando);
+	memcpy(bufferConf + scomando, &fallo, sbool);
+	memcpy(bufferConf + scomando + sbool, &map->mapID, sidmap);
+	socket_send_packet(sock_marta, bufferConf, sbufferConf);
+	free(bufferConf);
+}
 void confirmarMap(bool confirmacion, t_map* map) {
 
 	/*TODO ARMAR METODO? */
@@ -223,6 +240,7 @@ void atenderReducer(void * parametros) {
 
 	if ((sock_nodo = socket_connect(reduce->ip_nodo, reduce->port_nodo)) < 0) {
 		log_error(logger, "Error al conectar reduce con Nodo %d", sock_nodo);
+		failReduce(reduce);
 		freeThreadReduce(reduce);
 		pthread_exit(&ret_val);
 	}
@@ -249,19 +267,7 @@ void atenderReducer(void * parametros) {
 
 	/* Si se cae el nodo le mando que murio */
 	if (status < 0) {
-		uint8_t comando = COMMAND_REDUCE;
-		size_t scomando = sizeof(uint8_t);
-		size_t sbool = sizeof(bool);
-		bool fallo = 0;
-		size_t sidreduce = sizeof(uint16_t);
-		size_t sbufferConf = scomando + sbool + sidreduce;
-		void* bufferConf = malloc(sbufferConf);
-		bufferConf = memset(bufferConf, '\0', sbufferConf);
-		memcpy(bufferConf, &comando, scomando);
-		memcpy(bufferConf + scomando, &fallo, sbool);
-		memcpy(bufferConf + scomando + sbool, &reduce->reduceID, sidreduce);
-		socket_send_packet(sock_marta, bufferConf, sbufferConf);
-		free(bufferConf);
+		failReduce(reduce);
 		//free(buffer);
 	} else {
 		bool conf;
@@ -277,6 +283,21 @@ void atenderReducer(void * parametros) {
 
 }
 
+void failReduce(t_reduce* reduce){
+	uint8_t comando = COMMAND_REDUCE;
+	size_t scomando = sizeof(uint8_t);
+	size_t sbool = sizeof(bool);
+	bool fallo = 0;
+	size_t sidreduce = sizeof(uint16_t);
+	size_t sbufferConf = scomando + sbool + sidreduce;
+	void* bufferConf = malloc(sbufferConf);
+	bufferConf = memset(bufferConf, '\0', sbufferConf);
+	memcpy(bufferConf, &comando, scomando);
+	memcpy(bufferConf + scomando, &fallo, sbool);
+	memcpy(bufferConf + scomando + sbool, &reduce->reduceID, sidreduce);
+	socket_send_packet(sock_marta, bufferConf, sbufferConf);
+	free(bufferConf);
+}
 void confirmarReduce(char confirmacion, t_reduce* reduce, void* bufferNodo) {
 
 	/*TODO ARMAR METODO? */
@@ -301,21 +322,21 @@ void confirmarReduce(char confirmacion, t_reduce* reduce, void* bufferNodo) {
 		free(buffer);
 	} else if (confirmacion == 0) {
 		/* Armo el pkg reduce confirmation */
-		char* tmpfail;
+		/*char* tmpfail;
 		size_t stmpfail;
 
 		memcpy(&stmpfail, bufferNodo + sIdJob, sizeof(size_t));
 		tmpfail = malloc(stmpfail);
-		memcpy(tmpfail, bufferNodo + sizeof(stmpfail), stmpfail);
+		memcpy(tmpfail, bufferNodo + sizeof(stmpfail), stmpfail);*/
 
-		size_t sbuffer = scomando + sOrder + sIdJob + sizeof(size_t) + stmpfail;
+		size_t sbuffer = scomando + sOrder + sIdJob + sizeof(size_t); //+ stmpfail;
 		void* buffer = malloc(sbuffer);
 		buffer = memset(buffer, '\0', sbuffer);
 		memcpy(buffer, &comando, scomando);
 		memcpy(buffer + scomando, &confirmacion, sOrder);
 		memcpy(buffer + scomando + sOrder, &idJob, sIdJob);
-		memcpy(buffer + scomando + sOrder + sIdJob, &stmpfail, sizeof(size_t));
-		memcpy(buffer + scomando + sOrder + sIdJob + sizeof(size_t), &tmpfail, stmpfail);
+		//memcpy(buffer + scomando + sOrder + sIdJob, &stmpfail, sizeof(size_t));
+		//memcpy(buffer + scomando + sOrder + sIdJob + sizeof(size_t), &tmpfail, stmpfail);
 		/* Envio todo a MaRTA */
 		socket_send_packet(sock_marta, &buffer, sbuffer);
 		log_info(logger, "Map %d Failed", reduce->reduceID);

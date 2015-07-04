@@ -3,7 +3,7 @@
 #include "../Connections/Connection.h"
 
 void selectNode(t_copy *copy, t_node **selectedNode, uint16_t *numBlock) {
-	bool lessWorkLoad(t_node *lessBusy, t_node *busy) {
+	bool lessWorkLoad(t_node *lessBusy, t_node *busy) {//TODO: Mutex nodos
 		if (lessBusy && busy)
 			return workLoad(lessBusy->maps, lessBusy->reduces) < workLoad(busy->maps, busy->reduces);
 		return 0;
@@ -64,8 +64,10 @@ int planMaps(t_job *job) {
 		log_trace(logger, "Finished Map Planning Job %d...", job->id);
 		return EXIT_SUCCESS;
 	} else {
-		log_error(logger, "Job %d Failed", job->id);
-		sendDieOrder(job->socket);
+		log_error(logger, "Job %d Failed: One file is unavailable", job->id);
+		sendDieOrder(job->socket, COMMAND_RESULT_FILEUNAVAILABLE);
+		freeJob(job);
+		pthread_exit(0);
 		return EXIT_FAILURE;
 	}
 }
@@ -90,5 +92,5 @@ void rePlanMap(t_job *job, t_map *map) {
 	setTempMapName(map->tempResultName, map->id, job->id);
 
 	notificarMap(job, map);
-	recvResult(job); //XXX test pendiente
+	recvResult(job);
 }

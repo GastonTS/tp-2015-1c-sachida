@@ -8,7 +8,7 @@ t_copy *CreateCopy(char *nodeName, uint16_t numBlock) {
 	return copy;
 }
 
-char* getTime() { //TODO:revisar si se puede ampliar a mili/microsegundos
+char* getTime() {
 	time_t rawtime;
 	struct tm * timeinfo;
 	time(&rawtime);
@@ -123,7 +123,7 @@ t_job *CreateJob(uint16_t id, bool combiner) {
 }
 
 void freeCopy(t_copy *copy) {
-	if (copy->nodeName) { //FIXME si viene sin inicializar estallan los ifs
+	if (copy->nodeName) {
 		free(copy->nodeName);
 	}
 	free(copy);

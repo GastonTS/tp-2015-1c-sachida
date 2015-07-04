@@ -106,7 +106,11 @@ void connections_job_deserializeReduce(int socket, void *buffer) {
 	memcpy(reduceRutine, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint32_t), sReduceRutine);
 	reduceRutine[sReduceRutine] = '\0';
 
-	// TODO node_executeReduceRutine(reduceRutine, numBlock);
+	// TODO bool ok = node_executeReduceRutine(reduceRutine, numBlock);
+
+	bool ok = 1;
+
+	socket_send_packet(socket, &ok, sizeof(ok));
 
 	free(reduceRutine);
 }

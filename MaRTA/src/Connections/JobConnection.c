@@ -4,15 +4,14 @@
 #include "../structs/node.h"
 #include <commons/string.h>
 
-void recvMapsResults(t_job *job);
-
 //**********************************************************************************//
 //									JOB												//
 //**********************************************************************************//
-//TODO: chequear si muere el job
 
 void *acceptJob(void * param) {
-	cantJobs++; //TODO mutex this
+	pthread_mutex_lock(&McantJobs);
+	cantJobs++;
+	pthread_mutex_unlock(&McantJobs);
 	int *socketAcceptedPtr = (int *) param;
 	int jobSocket = *socketAcceptedPtr;
 	free(socketAcceptedPtr);
@@ -26,12 +25,19 @@ void *acceptJob(void * param) {
 		log_info(logger, "Begin Job: %d (No combiner)", job->id);
 
 	planMaps(job);
-	recvMapsResults(job);
 
-	//TODO: Replan reduces
-	if (job->combiner) { //XXX: No probar, probablemente rompa
+	void recvListResults(t_list *list) {
+		int i;
+		int count = list_size(list);
+		for (i = 0; i < count; i++)
+			recvResult(job);
+	}
+
+	recvListResults(job->maps);
+
+	if (job->combiner) {
 		combinerPartialsReducePlanning(job);
-		//TODO: recibir resultados
+		recvListResults(job->partialReduces);
 		combinerFinalReducePlanning(job);
 	} else
 		noCombinerReducePlanning(job);
@@ -39,7 +45,7 @@ void *acceptJob(void * param) {
 	recvResult(job);
 
 	log_info(logger, "Finished Job: %d", job->id);
-	sendDieOrder(job->socket);
+	sendDieOrder(job->socket, COMMAND_RESULT_OK);
 	freeJob(job);
 	return NULL;
 }
@@ -107,13 +113,14 @@ void recvResult(t_job *job) {
 	free(buffer);
 }
 
-e_socket_status sendDieOrder(int socket) {
+e_socket_status sendDieOrder(int socket, uint8_t result) {
 	char order = COMMAND_MARTA_TO_JOB_DIE;
 	size_t sOrder = sizeof(char);
-	size_t sbuffer = sOrder;
+	size_t sbuffer = sOrder + sizeof(uint8_t);
 	void *buffer = malloc(sbuffer);
 	buffer = memset(buffer, '\0', sbuffer);
 	memcpy(buffer, &order, sOrder);
+	memcpy(buffer + sOrder, &result, sizeof(uint8_t));
 	e_socket_status status = socket_send_packet(socket, buffer, sbuffer);
 	free(buffer);
 	return status;
@@ -170,12 +177,6 @@ void desserializeMapResult(void *buffer, t_job *job) {
 		rePlanMap(job, map);
 }
 
-void recvMapsResults(t_job *job) {
-	int i;
-	int mapsCount = list_size(job->maps);
-	for (i = 0; i < mapsCount; i++)
-		recvResult(job);
-}
 //*********************************REDUCE*******************************************//
 size_t totalTempsSize(t_list *temps) {
 	size_t stemps = 0;
@@ -246,19 +247,15 @@ void desserializaReduceResult(void *buffer, t_job *job) {
 
 	bool result;
 	uint16_t idReduce;
-	char failedTemp[60];
-	memset(failedTemp, '\0', sizeof(char) * 60);
 
 	memcpy(&result, buffer, sresult);
 	memcpy(&idReduce, buffer + sresult, sidReduce);
-	memcpy(&failedTemp, buffer + sresult + sidReduce, sizeof(char) * 60);
 	idReduce = ntohs(idReduce);
 
 	if (result) {
 		if (!idReduce) {
 			job->finalReduce->done = 1;
 			removeReduceNode(job->finalReduce);
-			log_trace(logger, "Reduce: %d Done -> Result: %d", idReduce, result);
 		} else {
 			bool findReduce(t_reduce *reduce) {
 				return isReduce(reduce, idReduce);
@@ -266,11 +263,14 @@ void desserializaReduceResult(void *buffer, t_job *job) {
 			t_reduce *reduce = list_find(job->partialReduces, (void *) findReduce);
 			reduce->done = 1;
 			removeReduceNode(reduce);
-			log_trace(logger, "Reduce: %d Done -> Result: %d", idReduce, result);
 		}
 
 	} else {
-		//TODO RePlanReduce
-		printf("Fallo temporal: %s\n", failedTemp);
+		log_info(logger, "Job %d Failed: reduce failed");
+		sendDieOrder(job->socket, COMMAND_RESULT_REDUCEFAILED);
+		freeJob(job);
+		pthread_exit(0);
 	}
+
+	log_trace(logger, "Reduce: %d Done -> Result: %d", idReduce, result);
 }

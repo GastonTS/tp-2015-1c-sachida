@@ -10,7 +10,7 @@ typedef struct {
 	int port;
 	int active;
 	t_list *maps; //Los que esta llevando a cabo
-	uint16_t reduces; //XXX solo para saber la cantidad podria identificarse unequivcamente con el nombre del tempoal
+	uint16_t reduces; //solo para saber la cantidad podria identificarse unequivcamente con el nombre del tempoal
 } t_node;
 
 bool nodeByName(t_node *nodo, char *nombre);

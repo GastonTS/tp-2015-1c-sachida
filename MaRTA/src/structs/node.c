@@ -39,7 +39,7 @@ t_node *findNode(t_list *nodes, char *nodeName) {
 	bool nodeWithName(t_node *node) {
 		return nodeByName(node, nodeName);
 	}
-
+	//XXX Mutex toda la lista?
 	return list_find(nodes, (void*) nodeWithName);
 }
 
@@ -52,10 +52,10 @@ void removeMapNode(t_map *map) {
 	bool isNumBlock(uint16_t numBlock) {
 		return numBlock == map->numBlock;
 	}
-	list_remove_by_condition(selectedNode->maps, (void *) isNumBlock);
+	list_remove_by_condition(selectedNode->maps, (void *) isNumBlock);//TODO: mutex nodo
 }
 
 void removeReduceNode(t_reduce *reduce) {
 	t_node *node = findNode(nodes, reduce->finalNode);
-	node->reduces--;
+	node->reduces--;//TODO: mutex nodo
 }

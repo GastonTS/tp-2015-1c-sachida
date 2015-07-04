@@ -11,6 +11,6 @@ e_socket_status serializeReduceToOrder(int socket, t_reduce *reduce);
 void recvResult(t_job *job);
 void desserializeMapResult(void *buffer, t_job *job);
 void desserializaReduceResult(void *buffer, t_job *job);
-e_socket_status sendDieOrder(int socket);
+e_socket_status sendDieOrder(int socket, uint8_t reason);
 
 #endif
