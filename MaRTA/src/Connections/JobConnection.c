@@ -231,6 +231,7 @@ e_socket_status serializeReduceToOrder(int socket, t_reduce *reduce) {
 	size_t stemps = totalTempsSize(reduce->temps);
 	size_t auxSize = 0;
 	void *tempsBuffer = malloc(stemps);
+	tempsBuffer = memset(tempsBuffer, '\0', stemps);
 	void serializeTempsToBuffer(t_temp *temp) {
 		serializeTemp(temp, tempsBuffer, &auxSize);
 		countTemps++;
