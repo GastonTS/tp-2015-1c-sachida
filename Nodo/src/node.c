@@ -121,12 +121,6 @@ bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpFileName
 }
 
 bool node_executeReduceRutine(char *reduceRutine, char *tmpFilePathToReduce, char *finalFileName) {
-	// TODO
-	/*el reduce recibe un nodo y un nombre de archivo (el FS se encargara de rearmar ese archivo y pasarlo)
-	 El hilo reduce, indica aplicar la rutina sobre varios archvos del espacio temporal, de los cuales uno debe ser siempre local al nodo
-	 * El reduce le manda el nombre de los bloques y los nodos donde se encuentran, el codigo de la rutina de reduce y el nombre del
-	 * archivo donde se alamcenara. Al finalizar se debe informar al JOB que termino*/
-
 	log_info(node_logger, "Executing REDUCE rutine to %s. Saving final result to file in tmp dir as: %s ", tmpFilePathToReduce, finalFileName);
 
 	size_t commandSize;

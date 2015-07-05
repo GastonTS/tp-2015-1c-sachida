@@ -86,6 +86,8 @@ int socket_handshake_to_client(int socket, int hiserver, int hiclient);
 #define COMMAND_FS_TO_NODE_SET_BLOCK 1
 #define COMMAND_FS_TO_NODE_GET_BLOCK 2
 
+#define COMMAND_NODE_GET_TMP_FILE_CONTENT 3
+
 #define COMMAND_MARTA_TO_FS_GET_FILE_BLOCKS 1
 #define COMMAND_MARTA_TO_JOB_DIE 2
 #define COMMAND_RESULT_OK 20
