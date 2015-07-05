@@ -31,7 +31,8 @@ typedef struct{
 	char *ip_nodo;
 	uint16_t port_nodo;
 	char *tempResultName;
-	t_list *temps;
+	uint32_t sizetmps;
+	void *buffer_tmps;
 } t_reduce;
 
 

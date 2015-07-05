@@ -21,7 +21,7 @@ void failReduce(t_reduce* reduce);
 void confirmarReduce(char confirmacion, t_reduce* reduce, void* bufferNodo);
 
 /*serialize*/
-void serializeConfigMaRTA(int fd, bool combiner, char* files);
+void serializeConfigMaRTA(int fd, bool combiner, char* fileResult, char* files);
 void recvOrder(int fd);
 t_map* desserializeMapOrder(void *buffer);
 void desserializeTempToList(t_list *temporals, void *buffer, size_t *sbuffer);

@@ -51,6 +51,7 @@ void *connections_marta_listenActions(void *param) {
 		e_socket_status status = socket_recv_packet(martaSocket, &buffer, &sBuffer);
 
 		if (status != SOCKET_ERROR_NONE) {
+			log_error(mdfs_logger, "MaRTA was disconnected");
 			exit = 1;
 		} else {
 			uint8_t command;
@@ -59,6 +60,7 @@ void *connections_marta_listenActions(void *param) {
 			switch (command) {
 			case COMMAND_MARTA_TO_FS_GET_FILE_BLOCKS:
 				if (!connection_marta_sendFileBlocks(buffer)) {
+					log_error(mdfs_logger, "MaRTA was disconnected");
 					exit = 1;
 				}
 				break;

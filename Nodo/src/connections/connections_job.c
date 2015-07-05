@@ -1,5 +1,6 @@
 #include "connections_job.h"
 #include "../node.h"
+// TODO #include <commons/collections/list.h>
 
 void* connections_job_listenActions(void *param);
 void connections_job_deserializeMap(int socket, void *buffer);
@@ -93,23 +94,90 @@ void connections_job_deserializeMap(int socket, void *buffer) {
 }
 
 void connections_job_deserializeReduce(int socket, void *buffer) {
-	uint16_t numBlock;
-	memcpy(&numBlock, buffer + sizeof(uint8_t), sizeof(uint16_t));
-	numBlock = ntohs(numBlock);
 
-	uint32_t sReduceRutine; // TODO , avisar a JOB que esto va a ser de 32 bits
-	memcpy(&sReduceRutine, buffer + sizeof(uint8_t) + sizeof(uint16_t), sizeof(uint32_t));
+	size_t offset = sizeof(uint8_t);
+
+	uint32_t sReduceRutine;
+	memcpy(&sReduceRutine, buffer + offset, sizeof(sReduceRutine));
 	sReduceRutine = ntohl(sReduceRutine);
+	offset += sizeof(sReduceRutine);
 
-	char* reduceRutine = malloc(sizeof(char) * (sReduceRutine + 1));
-	memcpy(reduceRutine, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint32_t), sReduceRutine);
+	char *reduceRutine = malloc(sizeof(char) * (sReduceRutine + 1));
+	memcpy(reduceRutine, buffer + offset, sReduceRutine);
 	reduceRutine[sReduceRutine] = '\0';
+	offset += sReduceRutine;
 
-	// TODO bool ok = node_executeReduceRutine(reduceRutine, numBlock);
+	uint32_t sTmpName;
+	memcpy(&sTmpName, buffer + offset, sizeof(sTmpName));
+	sTmpName = ntohl(sTmpName);
+	offset += sizeof(sTmpName);
+
+	char *tmpName = malloc(sizeof(char) * (sTmpName + 1));
+	memcpy(tmpName, buffer + offset, sTmpName);
+	tmpName[sTmpName] = '\0';
+	offset += sTmpName;
+
+	// this is redirected from marta:
+
+	uint16_t countTemps;
+	memcpy(&countTemps, buffer + offset, sizeof(countTemps));
+	countTemps = ntohs(countTemps);
+	offset += sizeof(countTemps);
+
+	int i;
+	for (i = 0; i < countTemps; i++) {
+		uint16_t sNodeId;
+		char *nodeId;
+		uint16_t sNodeIp;
+		char *nodeIp;
+		uint16_t nodePort;
+		char *tmpName;
+
+		memcpy(&sNodeId, buffer + offset, sizeof(sNodeId));
+		sNodeId = ntohs(sNodeId);
+		offset += sizeof(sNodeId);
+
+		nodeId = malloc(sizeof(char) * (sNodeId + 1));
+		memcpy(nodeId, buffer + offset, sNodeId);
+		nodeId[sNodeId] = '\0';
+		offset += sNodeId;
+
+		memcpy(&sNodeIp, buffer + offset, sizeof(sNodeIp));
+		sNodeIp = ntohs(sNodeIp);
+		offset += sizeof(sNodeIp);
+
+		nodeIp = malloc(sizeof(char) * (sNodeIp + 1));
+		memcpy(nodeIp, buffer + offset, sNodeIp);
+		nodeIp[sNodeIp] = '\0';
+		offset += sNodeIp;
+
+		memcpy(&nodePort, buffer + offset, sizeof(nodePort));
+		nodePort = ntohs(nodePort);
+		offset += sizeof(nodePort);
+
+		tmpName = malloc(sizeof(char) * 60);
+		memcpy(tmpName, buffer + offset, 60);
+
+		log_info(node_logger, "Getting tmp file %s from node %s", tmpName, nodeId);
+		// TODO tirar threads.
+		if (strcmp(node_config->name, nodeId) == 0) {
+			// it's me save to joined file.
+			node_getTmpFileContent(tmpName);
+		} else {
+			// ask node the file content and save to joined file
+			// TODO
+		}
+	}
+
+	// from joined file
+	// TODO bool ok = node_executeReduceRutine(reduceRutine, tmpName, )
 
 	bool ok = 1;
 
 	socket_send_packet(socket, &ok, sizeof(ok));
 
 	free(reduceRutine);
+	free(tmpName);
+
+	// TODO free list items.
 }
