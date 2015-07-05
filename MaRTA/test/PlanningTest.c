@@ -110,7 +110,7 @@ void planningTestSetup() {
 	file2 = CreateFile("pepe.txt");
 	list_add(file2->blocks, copies3);
 
-	job = CreateJob(42, false);
+	job = CreateJob(42, false, "ResultadoFinalJob42");
 	list_add(job->files, file2);
 	list_add(job->files, file);
 	//Fin Job 1
@@ -136,7 +136,7 @@ void planningTestSetup() {
 	notAvailableFile = CreateFile("Inexistente.txt");
 	list_add(notAvailableFile->blocks, unavailableCopies);
 
-	job2 = CreateJob(23, false);
+	job2 = CreateJob(23, false, "ResultadoFinalJob23");
 	job2->finalReduce->finalNode = strdup("");
 	job2->finalReduce->nodeIP = strdup("");
 	list_add(job2->files, file3);

@@ -15,27 +15,28 @@ char* getTime() {
 	timeinfo = localtime(&rawtime);
 
 	char * time = asctime(timeinfo);
-	time[3] = '-';
-	time[7] = '-';
-	time[10] = '-';
-	time[19] = '-';
+	int i;
+	for (i = 0; i < 24; i++)
+		if (time[i] == ' ' || time[i] == ':')
+			time[i] = '-';
 	time[24] = '\0';
 
 	return time;
 }
 
 void setTempMapName(char tempMapName[60], uint16_t mapID, uint16_t jobID) {
-	char resultName[60] = "\"";
+	char resultName[60];
+	memset(resultName, '\0', sizeof(char) * 60);
 	strcat(resultName, getTime());
-	strcat(resultName, "-Job(");
+	strcat(resultName, "-Job");
 	char idJob[4];
 	sprintf(idJob, "%i", jobID);
 	strcat(resultName, idJob);
-	strcat(resultName, ")-Map(");
+	strcat(resultName, "-Map");
 	char numMap[4];
 	sprintf(numMap, "%i", mapID);
 	strcat(resultName, numMap);
-	strcat(resultName, ").txt\"");
+	strcat(resultName, ".txt");
 	strcpy(tempMapName, resultName);
 }
 
@@ -52,8 +53,9 @@ t_map *CreateMap(uint16_t id, uint16_t numBlock, uint16_t nodePort, char *nodeNa
 	return map;
 }
 
-t_temp *CreateTemp(char *nodeIP, uint16_t nodePort, uint16_t originMap, char tempName[60]) {
+t_temp *CreateTemp(char *nodeID, char *nodeIP, uint16_t nodePort, uint16_t originMap, char tempName[60]) {
 	t_temp *temp = malloc(sizeof(t_temp));
+	temp->nodeID = nodeID;
 	temp->nodeIP = strdup(nodeIP);
 	temp->nodePort = nodePort;
 	temp->originMap = originMap;
@@ -70,15 +72,16 @@ t_file *CreateFile(char *path) {
 }
 
 void setTempReduceName(char tempResultName[60], uint16_t jobID, char *tipo) {
-	char resultName[60] = "\"";
+	char resultName[60];
+	memset(resultName, '\0', sizeof(char) * 60);
 	strcat(resultName, getTime());
-	strcat(resultName, "-Job(");
+	strcat(resultName, "-Job");
 	char idJob[4];
 	sprintf(idJob, "%i", jobID);
 	strcat(resultName, idJob);
-	strcat(resultName, ")-Red(");
+	strcat(resultName, "-Red");
 	strcat(resultName, tipo);
-	strcat(resultName, ").txt\"");
+	strcat(resultName, ".txt");
 	strcpy(tempResultName, resultName);
 }
 
@@ -111,10 +114,11 @@ void setFinalReduce(t_reduce *reduce, char *nodeName, char *nodeIP, uint16_t nod
 	setTempReduceName(reduce->tempResultName, jobID, "Fin");
 }
 
-t_job *CreateJob(uint16_t id, bool combiner) {
+t_job *CreateJob(uint16_t id, bool combiner, char *resultadoFinal) {
 	t_job *job = malloc(sizeof(t_job));
 	job->id = id;
 	job->combiner = combiner;
+	job->resultadoFinal = strdup(resultadoFinal);
 	job->files = list_create();
 	job->partialReduces = list_create();
 	job->finalReduce = initReduce();
@@ -176,6 +180,7 @@ void freeJob(t_job *job) {
 	list_destroy_and_destroy_elements(job->maps, (void *) freeMap);
 	list_destroy_and_destroy_elements(job->partialReduces, (void *) freeReduce);
 	freeReduce(job->finalReduce);
+	free(job->resultadoFinal);
 	free(job);
 }
 
