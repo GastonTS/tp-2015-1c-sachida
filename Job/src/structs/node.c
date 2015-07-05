@@ -66,24 +66,26 @@ void serializeReduce(int sock_nodo, t_reduce* reduce){
 	uint8_t order  = COMMAND_REDUCE;
 	size_t sOrder = sizeof(uint8_t);
 	char* fileReduce;
-	size_t sTempName = strlen(reduce->tempResultName);
+	uint32_t sTempName = strlen(reduce->tempResultName);
 
 	/* Obtenemos binario de File Map */
 	fileReduce = getMapReduceRoutine(cfgJob->REDUCER);
-	size_t sfileReduce = strlen(fileReduce);
+	uint32_t sfileReduce = strlen(fileReduce);
 
 	/* htons */
-
+	uint32_t sfileReduceSerialize = htonl(sfileReduce);
+	uint32_t sTempNameSerialize = htonl(sTempName);
 
 	/* Armo el paquete y lo mando */
-	size_t sbuffer = sOrder + sizeof(sfileReduce) + sfileReduce + sizeof(sTempName) + sTempName;
+	size_t sbuffer = sOrder + sizeof(uint32_t) + sfileReduce + sizeof(uint32_t) + sTempName + sizeof(uint32_t) + reduce->sizetmps;
 	void* buffer = malloc(sbuffer);
 	buffer = memset(buffer, '\0', sbuffer);
 	memcpy(buffer, &order, sOrder);
-	memcpy(buffer + sOrder, &sfileReduce, sizeof(sfileReduce));
-	memcpy(buffer + sOrder + sizeof(sfileReduce), fileReduce, sfileReduce);
-	memcpy(buffer + sOrder + sizeof(sfileReduce) + sfileReduce, &sTempName, sizeof(sTempName));
-	memcpy(buffer + sOrder + sizeof(sfileReduce) + sfileReduce + sizeof(sTempName), reduce->tempResultName, sTempName);
+	memcpy(buffer + sOrder, &sfileReduceSerialize, sizeof(uint32_t));
+	memcpy(buffer + sOrder + sizeof(uint32_t), fileReduce, sfileReduce);
+	memcpy(buffer + sOrder + sizeof(uint32_t) + sfileReduce, &sTempNameSerialize, sizeof(uint32_t));
+	memcpy(buffer + sOrder + sizeof(uint32_t) + sfileReduce + sizeof(uint32_t), reduce->tempResultName, sTempName);
+	memcpy(buffer + sOrder + sizeof(uint32_t) + sfileReduce + sizeof(uint32_t) + sTempName, reduce->buffer_tmps, reduce->sizetmps);
 
 	int envio;
 	envio = socket_send_packet(sock_nodo,buffer,sbuffer);
@@ -93,6 +95,7 @@ void serializeReduce(int sock_nodo, t_reduce* reduce){
 	log_info(logger,"fileMap: %s",fileReduce);
 	log_info(logger,"stemp: %d",sTempName);
 	log_info(logger,"temp: %s",reduce->tempResultName);
+	log_info(logger,"buftmp: %s", reduce->buffer_tmps);
 	//free(fileMap);
 	free(buffer);
 }

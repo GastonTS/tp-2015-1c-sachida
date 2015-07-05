@@ -67,6 +67,7 @@ void freeThreadMap(t_map* map){
 void freeThreadReduce(t_reduce* reduce){
 	free(reduce->ip_nodo);
 	free(reduce->tempResultName);
+	free(reduce->buffer_tmps);
 	free(reduce);
 }
 
