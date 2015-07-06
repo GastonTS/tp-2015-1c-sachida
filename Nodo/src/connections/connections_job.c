@@ -221,6 +221,7 @@ void connections_job_deserializeReduce(int socket, void *buffer) {
 			char *tmpFileNameJoined = malloc(sizeof(char) * strlen(finalTmpName) + 20);
 			strcpy(tmpFileNameJoined, finalTmpName);
 			strcat(tmpFileNameJoined, "_prereduce_joined");
+			// TODO hace sort si no no anda nada !!
 			if (node_createTmpFileFromStringList(tmpFileNameJoined, tmpFileParts)) {
 				tmpFileNameToReduce = tmpFileNameJoined;
 			} else {
