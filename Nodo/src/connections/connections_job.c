@@ -162,7 +162,9 @@ void connections_job_deserializeReduce(int socket, void *buffer) {
 		// TODO tirar threads.
 		if (strcmp(node_config->name, nodeId) == 0) {
 			// it's me save to joined file.
-			node_getTmpFileContent(tmpName);
+			char *tmpFile = node_getTmpFileContent(tmpName);
+			// TODO
+			free(tmpFile);
 		} else {
 			// ask node the file content and save to joined file
 			// TODO

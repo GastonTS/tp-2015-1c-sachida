@@ -16,9 +16,9 @@ void connections_node_shutdown() {
 char* connections_node_getFileContent(char *ip, uint16_t port, char *tmpFileName) {
 	int socket = -1;
 
-	while (0 > socket) {
-		socket = socket_connect(ip, port);
-	}
+	socket = socket_connect(ip, port);
+
+	printf("socket %d", socket);
 	if (socket >= 0) {
 		if (HANDSHAKE_NODO != socket_handshake_to_server(socket, HANDSHAKE_NODO, HANDSHAKE_NODO)) {
 			log_error(node_logger, "Handshake to node failed.");
@@ -28,13 +28,16 @@ char* connections_node_getFileContent(char *ip, uint16_t port, char *tmpFileName
 			// Request the tmp file content.
 			e_socket_status status;
 
+			uint8_t command = COMMAND_NODE_GET_TMP_FILE_CONTENT;
 			uint32_t sTmpName = strlen(tmpFileName);
-			size_t sBuffer = sizeof(sTmpName) + sTmpName;
+
+			size_t sBuffer = sizeof(command) + sizeof(sTmpName) + sTmpName;
 			uint32_t sTmpNameSerialized = htonl(sTmpName);
 
 			void *buffer = malloc(sBuffer);
-			memcpy(buffer, &sTmpNameSerialized, sizeof(sTmpName));
-			memcpy(buffer + sizeof(sTmpName), tmpFileName, sTmpName);
+			memcpy(buffer, &command, sizeof(command));
+			memcpy(buffer + sizeof(command), &sTmpNameSerialized, sizeof(sTmpName));
+			memcpy(buffer + sizeof(command) + sizeof(sTmpName), tmpFileName, sTmpName);
 
 			status = socket_send_packet(socket, buffer, sBuffer);
 			if (0 > status) {
@@ -51,8 +54,11 @@ char* connections_node_getFileContent(char *ip, uint16_t port, char *tmpFileName
 				return NULL;
 			}
 
+			char *tmpFileContent = realloc(buffer, sBuffer + 1);
+			tmpFileContent[sBuffer] = '\0';
+
 			socket_close(socket);
-			return (char *) buffer;
+			return tmpFileContent;
 		}
 	} else {
 		log_error(node_logger, "Connection to node failed.");
@@ -107,22 +113,23 @@ void* connections_node_listenActions(void *param) {
 }
 
 void connections_node_deserializeGetFileContent(int socket, void *buffer) {
+	size_t offset = sizeof(uint8_t);
 
 	uint32_t sTmpName;
-	memcpy(&sTmpName, buffer + sizeof(uint8_t), sizeof(uint32_t));
+	memcpy(&sTmpName, buffer + offset, sizeof(sTmpName));
 	sTmpName = ntohl(sTmpName);
+	offset += sizeof(sTmpName);
 
 	char* tmpName = malloc(sizeof(char) * (sTmpName + 1));
-	memcpy(tmpName, buffer + sizeof(uint8_t) + sizeof(uint32_t), sTmpName);
+	memcpy(tmpName, buffer + offset, sTmpName);
 	tmpName[sTmpName] = '\0';
+	offset += sTmpName;
 
 	log_info(node_logger, "Node Requested tmpFileContent of %s", tmpName);
 
 	char *tmpFileContent = node_getTmpFileContent(tmpName);
 
 	socket_send_packet(socket, tmpFileContent, strlen(tmpFileContent));
-
-	log_info(node_logger, "tmpFileContent of %s sent.", tmpName);
 
 	free(tmpName);
 	free(tmpFileContent);

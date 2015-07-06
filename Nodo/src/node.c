@@ -1,7 +1,7 @@
 #include "node.h"
 
 #include "utils/socket.h"
-#include "connections/connections.h"
+#include "connections/connections_node.h"
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -45,25 +45,6 @@ int main(int argc, char *argv[]) {
 		node_free();
 		return EXIT_FAILURE;
 	}
-
-	// TODO just testing.
-	if (0) {
-		char *str = node_getTmpFileContent("reducido_reducerutine");
-		printf("%s", str);
-		free(str);
-		node_free();
-		exit(1);
-	}
-	if (0) {
-		char reduceRutine[] =
-				"#!/usr/bin/perl\n# This script takes data with the folowing format ordered by DATE;WBAN and returns the day, the WBAN, the greater temperature and what time that measure was sampled\n# Input (ordered!) DATE;WBAN;TEMP;TIME\n# Output: DATE;WBAN;MAX_DAILY_TEMP_IN_WBAN;TIME_OF_MEASUREMENT\n\n$old_key = '';\n$wban_max = '';\n$key_max = '';\n$max_hour = '';\nwhile(<stdin>) {\n\n @chunks = split(';', $_);\n \n\n if (($old_key eq $chunks[0]) && ($wban_max eq $chunks[1])){\n if($chunks[2] > $key_max) {\n $key_max = $chunks[2];\n $max_hour = $chunks[3];\n }\n } else {\n if ($old_key ne '') {\n print $old_key . \";\" . $wban_max . \";\" . $key_max . \";\" . $max_hour;\n }\n $old_key = $chunks[0];\n $wban_max = $chunks[1];\n $key_max = $chunks[2]; \n $max_hour = $chunks[3];\n }\n}\n\nif ($old_key ne \"Date\") {\n print $old_key . \";\" . $wban_max . \";\" . $key_max . \";\" . $max_hour;\n}\n";
-		char mapRutine[] = "#!/bin/bash \n cat - | awk -F ',' '{print $2 \";\" $1  \";\" $13 \";\" $3}'\n";
-		node_executeMapRutine(mapRutine, 0, "mapeado");
-		node_executeReduceRutine(reduceRutine, "mapeado", "reducido");
-		node_free();
-		exit(1);
-	}
-	//.... TODO delete
 
 	connections_initialize();
 	log_info(node_logger, "Node Initialized successfully.");

@@ -56,6 +56,8 @@ void *connections_listenerThread(void *param) {
 				log_error(node_logger, "Error while trying to create new thread: connections_node_accept");
 			}
 			pthread_detach(acceptedConnectionTh);
+		} else {
+			log_error(node_logger, "Unknow handshake %d", handshake);
 		}
 	}
 
