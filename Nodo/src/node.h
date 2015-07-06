@@ -8,6 +8,7 @@
 #include <commons/config.h>
 #include <commons/log.h>
 #include <commons/string.h>
+#include <commons/collections/list.h>
 
 #define BLOCK_SIZE 20 * 1024 * 1024 // 20 MB de bloques
 
@@ -30,7 +31,8 @@ void node_freeBlock(char *blockStr);
 void node_setBlock(uint16_t numBlock, char *blockData);
 
 bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpFileName);
-bool node_executeReduceRutine(char *reduceRutine, char *tmpFilePathToReduce, char *finalFileName);
+bool node_executeReduceRutine(char *reduceRutine, char *tmpFileNameToReduce, char *finalTmpFileName);
 char* node_getTmpFileContent(char *tmpFileName);
+bool node_createTmpFileFromStringList(char *pathToFile, t_list *stringParts);
 
 #endif

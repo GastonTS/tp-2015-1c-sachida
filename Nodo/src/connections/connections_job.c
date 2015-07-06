@@ -1,6 +1,7 @@
 #include "connections_job.h"
+#include "connections_node.h"
 #include "../node.h"
-// TODO #include <commons/collections/list.h>
+#include <commons/collections/list.h>
 
 void* connections_job_listenActions(void *param);
 void connections_job_deserializeMap(int socket, void *buffer);
@@ -112,9 +113,9 @@ void connections_job_deserializeReduce(int socket, void *buffer) {
 	sTmpName = ntohl(sTmpName);
 	offset += sizeof(sTmpName);
 
-	char *tmpName = malloc(sizeof(char) * (sTmpName + 1));
-	memcpy(tmpName, buffer + offset, sTmpName);
-	tmpName[sTmpName] = '\0';
+	char *finalTmpName = malloc(sizeof(char) * (sTmpName + 1));
+	memcpy(finalTmpName, buffer + offset, sTmpName);
+	finalTmpName[sTmpName] = '\0';
 	offset += sTmpName;
 
 	// this is redirected from marta:
@@ -124,6 +125,9 @@ void connections_job_deserializeReduce(int socket, void *buffer) {
 	countTemps = ntohs(countTemps);
 	offset += sizeof(countTemps);
 
+	char *tmpFileNameToReduce = NULL;
+	t_list *getTmpFileOperations = list_create();
+
 	int i;
 	for (i = 0; i < countTemps; i++) {
 		uint16_t sNodeId;
@@ -131,7 +135,7 @@ void connections_job_deserializeReduce(int socket, void *buffer) {
 		uint16_t sNodeIp;
 		char *nodeIp;
 		uint16_t nodePort;
-		char *tmpName;
+		char *tmpFileName;
 
 		memcpy(&sNodeId, buffer + offset, sizeof(sNodeId));
 		sNodeId = ntohs(sNodeId);
@@ -155,31 +159,87 @@ void connections_job_deserializeReduce(int socket, void *buffer) {
 		nodePort = ntohs(nodePort);
 		offset += sizeof(nodePort);
 
-		tmpName = malloc(sizeof(char) * 60);
-		memcpy(tmpName, buffer + offset, 60);
+		tmpFileName = malloc(sizeof(char) * 60);
+		memcpy(tmpFileName, buffer + offset, 60);
 
-		log_info(node_logger, "Getting tmp file %s from node %s", tmpName, nodeId);
-		// TODO tirar threads.
-		if (strcmp(node_config->name, nodeId) == 0) {
-			// it's me save to joined file.
-			char *tmpFile = node_getTmpFileContent(tmpName);
-			// TODO
-			free(tmpFile);
+		if (countTemps == 1 && strcmp(node_config->name, nodeId) == 0) {
+			// Just one tmpFile and it's mine, then should use that..
+			tmpFileNameToReduce = tmpFileName;
+			free(nodeId);
+			free(nodeIp);
 		} else {
-			// ask node the file content and save to joined file
-			// TODO
+			node_connection_getTmpFileOperation_t *operation = node_connection_getTmpFileOperation_create(nodeId, nodeIp, nodePort, tmpFileName);
+			list_add(getTmpFileOperations, operation);
 		}
 	}
 
-	// from joined file
-	// TODO bool ok = node_executeReduceRutine(reduceRutine, tmpName, )
+	if (!tmpFileNameToReduce) {
+		t_list *tmpFileParts = list_create();
+		pthread_mutex_t tmpFileParts_mutex;
+		if (pthread_mutex_init(&tmpFileParts_mutex, NULL) != 0) {
+			log_error(node_logger, "Error while trying to create new mutex: tmpFileParts_mutex");
+			return;
+		}
+		bool failed = 0;
+		void addPartToList(char *part) {
+			pthread_mutex_lock(&tmpFileParts_mutex);
+			if (!part) {
+				failed = 1;
+			}
+			list_add(tmpFileParts, part);
+			pthread_mutex_unlock(&tmpFileParts_mutex);
+		}
+		void* getTmpFileFromNode(char *param) {
+			node_connection_getTmpFileOperation_t *operation = (node_connection_getTmpFileOperation_t *) param;
+			char *tmpFile = NULL;
+			if (strcmp(node_config->name, operation->nodeId) == 0) { // it's me
+				log_info(node_logger, "Getting tmp file %s from me!", operation->tmpFileName);
+				tmpFile = node_getTmpFileContent(operation->tmpFileName);
+			} else {
+				log_info(node_logger, "Getting tmp file %s from node %s", operation->tmpFileName, operation->nodeId);
+				tmpFile = connections_node_getFileContent(operation);
+			}
+			addPartToList(tmpFile);
+			return NULL;
+		}
+		pthread_t threads[list_size(getTmpFileOperations)];
+		int count = 0;
+		void runOperations(node_connection_getTmpFileOperation_t *operation) {
+			if (pthread_create(&(threads[count]), NULL, (void *) getTmpFileFromNode, (void*) operation)) {
+				failed = 1;
+				log_error(node_logger, "Error while trying to create new thread: getTmpFileFromNode");
+			}
+			count++;
+		}
+		list_iterate(getTmpFileOperations, (void *) runOperations);
+		pthread_mutex_destroy(&tmpFileParts_mutex);
 
-	bool ok = 1;
+		// Join to one file (to be reduced then..)
+		if (failed) {
+			log_error(node_logger, "Couldn't get all the files to make a reduce..");
+		} else {
+			char *tmpFileNameJoined = malloc(sizeof(char) * strlen(finalTmpName) + 20);
+			strcpy(tmpFileNameJoined, finalTmpName);
+			strcat(tmpFileNameJoined, "_prereduce_joined");
+			if (node_createTmpFileFromStringList(tmpFileNameJoined, tmpFileParts)) {
+				tmpFileNameToReduce = tmpFileNameJoined;
+			} else {
+				log_error(node_logger, "Couldn't create joined file..");
+			}
+		}
+		list_destroy_and_destroy_elements(tmpFileParts, (void*) free);
+	}
+	list_destroy_and_destroy_elements(getTmpFileOperations, (void*) node_connection_getTmpFileOperation_free);
+
+	bool ok = 0;
+	if (tmpFileNameToReduce) {
+		ok = node_executeReduceRutine(reduceRutine, tmpFileNameToReduce, finalTmpName);
+		free(tmpFileNameToReduce);
+	}
 
 	socket_send_packet(socket, &ok, sizeof(ok));
 
 	free(reduceRutine);
-	free(tmpName);
-
-	// TODO free list items.
+	free(finalTmpName);
 }
+

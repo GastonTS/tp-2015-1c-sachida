@@ -3,7 +3,6 @@
 #include "../node.h"
 
 void* connections_node_listenActions(void *param);
-void connections_node_deserializeGetFileContent(int socket, void *buffer);
 
 void connections_node_initialize() {
 
@@ -13,12 +12,11 @@ void connections_node_shutdown() {
 
 }
 
-char* connections_node_getFileContent(char *ip, uint16_t port, char *tmpFileName) {
+char* connections_node_getFileContent(node_connection_getTmpFileOperation_t *operation) {
 	int socket = -1;
 
-	socket = socket_connect(ip, port);
+	socket = socket_connect(operation->ip, operation->port);
 
-	printf("socket %d", socket);
 	if (socket >= 0) {
 		if (HANDSHAKE_NODO != socket_handshake_to_server(socket, HANDSHAKE_NODO, HANDSHAKE_NODO)) {
 			log_error(node_logger, "Handshake to node failed.");
@@ -29,7 +27,7 @@ char* connections_node_getFileContent(char *ip, uint16_t port, char *tmpFileName
 			e_socket_status status;
 
 			uint8_t command = COMMAND_NODE_GET_TMP_FILE_CONTENT;
-			uint32_t sTmpName = strlen(tmpFileName);
+			uint32_t sTmpName = strlen(operation->tmpFileName);
 
 			size_t sBuffer = sizeof(command) + sizeof(sTmpName) + sTmpName;
 			uint32_t sTmpNameSerialized = htonl(sTmpName);
@@ -37,7 +35,7 @@ char* connections_node_getFileContent(char *ip, uint16_t port, char *tmpFileName
 			void *buffer = malloc(sBuffer);
 			memcpy(buffer, &command, sizeof(command));
 			memcpy(buffer + sizeof(command), &sTmpNameSerialized, sizeof(sTmpName));
-			memcpy(buffer + sizeof(command) + sizeof(sTmpName), tmpFileName, sTmpName);
+			memcpy(buffer + sizeof(command) + sizeof(sTmpName), operation->tmpFileName, sTmpName);
 
 			status = socket_send_packet(socket, buffer, sBuffer);
 			if (0 > status) {
@@ -100,7 +98,7 @@ void* connections_node_listenActions(void *param) {
 
 	switch (command) {
 	case COMMAND_NODE_GET_TMP_FILE_CONTENT:
-		connections_node_deserializeGetFileContent(socket, buffer);
+		connections_deserializeGetFileContent(socket, buffer);
 		break;
 	default:
 		log_error(node_logger, "NODE sent an invalid command %d", command);
@@ -112,26 +110,26 @@ void* connections_node_listenActions(void *param) {
 	return NULL;
 }
 
-void connections_node_deserializeGetFileContent(int socket, void *buffer) {
-	size_t offset = sizeof(uint8_t);
-
-	uint32_t sTmpName;
-	memcpy(&sTmpName, buffer + offset, sizeof(sTmpName));
-	sTmpName = ntohl(sTmpName);
-	offset += sizeof(sTmpName);
-
-	char* tmpName = malloc(sizeof(char) * (sTmpName + 1));
-	memcpy(tmpName, buffer + offset, sTmpName);
-	tmpName[sTmpName] = '\0';
-	offset += sTmpName;
-
-	log_info(node_logger, "Node Requested tmpFileContent of %s", tmpName);
-
-	char *tmpFileContent = node_getTmpFileContent(tmpName);
-
-	socket_send_packet(socket, tmpFileContent, strlen(tmpFileContent));
-
-	free(tmpName);
-	free(tmpFileContent);
+node_connection_getTmpFileOperation_t* node_connection_getTmpFileOperation_create(char *nodeId, char *ip, uint16_t port, char *tmpFileName) {
+	node_connection_getTmpFileOperation_t *operation = malloc(sizeof(node_connection_getTmpFileOperation_t));
+	operation->nodeId = nodeId;
+	operation->ip = ip;
+	operation->port = port;
+	operation->tmpFileName = tmpFileName;
+	return operation;
 }
 
+void node_connection_getTmpFileOperation_free(node_connection_getTmpFileOperation_t *operation) {
+	if (operation) {
+		if (operation->nodeId) {
+			free(operation->nodeId);
+		}
+		if (operation->ip) {
+			free(operation->ip);
+		}
+		if (operation->tmpFileName) {
+			free(operation->tmpFileName);
+		}
+		free(operation);
+	}
+}

@@ -63,3 +63,26 @@ void *connections_listenerThread(void *param) {
 
 	return NULL;
 }
+
+void connections_deserializeGetFileContent(int socket, void *buffer) {
+	size_t offset = sizeof(uint8_t);
+
+	uint32_t sTmpName;
+	memcpy(&sTmpName, buffer + offset, sizeof(sTmpName));
+	sTmpName = ntohl(sTmpName);
+	offset += sizeof(sTmpName);
+
+	char* tmpName = malloc(sizeof(char) * (sTmpName + 1));
+	memcpy(tmpName, buffer + offset, sTmpName);
+	tmpName[sTmpName] = '\0';
+	offset += sTmpName;
+
+	log_info(node_logger, "Requested tmpFileContent of %s", tmpName);
+
+	char *tmpFileContent = node_getTmpFileContent(tmpName);
+
+	socket_send_packet(socket, tmpFileContent, strlen(tmpFileContent));
+
+	free(tmpName);
+	free(tmpFileContent);
+}

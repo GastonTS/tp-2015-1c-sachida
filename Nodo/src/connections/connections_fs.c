@@ -109,6 +109,9 @@ void connections_fs_listenActions() {
 		case COMMAND_FS_TO_NODE_GET_BLOCK:
 			connections_fs_deserializeGetBlock(buffer);
 			break;
+		case COMMAND_NODE_GET_TMP_FILE_CONTENT:
+			connections_deserializeGetFileContent(fsSocket, buffer);
+			break;
 		default:
 			log_error(node_logger, "FS Sent an invalid command %d", command);
 			break;

@@ -14,4 +14,6 @@
 void connections_initialize();
 void connections_shutdown();
 
+void connections_deserializeGetFileContent(int socket, void *buffer);
+
 #endif

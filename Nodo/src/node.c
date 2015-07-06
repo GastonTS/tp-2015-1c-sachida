@@ -101,14 +101,14 @@ bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpFileName
 	return result;
 }
 
-bool node_executeReduceRutine(char *reduceRutine, char *tmpFilePathToReduce, char *finalFileName) {
-	log_info(node_logger, "Executing REDUCE rutine to %s. Saving final result to file in tmp dir as: %s ", tmpFilePathToReduce, finalFileName);
+bool node_executeReduceRutine(char *reduceRutine, char *tmpFileNameToReduce, char *finalTmpFileName) {
+	log_info(node_logger, "Executing REDUCE rutine to %s. Saving final result to file in tmp dir as: %s ", tmpFileNameToReduce, finalTmpFileName);
 
 	size_t commandSize;
 	char *command;
 
 	/************** WRITE ALL FILE PATHS. ******************/
-	size_t pathToTmpFileSize = strlen(node_config->tmpDir) + 1 + strlen(finalFileName) + 1;
+	size_t pathToTmpFileSize = strlen(node_config->tmpDir) + 1 + strlen(finalTmpFileName) + 1;
 
 	char pathToReduceRutine[pathToTmpFileSize + 20];
 	char pathToSTDERRFile[pathToTmpFileSize + 20];
@@ -122,9 +122,9 @@ bool node_executeReduceRutine(char *reduceRutine, char *tmpFilePathToReduce, cha
 	strcat(pathToSTDERRFile, "/");
 	strcat(pathToFinalFile, "/");
 
-	strcat(pathToReduceRutine, finalFileName);
-	strcat(pathToSTDERRFile, finalFileName);
-	strcat(pathToFinalFile, finalFileName);
+	strcat(pathToReduceRutine, finalTmpFileName);
+	strcat(pathToSTDERRFile, finalTmpFileName);
+	strcat(pathToFinalFile, finalTmpFileName);
 
 	strcat(pathToReduceRutine, "_reducerutine");
 	strcat(pathToSTDERRFile, "_stderr");
@@ -132,9 +132,9 @@ bool node_executeReduceRutine(char *reduceRutine, char *tmpFilePathToReduce, cha
 
 	node_createExecutableFileFromString(pathToReduceRutine, reduceRutine);
 
-	commandSize = 4 + strlen(node_config->tmpDir) + 1 + strlen(tmpFilePathToReduce) + 3 + strlen(pathToReduceRutine) + 2 + strlen(pathToFinalFile) + 3 + strlen(pathToSTDERRFile) + 1;
+	commandSize = 4 + strlen(node_config->tmpDir) + 1 + strlen(tmpFileNameToReduce) + 3 + strlen(pathToReduceRutine) + 2 + strlen(pathToFinalFile) + 3 + strlen(pathToSTDERRFile) + 1;
 	command = malloc(commandSize);
-	snprintf(command, commandSize, "cat %s/%s | %s >%s 2>%s", node_config->tmpDir, tmpFilePathToReduce, pathToReduceRutine, pathToFinalFile, pathToSTDERRFile);
+	snprintf(command, commandSize, "cat %s/%s | %s >%s 2>%s", node_config->tmpDir, tmpFileNameToReduce, pathToReduceRutine, pathToFinalFile, pathToSTDERRFile);
 
 	bool result = system(command) != -1;
 	free(command);
@@ -219,6 +219,29 @@ bool node_createExecutableFileFromString(char *pathToFile, char *str) {
 
 	fclose(fp);
 	return 1;
+}
+
+bool node_createTmpFileFromStringList(char *tmpFileName, t_list *stringParts) {
+	char pathToTmpFileName[strlen(node_config->tmpDir) + 1 + strlen(tmpFileName)];
+	strcpy(pathToTmpFileName, node_config->tmpDir);
+	strcat(pathToTmpFileName, "/");
+	strcat(pathToTmpFileName, tmpFileName);
+
+	FILE *fp = fopen(pathToTmpFileName, "w");
+	if (!fp) {
+		return 0;
+	}
+	bool failed = 0;
+	void putContent(char *part) {
+		if (part && !failed) {
+			if (0 > fputs(part, fp)) {
+				failed = 1;
+			}
+		}
+	}
+	list_iterate(stringParts, (void*) putContent);
+	fclose(fp);
+	return !failed;
 }
 
 bool node_popen_write(char *command, char *data) {
