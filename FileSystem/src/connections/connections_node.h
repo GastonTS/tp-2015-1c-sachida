@@ -27,5 +27,6 @@ void connections_node_shutdown();
 void* connections_node_accept(void *param);
 bool connections_node_sendBlock(nodeBlockSendOperation_t *sendOperation);
 char* connections_node_getBlock(file_block_t *fileBlock);
+char* connections_node_getFileContent(char *nodeId, char *tmpFileName);
 
 #endif

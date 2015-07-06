@@ -240,6 +240,50 @@ char* connections_node_getBlock(file_block_t *fileBlock) {
 	return block;
 }
 
+char* connections_node_getFileContent(char *nodeId, char *tmpFileName) {
+	node_connection_t *nodeConnection = connections_node_getActiveNodeConnection(nodeId);
+	if (!nodeConnection) {
+		return NULL;
+	}
+
+	log_info(mdfs_logger, "Going to GET tmpFileContent '%s' from node %s.", tmpFileName, nodeId);
+
+	e_socket_status status;
+
+	// Request the tmp file content.
+	uint8_t command = COMMAND_NODE_GET_TMP_FILE_CONTENT;
+	uint32_t sTmpName = strlen(tmpFileName);
+
+	size_t sBuffer = sizeof(command) + sizeof(sTmpName) + sTmpName;
+	uint32_t sTmpNameSerialized = htonl(sTmpName);
+
+	void *buffer = malloc(sBuffer);
+	memcpy(buffer, &command, sizeof(command));
+	memcpy(buffer + sizeof(command), &sTmpNameSerialized, sizeof(sTmpName));
+	memcpy(buffer + sizeof(command) + sizeof(sTmpName), tmpFileName, sTmpName);
+
+	status = socket_send_packet(nodeConnection->socket, buffer, sBuffer);
+	if (0 > status) {
+		log_info(mdfs_logger, "Removing node %s because it was disconnected", nodeId);
+		connections_node_removeActiveNodeConnection(nodeId);
+		return NULL;
+	}
+
+	free(buffer);
+
+	status = socket_recv_packet(nodeConnection->socket, &buffer, &sBuffer);
+	if (0 > status) {
+		log_info(mdfs_logger, "Removing node %s because it was disconnected", nodeId);
+		connections_node_removeActiveNodeConnection(nodeId);
+		return NULL;
+	}
+
+	char *tmpFileContent = realloc(buffer, sBuffer + 1);
+	tmpFileContent[sBuffer] = '\0';
+
+	return tmpFileContent;
+}
+
 node_connection_t* connections_node_connection_create(int socket, char *ip) {
 	node_connection_t *nodeConnection = malloc(sizeof(node_connection_t));
 	nodeConnection->ip = strdup(ip);
