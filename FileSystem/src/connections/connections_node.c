@@ -8,6 +8,8 @@ pthread_mutex_t standbyNodesLock;
 t_dictionary *activeNodesSockets;
 t_dictionary *standbyNodesSockets;
 
+void* connections_node_checkAlive(void *param);
+
 void connections_node_initialize() {
 	if (pthread_mutex_init(&activeNodesLock, NULL) != 0 || pthread_mutex_init(&standbyNodesLock, NULL) != 0) {
 		log_error(mdfs_logger, "Error while trying to create new mutex");
@@ -30,6 +32,23 @@ void connections_node_shutdown() {
 
 	pthread_mutex_destroy(&activeNodesLock);
 	pthread_mutex_destroy(&standbyNodesLock);
+}
+
+/*
+ * Returns the connection of the node checking in active and standby connections.
+ */
+node_connection_t* connections_node_getNodeConnection(char *nodeId) {
+	pthread_mutex_lock(&activeNodesLock);
+	node_connection_t *nodeConnection = dictionary_get(activeNodesSockets, nodeId);
+	pthread_mutex_unlock(&activeNodesLock);
+
+	if (!nodeConnection) {
+		pthread_mutex_lock(&standbyNodesLock);
+		nodeConnection = dictionary_get(standbyNodesSockets, nodeId);
+		pthread_mutex_unlock(&standbyNodesLock);
+	}
+
+	return nodeConnection;
 }
 
 node_connection_t* connections_node_getActiveNodeConnection(char *nodeId) {
@@ -117,8 +136,8 @@ void* connections_node_accept(void *param) {
 	uint8_t isNewNode;
 	uint16_t blocksCount;
 	uint16_t listenPort;
-	uint16_t sName;
-	char *nodeName;
+	uint16_t sNodeId;
+	char *nodeId;
 
 	memcpy(&isNewNode, buffer, sizeof(isNewNode));
 
@@ -128,23 +147,29 @@ void* connections_node_accept(void *param) {
 	memcpy(&listenPort, buffer + sizeof(isNewNode) + sizeof(blocksCount), sizeof(listenPort));
 	listenPort = ntohs(listenPort);
 
-	memcpy(&sName, buffer + sizeof(isNewNode) + sizeof(blocksCount) + sizeof(listenPort), sizeof(sName));
-	sName = ntohs(sName);
-	nodeName = malloc(sizeof(char) * (sName + 1));
-	memcpy(nodeName, buffer + sizeof(isNewNode) + sizeof(blocksCount) + sizeof(listenPort) + sizeof(sName), sName);
-	nodeName[sName] = '\0';
+	memcpy(&sNodeId, buffer + sizeof(isNewNode) + sizeof(blocksCount) + sizeof(listenPort), sizeof(sNodeId));
+	sNodeId = ntohs(sNodeId);
+	nodeId = malloc(sizeof(char) * (sNodeId + 1));
+	memcpy(nodeId, buffer + sizeof(isNewNode) + sizeof(blocksCount) + sizeof(listenPort) + sizeof(sNodeId), sNodeId);
+	nodeId[sNodeId] = '\0';
 
 	free(buffer);
 	// ...
 
 	//  Save the connection as a reference to this node.
 	nodeConnection->listenPort = listenPort;
-	connections_node_setAcceptedNodeConnection(nodeName, nodeConnection);
+	connections_node_setAcceptedNodeConnection(nodeId, nodeConnection);
 
-	log_info(mdfs_logger, "Node connected. Name: %s. listenPort %d. blocksCount %d. New: %s", nodeName, listenPort, blocksCount, isNewNode ? "true" : "false");
-	filesystem_addNode(nodeName, blocksCount, (bool) isNewNode);
+	log_info(mdfs_logger, "Node connected. Name: %s. listenPort %d. blocksCount %d. New: %s", nodeId, listenPort, blocksCount, isNewNode ? "true" : "false");
+	filesystem_addNode(nodeId, blocksCount, (bool) isNewNode);
 
-	free(nodeName);
+	// Creates a new thread to check if the node is still alive..
+	pthread_t nodeAliveCheckerTh;
+	if (pthread_create(&nodeAliveCheckerTh, NULL, (void *) connections_node_checkAlive, (void *) nodeId)) {
+		free(nodeId);
+		log_error(mdfs_logger, "Error while trying to create new thread: nodeAliveCheckerTh");
+	}
+	pthread_detach(nodeAliveCheckerTh);
 
 	return NULL;
 }
@@ -262,8 +287,10 @@ char* connections_node_getFileContent(char *nodeId, char *tmpFileName) {
 	memcpy(buffer + sizeof(command), &sTmpNameSerialized, sizeof(sTmpName));
 	memcpy(buffer + sizeof(command) + sizeof(sTmpName), tmpFileName, sTmpName);
 
+	pthread_mutex_lock(&nodeConnection->mutex);
 	status = socket_send_packet(nodeConnection->socket, buffer, sBuffer);
 	if (0 > status) {
+		pthread_mutex_unlock(&nodeConnection->mutex);
 		log_info(mdfs_logger, "Removing node %s because it was disconnected", nodeId);
 		connections_node_removeActiveNodeConnection(nodeId);
 		return NULL;
@@ -272,6 +299,7 @@ char* connections_node_getFileContent(char *nodeId, char *tmpFileName) {
 	free(buffer);
 
 	status = socket_recv_packet(nodeConnection->socket, &buffer, &sBuffer);
+	pthread_mutex_unlock(&nodeConnection->mutex);
 	if (0 > status) {
 		log_info(mdfs_logger, "Removing node %s because it was disconnected", nodeId);
 		connections_node_removeActiveNodeConnection(nodeId);
@@ -282,6 +310,38 @@ char* connections_node_getFileContent(char *nodeId, char *tmpFileName) {
 	tmpFileContent[sBuffer] = '\0';
 
 	return tmpFileContent;
+}
+
+void* connections_node_checkAlive(void *param) {
+	char *nodeId = (char *) param;
+
+	uint8_t command = COMMAND_NODE_CHECK_ALIVE;
+	size_t sBuffer = sizeof(command);
+	void *buffer = malloc(sBuffer);
+	memcpy(buffer, &command, sizeof(command));
+
+	while (1) {
+		node_connection_t *nodeConnection = connections_node_getNodeConnection(nodeId);
+		if (!nodeConnection) {
+			free(nodeId);
+			free(buffer);
+			return NULL;
+		}
+
+		pthread_mutex_lock(&nodeConnection->mutex);
+		e_socket_status status = socket_send_packet(nodeConnection->socket, buffer, sBuffer);
+		pthread_mutex_unlock(&nodeConnection->mutex);
+
+		if (0 > status) {
+			log_info(mdfs_logger, "Removing node %s because it was disconnected", nodeId);
+			connections_node_removeActiveNodeConnection(nodeId);
+			free(buffer);
+			free(nodeId);
+			return NULL;
+		}
+
+		usleep(2 * 1000 * 1000); // 2 seg
+	}
 }
 
 node_connection_t* connections_node_connection_create(int socket, char *ip) {

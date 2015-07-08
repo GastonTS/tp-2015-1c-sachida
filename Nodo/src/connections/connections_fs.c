@@ -112,6 +112,9 @@ void connections_fs_listenActions() {
 		case COMMAND_NODE_GET_TMP_FILE_CONTENT:
 			connections_deserializeGetFileContent(fsSocket, buffer);
 			break;
+		case COMMAND_NODE_CHECK_ALIVE:
+			// Do nothing, is just a checker..
+			break;
 		default:
 			log_error(node_logger, "FS Sent an invalid command %d", command);
 			break;
