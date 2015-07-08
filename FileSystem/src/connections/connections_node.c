@@ -340,7 +340,7 @@ void* connections_node_checkAlive(void *param) {
 			return NULL;
 		}
 
-		usleep(2 * 1000 * 1000); // 2 seg
+		usleep(2 * 1000 * 1000); // 2 seconds
 	}
 }
 
