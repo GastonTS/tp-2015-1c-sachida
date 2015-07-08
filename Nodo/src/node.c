@@ -20,7 +20,7 @@ bool node_createExecutableFileFromString(char *pathToFile, char *str);
 t_log *node_logger;
 t_nodeCfg *node_config;
 
-pthread_mutex_t *blocks_mutex = NULL;
+pthread_rwlock_t *blocks_mutex = NULL;
 void *binFileMap = NULL;
 
 int main(int argc, char *argv[]) {
@@ -168,15 +168,14 @@ char* node_getTmpFileContent(char *tmpFileName) {
 	return fileStr;
 }
 
-// TODO no conviene hacer el map completo porque tira SEGAFULT,... nose que onda, hacer un mmap usando la parte del bloque y fue?
 char* node_getBlock(uint16_t numBlock) {
 	log_info(node_logger, "Getting block number %d", numBlock);
 
 	char *blockStr = malloc(sizeof(char) * BLOCK_SIZE);
 
-	pthread_mutex_lock(&blocks_mutex[numBlock]);
+	pthread_rwlock_rdlock(&blocks_mutex[numBlock]);
 	memcpy(blockStr, binFileMap + (numBlock * BLOCK_SIZE), BLOCK_SIZE);
-	pthread_mutex_unlock(&blocks_mutex[numBlock]);
+	pthread_rwlock_unlock(&blocks_mutex[numBlock]);
 
 	return blockStr;
 }
@@ -184,9 +183,9 @@ char* node_getBlock(uint16_t numBlock) {
 void node_setBlock(uint16_t numBlock, char *blockStr) {
 	log_info(node_logger, "Setting block number %d", numBlock);
 
-	pthread_mutex_lock(&blocks_mutex[numBlock]);
+	pthread_rwlock_wrlock(&blocks_mutex[numBlock]);
 	memcpy(binFileMap + (numBlock * BLOCK_SIZE), blockStr, strlen(blockStr) + 1);
-	pthread_mutex_unlock(&blocks_mutex[numBlock]);
+	pthread_rwlock_unlock(&blocks_mutex[numBlock]);
 }
 
 bool node_createExecutableFileFromString(char *pathToFile, char *str) {
@@ -304,10 +303,10 @@ bool node_init() {
 	// ...
 
 	// Create mutex for blocks
-	blocks_mutex = malloc(sizeof(pthread_mutex_t) * node_config->blocksCount);
+	blocks_mutex = malloc(sizeof(pthread_rwlock_t) * node_config->blocksCount);
 	int i;
 	for (i = 0; i < node_config->blocksCount; i++) {
-		if (pthread_mutex_init(&blocks_mutex[i], NULL) != 0) {
+		if (pthread_rwlock_init(&blocks_mutex[i], NULL) != 0) {
 			log_error(node_logger, "Error while trying to create the block mutex.");
 			return 0;
 		}
@@ -396,7 +395,7 @@ void node_free() {
 		if (blocks_mutex) {
 			int i;
 			for (i = 0; i < node_config->blocksCount; i++) {
-				pthread_mutex_destroy(&blocks_mutex[i]);
+				pthread_rwlock_destroy(&blocks_mutex[i]);
 			}
 			free(blocks_mutex);
 		}
