@@ -16,8 +16,7 @@
 int conectarMarta() {
 	int handshake;
 
-	if ((sock_marta = socket_connect(cfgJob->IP_MARTA, cfgJob->PUERTO_MARTA))
-			< 0) {
+	if ((sock_marta = socket_connect(cfgJob->IP_MARTA, cfgJob->PUERTO_MARTA)) < 0) {
 		log_error(logger, "Error al conectar con MaRTA %d", sock_marta);
 		freeCfg();
 		return -1;
@@ -40,8 +39,7 @@ int conectarMarta() {
 void atenderMarta(int socketMarta) {
 
 	/* Mando el Config a MaRTA */
-	serializeConfigMaRTA(sock_marta, cfgJob->COMBINER, cfgJob->RESULTADO,
-			cfgJob->LIST_ARCHIVOS);
+	serializeConfigMaRTA(sock_marta, cfgJob->COMBINER, cfgJob->RESULTADO, cfgJob->LIST_ARCHIVOS);
 	log_info(logger, "SerializeConfigMaRTA OK");
 	while (1) {
 		/*Recibo Orden de Map o Reduce */
@@ -54,8 +52,7 @@ void atenderMarta(int socketMarta) {
 //**********************************************************************************//
 
 /* MANDO MIS CONFIGURACIONES INICIALES A MaRTA */
-void serializeConfigMaRTA(int fd, bool combiner, char* fileResult,
-		char* stringFiles) {
+void serializeConfigMaRTA(int fd, bool combiner, char* fileResult, char* stringFiles) {
 	uint16_t filesLength = strlen(stringFiles);
 	uint16_t scombiner = sizeof(combiner);
 	uint16_t sizeResult = strlen(fileResult);
@@ -70,8 +67,7 @@ void serializeConfigMaRTA(int fd, bool combiner, char* fileResult,
 	memcpy(buffer, &combiner, scombiner);
 	memcpy(buffer + scombiner, &sizeResultSerialize, sizeof(uint16_t));
 	memcpy(buffer + scombiner + sizeof(uint16_t), fileResult, sizeResult);
-	memcpy(buffer + scombiner + sizeof(uint16_t) + sizeResult, stringFiles,
-			filesLength);
+	memcpy(buffer + scombiner + sizeof(uint16_t) + sizeResult, stringFiles, filesLength);
 	socket_send_packet(fd, buffer, sbuffer);
 	free(buffer);
 }
@@ -118,8 +114,7 @@ void recvOrder(int fd) {
 		log_info(logger, "Reduce Recived");
 		t_reduce *reduce = malloc(sizeof(t_reduce));
 		reduce = desserializeReduceOrder(buffer + sOrder, sbuffer - sOrder);
-		pthread_create(&hilo_reduce, NULL, (void*) atenderReducer,
-				(void *) reduce);
+		pthread_create(&hilo_reduce, NULL, (void*) atenderReducer, (void *) reduce);
 		pthread_detach(hilo_reduce);
 	}
 
@@ -392,14 +387,12 @@ t_map* desserializeMapOrder(void *buffer) {
 	memcpy(&idMap, buffer, sIdMap);
 	memcpy(&snodeIP, buffer + sIdMap, sizeof(uint16_t));
 	snodeIP = ntohs(snodeIP);
-	nodeIP = malloc(snodeIP);
+	nodeIP = malloc(snodeIP + 1);
 	memcpy(nodeIP, buffer + sIdMap + sizeof(uint16_t), snodeIP);
+	nodeIP[snodeIP] = '\0';
 	memcpy(&nodePort, buffer + sIdMap + sizeof(uint16_t) + snodeIP, snodePort);
-	memcpy(&numBlock, buffer + sIdMap + sizeof(uint16_t) + snodeIP + snodePort,
-			snumblock);
-	memcpy(&tempResultName,
-			buffer + sIdMap + sizeof(uint16_t) + snodeIP + snodePort
-					+ snumblock, sizeof(char) * 60);
+	memcpy(&numBlock, buffer + sIdMap + sizeof(uint16_t) + snodeIP + snodePort, snumblock);
+	memcpy(&tempResultName, buffer + sIdMap + sizeof(uint16_t) + snodeIP + snodePort + snumblock, sizeof(char) * 60);
 
 	//TODO GUARDAR EN ESTRUCTURAS
 	idMap = ntohs(idMap);
@@ -469,20 +462,15 @@ t_reduce* desserializeReduceOrder(void *buffer, size_t sbuffer) {
 	memcpy(&reduceID, buffer, sreduceID);
 	memcpy(&snodeIP, buffer + sreduceID, sizeof(uint16_t));
 	snodeIP = ntohs(snodeIP);
-	nodeIP = malloc(snodeIP);
+	nodeIP = malloc(snodeIP + 1);
 	memcpy(nodeIP, buffer + sreduceID + sizeof(uint16_t), snodeIP);
-	memcpy(&nodePort, buffer + sreduceID + sizeof(uint16_t) + snodeIP,
-			snodePort);
+	nodeIP[snodeIP] = '\0';
+	memcpy(&nodePort, buffer + sreduceID + sizeof(uint16_t) + snodeIP, snodePort);
 	nodePort = ntohs(nodePort);
-	memcpy(tempResultName,
-			buffer + sreduceID + sizeof(uint16_t) + snodeIP + snodePort,
-			stempName);
-	stemps = (sbuffer
-			- (sreduceID + sizeof(uint16_t) + snodeIP + snodePort + stempName));
+	memcpy(tempResultName, buffer + sreduceID + sizeof(uint16_t) + snodeIP + snodePort, stempName);
+	stemps = (sbuffer - (sreduceID + sizeof(uint16_t) + snodeIP + snodePort + stempName));
 	void *buffer_tmps = malloc(stemps);
-	memcpy(buffer_tmps,
-			buffer + sreduceID + sizeof(uint16_t) + snodeIP + snodePort
-					+ stempName, stemps);
+	memcpy(buffer_tmps, buffer + sreduceID + sizeof(uint16_t) + snodeIP + snodePort + stempName, stemps);
 
 	reduceID = ntohs(reduceID);
 
