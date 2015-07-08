@@ -26,23 +26,10 @@ void *acceptJob(void * param) {
 
 	planMaps(job);
 
-	void recvListResults(t_list *list) {
-		int i;
-		int count = list_size(list);
-		for (i = 0; i < count; i++)
-			recvResult(job);
-	}
-
-	recvListResults(job->maps);
-
 	if (job->combiner) {
-		combinerPartialsReducePlanning(job);
-		recvListResults(job->partialReduces);
-		combinerFinalReducePlanning(job);
+		combinerReducePlanning(job);
 	} else
 		noCombinerReducePlanning(job);
-
-	recvResult(job);
 
 	log_info(logger, "Finished Job: %d", job->id);
 	sendDieOrder(job->socket, COMMAND_RESULT_OK);
@@ -98,14 +85,15 @@ t_job *desserializeJob(int socket, uint16_t id) {
 	return job;
 }
 
-void recvResult(t_job *job) {
+char *recvResult(t_job *job) {
 	void *buffer;
+	char *nodeID = NULL;
 	size_t sbuffer = 0;
 	if (0 > socket_recv_packet(job->socket, &buffer, &sbuffer)) {
 		log_error(logger, "Job %d Died when reciving results", job->id);
 		freeJob(job);
 		pthread_exit(NULL);
-		return;
+		return NULL;
 	}
 	uint8_t resultFrom;
 	memcpy(&resultFrom, buffer, sizeof(uint8_t));
@@ -114,10 +102,11 @@ void recvResult(t_job *job) {
 		desserializeMapResult(buffer + sizeof(uint8_t), job);
 		break;
 	case COMMAND_REDUCE:
-		desserializaReduceResult(buffer + sizeof(uint8_t), job);
+		nodeID = desserializaReduceResult(buffer + sizeof(uint8_t), job);
 		break;
 	}
 	free(buffer);
+	return nodeID;
 }
 
 e_socket_status sendDieOrder(int socket, uint8_t result) {
@@ -177,12 +166,11 @@ void desserializeMapResult(void *buffer, t_job *job) {
 	}
 	t_map *map = list_find(job->maps, (void *) findMap);
 
+	removeMapNode(map);
 	if (result) {
 		map->done = true;
-		removeMapNode(map);
 	} else {
-		t_node *node = findNode(nodes, map->nodeName);
-		node->active = 0;
+		deactivateNode(map->nodeName);
 		rePlanMap(job, map);
 	}
 }
@@ -258,7 +246,7 @@ e_socket_status serializeReduceToOrder(int socket, t_reduce *reduce) {
 	return status;
 }
 
-void desserializaReduceResult(void *buffer, t_job *job) {
+char *desserializaReduceResult(void *buffer, t_job *job) {
 	size_t sresult = sizeof(bool);
 	size_t sidReduce = sizeof(uint16_t);
 
@@ -277,26 +265,20 @@ void desserializaReduceResult(void *buffer, t_job *job) {
 		}
 		reduce = list_find(job->partialReduces, (void *) findReduce);
 	}
-
+	log_trace(logger, "Reduce: %d Done -> Result: %d", idReduce, result);
+	removeReduceNode(reduce);
 	if (result) {
 		reduce->done = 1;
-		removeReduceNode(reduce);
-
+		return NULL;
 	} else {
-		t_node *node;
-		node = findNode(nodes, reduce->finalNode);
-		node->active = 0;
-		void deactiveNode(t_temp *temp) {
-			node = findNode(nodes, temp->nodeID);
-			node->active = 0;
-		}
-
-		list_iterate(reduce->temps, (void *) deactiveNode);
-		log_info(logger, "Job %d Failed: reduce failed");
-		sendDieOrder(job->socket, COMMAND_RESULT_REDUCEFAILED);
-		freeJob(job);
-		pthread_exit(0);
+		uint32_t offset = sresult + sidReduce;
+		uint16_t snodeID;
+		memcpy(&snodeID, buffer + offset, sizeof(snodeID));
+		offset += sizeof(snodeID);
+		char *nodeID = malloc(snodeID);
+		memcpy(nodeID, buffer + offset, snodeID);
+		deactivateNode(nodeID);
+		return nodeID;
 	}
 
-	log_trace(logger, "Reduce: %d Done -> Result: %d", idReduce, result);
 }

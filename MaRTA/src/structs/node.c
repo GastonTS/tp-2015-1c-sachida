@@ -59,3 +59,8 @@ void removeReduceNode(t_reduce *reduce) {
 	t_node *node = findNode(nodes, reduce->finalNode);
 	node->reduces--;//TODO: mutex nodo
 }
+
+void deactivateNode(char *nodeName){
+	t_node *node = findNode(nodes, nodeName);
+	node->active = 0;
+}

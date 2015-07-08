@@ -183,23 +183,13 @@ void noCombinerPlanTest() {
 	printf("Esperados: (4-1) (1-1) (0-0) (1-0) (2-1)\n");
 }
 
-void combinerPartialsReducePlanTest() {
-	printf("************************ReducePlanTest**************************\n");
-	printf("************************jobMapPlanning**************************\n");
-	planMaps(job);
-	printf("******************combinerPartialsReducePlanning*****************\n");
-	combinerPartialsReducePlanning(job);
-	printf("****************************************************************\n");
-}
-
 void combinerPlanTest() {
 	printf("************************ReducePlanTest**************************\n");
 	printf("************************jobMapPlanning**************************\n");
 	planMaps(job);
 	planMaps(job2);
 	printf("*********************combinerReducePlanning*********************\n");
-	combinerPartialsReducePlanning(job);
-	combinerFinalReducePlanning(job);
+	combinerReducePlanning(job);
 	printf("****************************************************************\n");
 	printf("Esperados: (4-1) (1-1) (0-0) (1-2) (2-1)\n");
 }

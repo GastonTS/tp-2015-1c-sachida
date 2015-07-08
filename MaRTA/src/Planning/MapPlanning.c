@@ -3,7 +3,7 @@
 #include "../Connections/Connection.h"
 
 void selectNode(t_copy *copy, t_node **selectedNode, uint16_t *numBlock) {
-	bool lessWorkLoad(t_node *lessBusy, t_node *busy) {//TODO: Mutex nodos
+	bool lessWorkLoad(t_node *lessBusy, t_node *busy) { //TODO: Mutex nodos
 		if (lessBusy && busy)
 			return workLoad(lessBusy->maps, lessBusy->reduces) < workLoad(busy->maps, busy->reduces);
 		return 0;
@@ -27,7 +27,7 @@ void notificarMap(t_job *job, t_map *map) {
 	}
 }
 
-int planMaps(t_job *job) {
+void planMaps(t_job *job) {
 	log_trace(logger, "Planning Job %d...", job->id);
 	int filesAvailables = 1;
 	void requestBlocks(t_file *file) {
@@ -61,19 +61,21 @@ int planMaps(t_job *job) {
 	}
 	if (filesAvailables) {
 		list_iterate(job->files, (void *) fileMap);
-		log_trace(logger, "Finished Map Planning Job %d...", job->id);
-		return EXIT_SUCCESS;
+		log_trace(logger, "Finished Map Planning Job %d", job->id);
+		log_trace(logger, "Waiting Map Results from Job %d...", job->id);
+		int i;
+		int mapsCount = list_size(job->maps);
+		for (i = 0; i < mapsCount; i++)
+			recvResult(job);
 	} else {
 		log_error(logger, "Job %d Failed: One file is unavailable", job->id);
 		sendDieOrder(job->socket, COMMAND_RESULT_FILEUNAVAILABLE);
 		freeJob(job);
 		pthread_exit(0);
-		return EXIT_FAILURE;
 	}
 }
 
 void rePlanMap(t_job *job, t_map *map) {
-	removeMapNode(map);
 	t_node *selectedNode = NULL;
 	uint16_t numBlock;
 

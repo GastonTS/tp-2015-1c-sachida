@@ -1,4 +1,5 @@
 #include "ReducePlanning.h"
+#include "MapPlanning.h"
 #include "../structs/job.h"
 #include "../structs/node.h"
 #include "../Connections/Connection.h"
@@ -126,11 +127,62 @@ void combinerFinalReducePlanning(t_job *job) {
 	list_iterate(job->partialReduces, (void *) selectFinalNode);
 	setFinalReduce(job->finalReduce, selectedNode->name, selectedNode->ip, selectedNode->port, job->id);
 
-	void createTemporal(t_reduce *reduce) {
+	void createFinalTemporals(t_reduce *reduce) {
 		t_temp *temporal = reduceToTemporal(reduce);
 		list_add(job->finalReduce->temps, (void *) temporal);
 	}
-	list_iterate(job->partialReduces, (void *) createTemporal);
+	list_iterate(job->partialReduces, (void *) createFinalTemporals);
 
 	notificarReduce(job, job->finalReduce);
 }
+
+void rePlanMapsFromNode(t_job *job, char *node) {
+	void rePlanByNode(t_map *map) {
+		if (!strcmp(map->nodeName, node)) {
+			rePlanMap(job, map);
+		}
+	}
+	list_iterate(job->maps, (void *) rePlanByNode);
+}
+
+void combinerReducePlanning(t_job *job) {
+	bool partialsFailed;
+	bool finalFailed;
+	t_list *fallenNodes = list_create();
+	char *fallenNode;
+	do {
+		finalFailed = false;
+		do {
+			partialsFailed = false;
+			combinerPartialsReducePlanning(job);
+			int i;
+			int reduceCount = list_size(job->partialReduces);
+			for (i = 0; i < reduceCount; i++) {
+				fallenNode = recvResult(job);
+				if (fallenNode != NULL) {
+					partialsFailed = true;
+					list_add(fallenNodes, fallenNode);
+				}
+			}
+			if (partialsFailed) {
+				void replanMaps(char *node) {
+					rePlanMapsFromNode(job, node);
+				}
+				list_iterate(fallenNodes, (void *) replanMaps);
+				list_clean_and_destroy_elements(fallenNodes, (void *) free);
+				list_clean_and_destroy_elements(job->partialReduces, (void *) freeReduce);
+			}
+		} while (partialsFailed);
+		list_clean_and_destroy_elements(fallenNodes, (void *) free);
+		combinerFinalReducePlanning(job);
+		fallenNode = recvResult(job);
+		if (fallenNode != NULL) {
+			finalFailed = true;
+			rePlanMapsFromNode(job, fallenNode);
+			list_clean_and_destroy_elements(job->partialReduces, (void *) freeReduce);
+			list_clean_and_destroy_elements(job->finalReduce->temps, (void *) freeTemp);
+		}
+	} while (finalFailed);
+	list_destroy(fallenNodes);
+}
+
