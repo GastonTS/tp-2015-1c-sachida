@@ -41,6 +41,7 @@ void updateNodes(char* nodeID, char *nodeIP, uint16_t nodePort) {
 		free(node->ip);
 		node->ip = strdup(nodeIP);
 		node->port = nodePort;
+		node->active = 1;
 	} else {
 		node = CreateNode(1, nodeIP, nodePort, nodeID);
 		list_add(nodes, node); //XXX Mutex lista?
