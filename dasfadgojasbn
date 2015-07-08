@@ -1,0 +1,12 @@
+[1mdiff --git a/MaRTA/src/Connections/JobConnection.c b/MaRTA/src/Connections/JobConnection.c[m
+[1mindex 5ab0d25..fa8e036 100644[m
+[1m--- a/MaRTA/src/Connections/JobConnection.c[m
+[1m+++ b/MaRTA/src/Connections/JobConnection.c[m
+[36m@@ -97,6 +97,7 @@[m [mchar *recvResult(t_job *job) {[m
+ 	}[m
+ 	uint8_t resultFrom;[m
+ 	memcpy(&resultFrom, buffer, sizeof(uint8_t));[m
+[32m+[m	[32mprintf("\n%d\n", resultFrom);[m
+ 	switch (resultFrom) {[m
+ 	case COMMAND_MAP:[m
+ 		desserializeMapResult(buffer + sizeof(uint8_t), job);[m

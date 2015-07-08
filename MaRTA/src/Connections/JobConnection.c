@@ -97,6 +97,8 @@ char *recvResult(t_job *job) {
 	}
 	uint8_t resultFrom;
 	memcpy(&resultFrom, buffer, sizeof(uint8_t));
+	printf("\n%d\n", resultFrom);
+	fflush(stdout);
 	switch (resultFrom) {
 	case COMMAND_MAP:
 		desserializeMapResult(buffer + sizeof(uint8_t), job);
