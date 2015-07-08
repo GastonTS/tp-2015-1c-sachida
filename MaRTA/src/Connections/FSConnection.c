@@ -36,14 +36,14 @@ void connectFS() {
 }
 
 void updateNodes(char* nodeID, char *nodeIP, uint16_t nodePort) {
-	t_node *node = findNode(nodes, nodeID);//TODO:Mutex Nodo
+	t_node *node = findNode(nodes, nodeID); //TODO:Mutex Nodo
 	if (node != NULL) { //XXX Es necesario actualizar el ip y el puerto?
 		free(node->ip);
 		node->ip = strdup(nodeIP);
 		node->port = nodePort;
 	} else {
 		node = CreateNode(1, nodeIP, nodePort, nodeID);
-		list_add(nodes, node);//XXX Mutex lista?
+		list_add(nodes, node); //XXX Mutex lista?
 	}
 }
 
@@ -93,13 +93,10 @@ int requestFileBlocks(t_file *file) {
 		memcpy(&copyesCount, bufferOffset, sizeof(copyesCount));
 		copyesCount = ntohs(copyesCount);
 		bufferOffset += sizeof(copyesCount);
-
 		int j;
 		for (j = 0; j < copyesCount; j++) {
 			uint32_t sNodeId;
-			char *nodeId;
 			uint16_t sNodeIp;
-			char *nodeIp;
 			uint16_t nodePort;
 			uint16_t nodeBlockNumber;
 
@@ -107,7 +104,7 @@ int requestFileBlocks(t_file *file) {
 			sNodeId = ntohl(sNodeId);
 			bufferOffset += sizeof(sNodeId);
 
-			nodeId = malloc(sizeof(char) * (sNodeId + 1));
+			char *nodeId = malloc(sNodeId + 1);
 			memcpy(nodeId, bufferOffset, sNodeId);
 			nodeId[sNodeId] = '\0';
 			bufferOffset += sNodeId;
@@ -116,7 +113,7 @@ int requestFileBlocks(t_file *file) {
 			sNodeIp = ntohs(sNodeIp);
 			bufferOffset += sizeof(sNodeIp);
 
-			nodeIp = malloc(sizeof(char) * (sNodeIp + 1));
+			char * nodeIp = malloc(sNodeIp + 1);
 			memcpy(nodeIp, bufferOffset, sNodeIp);
 			nodeIp[sNodeIp] = '\0';
 			bufferOffset += sNodeIp;
@@ -131,11 +128,14 @@ int requestFileBlocks(t_file *file) {
 
 			updateNodes(nodeId, nodeIp, nodePort);
 			t_copy *copy = CreateCopy(nodeId, nodeBlockNumber);
+
 			list_add(copies, copy);
+
 			free(nodeId);
 			free(nodeIp);
 		}
 		list_add(file->blocks, copies);
+
 	}
 	free(buffer);
 	return 1;

@@ -52,15 +52,15 @@ void removeMapNode(t_map *map) {
 	bool isNumBlock(uint16_t numBlock) {
 		return numBlock == map->numBlock;
 	}
-	list_remove_by_condition(selectedNode->maps, (void *) isNumBlock);//TODO: mutex nodo
+	list_remove_by_condition(selectedNode->maps, (void *) isNumBlock); //TODO: mutex nodo
 }
 
 void removeReduceNode(t_reduce *reduce) {
 	t_node *node = findNode(nodes, reduce->finalNode);
-	node->reduces--;//TODO: mutex nodo
+	node->reduces--; //TODO: mutex nodo
 }
 
-void deactivateNode(char *nodeName){
+void deactivateNode(char *nodeName) {
 	t_node *node = findNode(nodes, nodeName);
 	node->active = 0;
 }

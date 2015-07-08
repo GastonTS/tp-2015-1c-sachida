@@ -85,14 +85,21 @@ void rePlanMap(t_job *job, t_map *map) {
 
 	list_iterate(map->copies, (void*) selectNodeToMap);
 
-	free(map->nodeName);
-	map->nodeName = strdup(selectedNode->name);
-	free(map->nodeIP);
-	map->nodeIP = strdup(selectedNode->ip);
-	map->nodePort = selectedNode->port;
-	map->numBlock = numBlock;
-	setTempMapName(map->tempResultName, map->id, job->id);
+	if (selectedNode != NULL) {
+		free(map->nodeName);
+		map->nodeName = strdup(selectedNode->name);
+		free(map->nodeIP);
+		map->nodeIP = strdup(selectedNode->ip);
+		map->nodePort = selectedNode->port;
+		map->numBlock = numBlock;
+		setTempMapName(map->tempResultName, map->id, job->id);
 
-	notificarMap(job, map);
-	recvResult(job);
+		notificarMap(job, map);
+		recvResult(job);
+	} else {
+		log_error(logger, "Job %d Failed: One file is unavailable", job->id);
+		sendDieOrder(job->socket, COMMAND_RESULT_FILEUNAVAILABLE);
+		freeJob(job);
+		pthread_exit(0);
+	}
 }

@@ -4,7 +4,7 @@
 #include "../MaRTA.h"
 
 typedef struct {
-	char* nodeName;
+	char *nodeName;
 	uint16_t numBlock;
 } t_copy;
 
