@@ -118,7 +118,6 @@ e_socket_status sendDieOrder(int socket, uint8_t result) {
 	char order = COMMAND_MARTA_TO_JOB_DIE;
 	size_t sbuffer = sizeof(char) + sizeof(uint8_t);
 	void *buffer = malloc(sbuffer);
-	buffer = memset(buffer, '\0', sbuffer);
 
 	memcpy(buffer, &order, sizeof(char));
 	memcpy(buffer + sizeof(char), &result, sizeof(uint8_t));
@@ -130,7 +129,7 @@ e_socket_status sendDieOrder(int socket, uint8_t result) {
 //**********************************MAP*********************************************//
 e_socket_status serializeMapToOrder(int socket, t_map *map) {
 	uint8_t order = COMMAND_MAP;
-	uint16_t snodeIP = strlen(map->nodeIP) + 1;
+	uint16_t snodeIP = strlen(map->nodeIP);
 	size_t sbuffer = sizeof(uint8_t) + sizeof(uint16_t) + sizeof(snodeIP) + snodeIP + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(char) * 60;
 
 	uint16_t id = htons(map->id);
@@ -184,9 +183,9 @@ void desserializeMapResult(void *buffer, t_job *job) {
 size_t totalTempsSize(t_list *temps) {
 	size_t stemps = 0;
 	void upgradeSize(t_temp * temp) {
-		size_t snodeID = strlen(temp->nodeID);
-		size_t snodeIP = strlen(temp->nodeIP) + 1;
-		stemps += sizeof(snodeID) + snodeID + sizeof(snodeIP) + snodeIP + sizeof(uint16_t) + sizeof(char) * 60;
+		uint16_t snodeID = strlen(temp->nodeID);
+		uint16_t snodeIP = strlen(temp->nodeIP);
+		stemps += sizeof(uint16_t) + snodeID + sizeof(uint16_t) + snodeIP + sizeof(uint16_t) + sizeof(char) * 60;
 	}
 	list_iterate(temps, (void *) upgradeSize);
 	return stemps;
@@ -218,13 +217,12 @@ void serializeTemp(t_temp *temporal, void *buffer, size_t *sbuffer) {
 
 e_socket_status serializeReduceToOrder(int socket, t_reduce *reduce) {
 	char order = COMMAND_REDUCE;
-	size_t snodeIP = strlen(reduce->nodeIP) + 1;
+	uint16_t snodeIP = strlen(reduce->nodeIP);
 
 	uint16_t countTemps = 0;
 	size_t stemps = totalTempsSize(reduce->temps);
 	size_t auxSize = 0;
 	void *tempsBuffer = malloc(stemps);
-	tempsBuffer = memset(tempsBuffer, '\0', stemps);
 	void serializeTempsToBuffer(t_temp *temp) {
 		serializeTemp(temp, tempsBuffer, &auxSize);
 		countTemps++;
@@ -236,9 +234,8 @@ e_socket_status serializeReduceToOrder(int socket, t_reduce *reduce) {
 	uint16_t serializedSNodeIP = htons(snodeIP);
 	countTemps = htons(countTemps);
 
-	size_t sbuffer = sizeof(char) + sizeof(reduceID) + sizeof(snodeIP) + snodeIP + sizeof(uint16_t) + sizeof(char) * 60 + sizeof(uint16_t) + stemps;
+	size_t sbuffer = sizeof(char) + sizeof(reduceID) + sizeof(uint16_t) + snodeIP + sizeof(uint16_t) + sizeof(char) * 60 + sizeof(uint16_t) + stemps;
 	void *buffer = malloc(sbuffer);
-	buffer = memset(buffer, '\0', sbuffer);
 
 	memcpy(buffer, &order, sizeof(char));
 	void *bufferOffset = buffer + sizeof(char);
