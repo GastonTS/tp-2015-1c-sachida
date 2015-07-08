@@ -8,7 +8,6 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <signal.h>
-#include <errno.h>
 
 int node_initConfig(char* configFile);
 void node_waitUntilExit();
@@ -280,6 +279,7 @@ bool node_init() {
 	if (createFile) {
 		fd = open(node_config->binFilePath, O_TRUNC | O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
 	} else {
+		//file =fopen(node_config->binFilePath, "r+");
 		fd = open(node_config->binFilePath, O_RDWR);
 	}
 
@@ -290,17 +290,8 @@ bool node_init() {
 
 	size_t binFileSize = node_getBinFileSize();
 	if (createFile) {
-		/*
-		 lseek(fd, 0, SEEK_SET);
-		 int i = 0;
-		 for (i = 0; i < node_config->blocksCount; i++) {
-		 lseek(fd, BLOCK_SIZE -1, SEEK_CUR);
-		 write(fd, "", 1);
-		 }
-		 lseek(fd, 0, SEEK_SET);
-		 */
 		if (ftruncate(fd, binFileSize) == -1) {
-			log_error(node_logger, "Error while trying to truncate the binFile. errno: %d", errno);
+			log_error(node_logger, "Error while trying to truncate the binFile.");
 			return 0;
 		}
 	} else {
@@ -308,7 +299,7 @@ bool node_init() {
 		struct stat stat;
 		fstat(fd, &stat);
 		if (stat.st_size != binFileSize) {
-			log_error(node_logger, "You cannot change the size of the bin file if you are not a new node.. is %zd != %zd should be", stat.st_size, binFileSize);
+			log_error(node_logger, "You cannot change the size of the bin file if you are not a new node..");
 			return 0;
 		}
 	}
