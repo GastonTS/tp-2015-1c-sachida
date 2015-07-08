@@ -38,6 +38,8 @@ bool filesystem_deleteFile(file_t *file);
 
 void filesystem_moveFile(file_t *file, char *destinationId);
 void filesystem_moveDir(dir_t *dir, char *destinationId);
+void filesystem_renameFile(file_t *file, char *newName);
+void filesystem_renameDir(dir_t *dir, char *newName);
 
 int filesystem_copyFileFromFS(char *route, file_t *file);
 bool filesystem_addDir(dir_t *dir);

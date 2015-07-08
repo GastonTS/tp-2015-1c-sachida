@@ -17,6 +17,8 @@ bool mongo_file_deleteById(char *id);
 bool mongo_file_deleteAll();
 
 void mongo_file_updateParentId(char *id, char *newParentId);
+void mongo_file_updateName(char *id, char *newName);
+
 void mongo_file_addBlockCopyToFile(char *id, uint16_t blockIndex, file_block_t *fileBlockCopy);
 void mongo_file_deleteBlockCopy(char *id, uint16_t blockIndex, file_block_t *fileBlockCopy);
 

@@ -31,6 +31,7 @@ void diskFree();
 
 void deleteResource(char **parameters);
 void moveResource(char *resource, char *destination);
+void renameResource(char *resource, char *newName);
 
 void copyFile(char **parameters);
 void makeDir(char *dirName);
@@ -77,6 +78,8 @@ void console_start() {
 				deleteResource(parameters);
 			} else if (string_equals_ignore_case(parameters[0], "mv")) {
 				moveResource(parameters[1], parameters[2]);
+			} else if (string_equals_ignore_case(parameters[0], "rename")) {
+				renameResource(parameters[1], parameters[2]);
 			} else if (string_equals_ignore_case(parameters[0], "mkdir")) {
 				makeDir(parameters[1]);
 			} else if (string_equals_ignore_case(parameters[0], "cd")) {
@@ -178,7 +181,7 @@ void moveResource(char *resource, char *destination) {
 
 		dir_t *destinationDir = filesystem_resolveDirPath(destination, currentDirId, currentDirPrompt, NULL);
 		if (!destinationDir) {
-			printf("Cannot move: dir '%s' not found", destination);
+			printf("Cannot move: dir '%s' not found.\n", destination);
 			return;
 		}
 
@@ -198,6 +201,26 @@ void moveResource(char *resource, char *destination) {
 		}
 
 		dir_free(destinationDir);
+	}
+}
+
+void renameResource(char *resource, char *newName) {
+	if (!isNull(resource) && !isNull(newName)) {
+
+		dir_t *dirToMove = filesystem_resolveDirPath(resource, currentDirId, currentDirPrompt, NULL);
+		if (dirToMove) {
+			filesystem_renameDir(dirToMove, newName);
+			dir_free(dirToMove);
+		} else {
+			// If couldn't find a dir, then try to find a file:
+			file_t *fileToMove = filesystem_resolveFilePath(resource, currentDirId, currentDirPrompt);
+			if (fileToMove) {
+				filesystem_renameFile(fileToMove, newName);
+				file_free(fileToMove);
+			} else {
+				printf("Cannot rename '%s': No such file or directory.\n", resource);
+			}
+		}
 	}
 }
 
@@ -330,7 +353,7 @@ void copyFile(char **parameters) {
 		} else if (string_equals_ignore_case(option, "-tofs")) {
 			file_t *file = filesystem_resolveFilePath(source, currentDirId, currentDirPrompt);
 			if (file) {
-				printf("Copying file '%s' to local filesystem to '%s'\n", source, dest);
+				printf("Copying file '%s' to local filesystem to '%s'.\n", source, dest);
 				int result = filesystem_saveFileToLocalFS(file, dest);
 
 				if (result == 1) {
@@ -553,7 +576,8 @@ void help() {
 
 	printf("\n" ANSI_COLOR_BOLDWHITE "FILES" ANSI_COLOR_RESET "\n");
 	printf("\t rm <file>\t\t\t Deletes the file <file> \n");
-	printf("\t mv <file> <dest>\t\t Moves the file named <file> to the dir named <dir>\n");
+	printf("\t mv <file> <dest>\t\t Moves the file <file> to the dir <dir>\n");
+	printf("\t rename <file> <name>\t\t Renames the file <file> as <name>\n");
 	printf("\t ll\t\t\t\t Lists all the files and dirs in the current dir\n");
 	printf("\t md5sum <file>\t\t\t Gets the MD5 check sum of the file named <file>\n");
 	printf("\t cp -tofs <file> <dest>\t\t Copies the file <file> from the MDFS to the local FileSystem at <dest>\n");
@@ -563,10 +587,11 @@ void help() {
 	printf("\n" ANSI_COLOR_BOLDWHITE "DIRECTORIES" ANSI_COLOR_RESET "\n");
 	printf("\t rm -r <dir>\t\t\t Deletes the dir <dir>\n");
 	printf("\t mv <dir> <dest>\t\t Moves the dir named <dir> to the dir named <dir>\n");
+	printf("\t rename <dir> <name>\t\t Renames the dir <dir> as <name>\n");
 	printf("\t mkdir <dir>\t\t\t Makes a new dir in the current dir named <dir>\n");
 
 	printf("\n" ANSI_COLOR_BOLDWHITE "BLOCKS" ANSI_COLOR_RESET "\n");
-	printf("\t catb <file> <blockN>\t\t Gets contents of the block number <blockN> of the file <file> and saves it to a temp file\n");
+	printf("\t catb <file> <blockN>\t\t Saves the contents of the block number <blockN> of the file <file> to a temp file\n");
 	printf("\t cpb <file> <blockN>\t\t Makes a new copy (in a different node) of the block number <blockN> of the file <file>\n");
 	printf("\t rmb <file> <blockN> <copyN>\t Deletes the copy <copyN> of the block number <blockN> of the file <file>\n");
 

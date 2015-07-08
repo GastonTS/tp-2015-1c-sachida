@@ -101,6 +101,18 @@ void mongo_file_updateParentId(char *id, char *newParentId) {
 	mongo_update(fileCollection, query, update);
 }
 
+void mongo_file_updateName(char *id, char *newName) {
+	bson_t *query;
+	bson_t *update;
+
+	mongo_file_checkInit();
+
+	query = BCON_NEW("_id", BCON_UTF8(id));
+	update = BCON_NEW("$set", "{", "name", BCON_UTF8(newName), "}");
+
+	mongo_update(fileCollection, query, update);
+}
+
 void mongo_file_addBlockCopyToFile(char *id, uint16_t blockIndex, file_block_t *fileBlockCopy) {
 	bson_t *query;
 	bson_t *update;

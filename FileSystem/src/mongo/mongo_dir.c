@@ -89,3 +89,15 @@ void mongo_dir_updateParentId(char *id, char *newParentId) {
 
 	mongo_update(dirCollection, query, update);
 }
+
+void mongo_dir_updateName(char *id, char *newName) {
+	bson_t *query;
+	bson_t *update;
+
+	mongo_dir_checkInit();
+
+	query = BCON_NEW("_id", BCON_UTF8(id));
+	update = BCON_NEW("$set", "{", "name", BCON_UTF8(newName), "}");
+
+	mongo_update(dirCollection, query, update);
+}

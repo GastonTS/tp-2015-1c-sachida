@@ -134,6 +134,14 @@ void filesystem_moveDir(dir_t *dir, char *destinationId) {
 	mongo_dir_updateParentId(dir->id, destinationId);
 }
 
+void filesystem_renameFile(file_t *file, char *newName) {
+	mongo_file_updateName(file->id, newName);
+}
+
+void filesystem_renameDir(dir_t *dir, char *newName) {
+	mongo_dir_updateName(dir->id, newName);
+}
+
 int filesystem_copyFileFromFS(char *route, file_t *file) {
 	if (!filesystem_canCreateResource(file->name, file->parentId)) {
 		return -1;

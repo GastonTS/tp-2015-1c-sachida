@@ -16,5 +16,6 @@ bool mongo_dir_deleteById(char *id);
 bool mongo_dir_deleteAll();
 
 void mongo_dir_updateParentId(char *id, char *newParentId);
+void mongo_dir_updateName(char *id, char *newName);
 
 #endif
