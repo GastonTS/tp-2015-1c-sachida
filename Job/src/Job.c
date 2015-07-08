@@ -10,7 +10,6 @@
 #include "structs/node.h"
 #include "marta/marta.h"
 
-
 int main(int argc, char *argv[]) {
 
 	logger = log_create("Job.log", "JOB", 1, LOG_LEVEL_DEBUG);
@@ -26,19 +25,19 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	if((sock_marta = conectarMarta()) >= 0){
-		log_info(logger,"sock_marta: %d",sock_marta);
-		atenderMarta(sock_marta);;
+	if (pthread_mutex_init(&Msockmarta, NULL) != 0) {
+		log_error(logger, "ERROR - No se pudo inicializar el mutex Msockmarta");
+		return 1;
+	}
+
+	if ((sock_marta = conectarMarta()) >= 0) {
+		log_info(logger, "sock_marta: %d", sock_marta);
+		atenderMarta(sock_marta);
+		;
 	}
 
 	return EXIT_SUCCESS;
 }
-
-
-
-
-
-
 
 //**********************************************************************************//
 //									ESTRUCTURAS  									//
@@ -57,14 +56,14 @@ void freeCfg() {
 }
 
 //**********************************Free Thread Map****************************************//
-void freeThreadMap(t_map* map){
+void freeThreadMap(t_map* map) {
 	free(map->ip_nodo);
 	free(map->tempResultName);
 	free(map);
 }
 
 //**********************************Free Thread Reduce**************************************//
-void freeThreadReduce(t_reduce* reduce){
+void freeThreadReduce(t_reduce* reduce) {
 	free(reduce->ip_nodo);
 	free(reduce->tempResultName);
 	free(reduce->buffer_tmps);
@@ -122,25 +121,27 @@ int initConfig(char* configFile) {
 	return !failure;
 }
 
-
 /*******************************Get Map Routine*************************************/
-char* getMapReduceRoutine(char* pathFile){
+char* getMapReduceRoutine(char* pathFile) {
 	int mapper;
 	char* mapeo;
 	int size;
 
-		/* Get size of File */
-		int size_of(int fd){
-			struct stat buf;
-			fstat(fd, &buf);
-			return buf.st_size;
-		}
+	/* Get size of File */
+	int size_of(int fd) {
+		struct stat buf;
+		fstat(fd, &buf);
+		return buf.st_size;
+	}
 
-	mapper = open (pathFile, O_RDONLY);
+	mapper = open(pathFile, O_RDONLY);
 	size = size_of(mapper);
-	if( (mapeo = mmap( NULL, size, PROT_READ, MAP_SHARED, mapper,0)) == MAP_FAILED){
+	if ((mapeo = mmap( NULL, size, PROT_READ, MAP_SHARED, mapper, 0))
+			== MAP_FAILED) {
 		//Si no se pudo ejecutar el MMAP, imprimir el error y abortar;
-		fprintf(stderr, "Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size", pathFile, size, strerror(errno));
+		fprintf(stderr,
+				"Error al ejecutar MMAP del archivo '%s' de tamaño: %d: %s\nfile_size",
+				pathFile, size, strerror(errno));
 		abort();
 	}
 	//Se unmapea , y se cierrra el archivo

@@ -52,6 +52,7 @@ t_log* logger;
 t_configJob* cfgJob;
 pthread_t hilo_mapper;
 pthread_t hilo_reduce;
+pthread_mutex_t Msockmarta;
 int sock_marta;
 
 
