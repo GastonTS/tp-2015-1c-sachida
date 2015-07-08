@@ -61,19 +61,21 @@ t_job *desserializeJob(int socket, uint16_t id) {
 		pthread_exit(NULL);
 	}
 
-	size_t scombiner = sizeof(bool);
 	bool combiner;
 	uint16_t sresultadoFinal;
 
-	memcpy(&combiner, buffer, scombiner);
-	memcpy(&sresultadoFinal, buffer + scombiner, sizeof(uint16_t));
+	memcpy(&combiner, buffer, sizeof(bool));
+	void *bufferOffset = buffer + sizeof(bool);
+	memcpy(&sresultadoFinal, bufferOffset, sizeof(uint16_t));
 	sresultadoFinal = ntohs(sresultadoFinal);
 	char *resultadoFinal = malloc(sresultadoFinal + 1);
-	memcpy(resultadoFinal, buffer + scombiner + sizeof(uint16_t), sresultadoFinal);
+	bufferOffset += sizeof(uint16_t);
+	memcpy(resultadoFinal, bufferOffset, sresultadoFinal);
 	resultadoFinal[sresultadoFinal] = '\0';
-	size_t sfiles = sbuffer - scombiner - sizeof(uint16_t) - sresultadoFinal;
+	size_t sfiles = sbuffer - sizeof(bool) - sizeof(uint16_t) - sresultadoFinal;
 	char *stringFiles = malloc(sfiles + 1);
-	memcpy(stringFiles, buffer + scombiner + sizeof(uint16_t) + sresultadoFinal, sfiles);
+	bufferOffset += sresultadoFinal;
+	memcpy(stringFiles, bufferOffset, sfiles);
 	stringFiles[sfiles] = '\0';
 
 	t_job *job = CreateJob(id, combiner, resultadoFinal);
@@ -95,6 +97,7 @@ char *recvResult(t_job *job) {
 		pthread_exit(NULL);
 		return NULL;
 	}
+
 	uint8_t resultFrom;
 	memcpy(&resultFrom, buffer, sizeof(uint8_t));
 	printf("\n%d\n", resultFrom);
@@ -113,12 +116,13 @@ char *recvResult(t_job *job) {
 
 e_socket_status sendDieOrder(int socket, uint8_t result) {
 	char order = COMMAND_MARTA_TO_JOB_DIE;
-	size_t sOrder = sizeof(char);
-	size_t sbuffer = sOrder + sizeof(uint8_t);
+	size_t sbuffer = sizeof(char) + sizeof(uint8_t);
 	void *buffer = malloc(sbuffer);
 	buffer = memset(buffer, '\0', sbuffer);
-	memcpy(buffer, &order, sOrder);
-	memcpy(buffer + sOrder, &result, sizeof(uint8_t));
+
+	memcpy(buffer, &order, sizeof(char));
+	memcpy(buffer + sizeof(char), &result, sizeof(uint8_t));
+
 	e_socket_status status = socket_send_packet(socket, buffer, sbuffer);
 	free(buffer);
 	return status;
@@ -126,40 +130,39 @@ e_socket_status sendDieOrder(int socket, uint8_t result) {
 //**********************************MAP*********************************************//
 e_socket_status serializeMapToOrder(int socket, t_map *map) {
 	uint8_t order = COMMAND_MAP;
-	size_t sOrder = sizeof(uint8_t);
-	size_t sIpMap = sizeof(uint16_t);
-	size_t snumBlock = sIpMap;
-	size_t snodePort = sizeof(uint16_t);
-	size_t snodeIP = strlen(map->nodeIP) + 1;
-	size_t stempName = sizeof(char) * 60;
-	size_t sbuffer = sOrder + sIpMap + sizeof(snodeIP) + snodeIP + snodePort + snumBlock + stempName;
+	uint16_t snodeIP = strlen(map->nodeIP) + 1;
+	size_t sbuffer = sizeof(uint8_t) + sizeof(uint16_t) + sizeof(snodeIP) + snodeIP + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(char) * 60;
 
 	uint16_t id = htons(map->id);
+	uint16_t serializedSNodeIP = htons(snodeIP);
 	uint16_t numBlock = htons(map->numBlock);
 	uint16_t nodePort = htons(map->nodePort);
 
 	void *buffer = malloc(sbuffer);
-	memcpy(buffer, &order, sOrder);
-	memcpy(buffer + sOrder, &id, sIpMap);
-	memcpy(buffer + sOrder + sIpMap, &snodeIP, sizeof(snodeIP));
-	memcpy(buffer + sOrder + sIpMap + sizeof(snodeIP), map->nodeIP, snodeIP);
-	memcpy(buffer + sOrder + sIpMap + sizeof(snodeIP) + snodeIP, &nodePort, snodePort);
-	memcpy(buffer + sOrder + sIpMap + sizeof(snodeIP) + snodeIP + snodePort, &numBlock, snumBlock);
-	memcpy(buffer + sOrder + sIpMap + sizeof(snodeIP) + snodeIP + snodePort + snumBlock, map->tempResultName, stempName);
+	memcpy(buffer, &order, sizeof(uint8_t));
+	void *bufferOffset = buffer + sizeof(uint8_t);
+	memcpy(bufferOffset, &id, sizeof(uint16_t));
+	bufferOffset += sizeof(uint16_t);
+	memcpy(bufferOffset, &serializedSNodeIP, sizeof(snodeIP));
+	bufferOffset += sizeof(uint16_t);
+	memcpy(bufferOffset, map->nodeIP, snodeIP);
+	bufferOffset += snodeIP;
+	memcpy(bufferOffset, &nodePort, sizeof(uint16_t));
+	bufferOffset += sizeof(uint16_t);
+	memcpy(bufferOffset, &numBlock, sizeof(uint16_t));
+	bufferOffset += sizeof(uint16_t);
+	memcpy(bufferOffset, map->tempResultName, sizeof(char) * 60);
 	e_socket_status status = socket_send_packet(socket, buffer, sbuffer);
 	free(buffer);
 	return status;
 }
 
 void desserializeMapResult(void *buffer, t_job *job) {
-	size_t sresult = sizeof(bool);
-	size_t sidMap = sizeof(uint16_t);
-
 	bool result;
 	uint16_t idMap;
 
-	memcpy(&result, buffer, sresult);
-	memcpy(&idMap, buffer + sresult, sidMap);
+	memcpy(&result, buffer, sizeof(bool));
+	memcpy(&idMap, buffer + sizeof(bool), sizeof(uint16_t));
 	idMap = ntohs(idMap);
 
 	log_trace(logger, "Map: %d Done -> Result: %d", idMap, result);
@@ -197,25 +200,25 @@ void serializeTemp(t_temp *temporal, void *buffer, size_t *sbuffer) {
 	uint16_t serializedsnodeID = htons(snodeID);
 	uint16_t serializedsnodeIP = htons(snodeIP);
 
-	memcpy(buffer + *sbuffer, &serializedsnodeID, sizeof(snodeID));
-	memcpy(buffer + *sbuffer + sizeof(snodeID), temporal->nodeID, snodeID);
-	memcpy(buffer + *sbuffer + sizeof(snodeID) + snodeID, &serializedsnodeIP, sizeof(snodeIP));
-	memcpy(buffer + *sbuffer + sizeof(snodeID) + snodeID + sizeof(snodeIP), temporal->nodeIP, snodeIP);
-	memcpy(buffer + *sbuffer + sizeof(snodeID) + snodeID + sizeof(snodeIP) + snodeIP, &nodePort, sizeof(uint16_t));
-	memcpy(buffer + *sbuffer + sizeof(snodeID) + snodeID + sizeof(snodeIP) + snodeIP + sizeof(uint16_t), temporal->tempName, sizeof(char) * 60);
+	void *bufferOffset = buffer + *sbuffer;
+	memcpy(bufferOffset, &serializedsnodeID, sizeof(uint16_t));
+	bufferOffset += sizeof(uint16_t);
+	memcpy(bufferOffset, temporal->nodeID, snodeID);
+	bufferOffset += snodeID;
+	memcpy(bufferOffset, &serializedsnodeIP, sizeof(uint16_t));
+	bufferOffset += sizeof(uint16_t);
+	memcpy(bufferOffset, temporal->nodeIP, snodeIP);
+	bufferOffset += snodeIP;
+	memcpy(bufferOffset, &nodePort, sizeof(uint16_t));
+	bufferOffset += sizeof(uint16_t);
+	memcpy(bufferOffset, temporal->tempName, sizeof(char) * 60);
 
-	*sbuffer += sizeof(snodeID) + snodeID + sizeof(snodeIP) + snodeIP + sizeof(uint16_t) + sizeof(char) * 60;
+	*sbuffer += sizeof(uint16_t) + snodeID + sizeof(uint16_t) + snodeIP + sizeof(uint16_t) + sizeof(char) * 60;
 }
 
 e_socket_status serializeReduceToOrder(int socket, t_reduce *reduce) {
 	char order = COMMAND_REDUCE;
-	size_t sOrder = sizeof(char);
 	size_t snodeIP = strlen(reduce->nodeIP) + 1;
-	size_t snodePort = sizeof(uint16_t);
-	size_t stempName = sizeof(char) * 60;
-
-	uint16_t reduceID = htons(reduce->id);
-	uint16_t nodePort = htons(reduce->nodePort);
 
 	uint16_t countTemps = 0;
 	size_t stemps = totalTempsSize(reduce->temps);
@@ -228,19 +231,30 @@ e_socket_status serializeReduceToOrder(int socket, t_reduce *reduce) {
 	}
 	list_iterate(reduce->temps, (void *) serializeTempsToBuffer);
 
+	uint16_t reduceID = htons(reduce->id);
+	uint16_t nodePort = htons(reduce->nodePort);
+	uint16_t serializedSNodeIP = htons(snodeIP);
 	countTemps = htons(countTemps);
 
-	size_t sbuffer = sOrder + sizeof(reduceID) + sizeof(snodeIP) + snodeIP + snodePort + stempName + sizeof(uint16_t) + stemps;
+	size_t sbuffer = sizeof(char) + sizeof(reduceID) + sizeof(snodeIP) + snodeIP + sizeof(uint16_t) + sizeof(char) * 60 + sizeof(uint16_t) + stemps;
 	void *buffer = malloc(sbuffer);
 	buffer = memset(buffer, '\0', sbuffer);
-	memcpy(buffer, &order, sOrder);
-	memcpy(buffer + sOrder, &reduceID, sizeof(reduceID));
-	memcpy(buffer + sOrder + sizeof(reduceID), &snodeIP, sizeof(snodeIP));
-	memcpy(buffer + sOrder + sizeof(reduceID) + sizeof(snodeIP), reduce->nodeIP, snodeIP);
-	memcpy(buffer + sOrder + sizeof(reduceID) + sizeof(snodeIP) + snodeIP, &nodePort, snodePort);
-	memcpy(buffer + sOrder + sizeof(reduceID) + sizeof(snodeIP) + snodeIP + snodePort, reduce->tempResultName, stempName);
-	memcpy(buffer + sOrder + sizeof(reduceID) + sizeof(snodeIP) + snodeIP + snodePort + stempName, &countTemps, sizeof(uint16_t));
-	memcpy(buffer + sOrder + sizeof(reduceID) + sizeof(snodeIP) + snodeIP + snodePort + stempName + sizeof(uint16_t), tempsBuffer, stemps);
+
+	memcpy(buffer, &order, sizeof(char));
+	void *bufferOffset = buffer + sizeof(char);
+	memcpy(bufferOffset, &reduceID, sizeof(reduceID));
+	bufferOffset += sizeof(reduceID);
+	memcpy(bufferOffset, &serializedSNodeIP, sizeof(snodeIP));
+	bufferOffset += sizeof(snodeIP);
+	memcpy(bufferOffset, reduce->nodeIP, snodeIP);
+	bufferOffset += snodeIP;
+	memcpy(bufferOffset, &nodePort, sizeof(uint16_t));
+	bufferOffset += sizeof(uint16_t);
+	memcpy(bufferOffset, reduce->tempResultName, sizeof(char) * 60);
+	bufferOffset += sizeof(char) * 60;
+	memcpy(bufferOffset, &countTemps, sizeof(uint16_t));
+	bufferOffset += sizeof(uint16_t);
+	memcpy(bufferOffset, tempsBuffer, stemps);
 
 	e_socket_status status = socket_send_packet(socket, buffer, sbuffer);
 	free(tempsBuffer);
@@ -249,13 +263,11 @@ e_socket_status serializeReduceToOrder(int socket, t_reduce *reduce) {
 }
 
 char *desserializaReduceResult(void *buffer, t_job *job) {
-	size_t sresult = sizeof(bool);
-	size_t sidReduce = sizeof(uint16_t);
-
 	bool result;
 	uint16_t idReduce;
-	memcpy(&result, buffer, sresult);
-	memcpy(&idReduce, buffer + sresult, sidReduce);
+	memcpy(&result, buffer, sizeof(bool));
+	void *bufferOffset = buffer + sizeof(bool);
+	memcpy(&idReduce, bufferOffset, sizeof(uint16_t));
 	idReduce = ntohs(idReduce);
 
 	t_reduce *reduce;
@@ -273,12 +285,13 @@ char *desserializaReduceResult(void *buffer, t_job *job) {
 		reduce->done = 1;
 		return NULL;
 	} else {
-		uint32_t offset = sresult + sidReduce;
+		bufferOffset += sizeof(uint16_t);
 		uint16_t snodeID;
-		memcpy(&snodeID, buffer + offset, sizeof(snodeID));
-		offset += sizeof(snodeID);
+		memcpy(&snodeID, bufferOffset, sizeof(uint16_t));
+		snodeID = ntohs(snodeID);
 		char *nodeID = malloc(snodeID);
-		memcpy(nodeID, buffer + offset, snodeID);
+		bufferOffset += sizeof(uint16_t);
+		memcpy(nodeID, bufferOffset, snodeID);
 		deactivateNode(nodeID);
 		return nodeID;
 	}
