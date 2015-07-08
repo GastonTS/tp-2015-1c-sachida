@@ -188,8 +188,12 @@ char* node_getBlock(uint16_t numBlock) {
 void node_setBlock(uint16_t numBlock, char *blockStr) {
 	log_info(node_logger, "Setting block number %d", numBlock);
 
+	void *address = binFileMap + (numBlock * BLOCK_SIZE);
+	size_t length = strlen(blockStr) + 1;
+
 	pthread_rwlock_wrlock(&blocks_mutex[numBlock]);
-	memcpy(binFileMap + (numBlock * BLOCK_SIZE), blockStr, strlen(blockStr) + 1);
+	memcpy(address, blockStr, length);
+	msync(address, length, MS_SYNC);
 	pthread_rwlock_unlock(&blocks_mutex[numBlock]);
 }
 

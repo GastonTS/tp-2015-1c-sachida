@@ -313,34 +313,32 @@ char* connections_node_getFileContent(char *nodeId, char *tmpFileName) {
 }
 
 void* connections_node_checkAlive(void *param) {
-	char *nodeId = (char *) param;
+	char *nodeIdPtr = (char *) param;
+	char nodeId[strlen(nodeIdPtr) + 1];
+	strcpy(nodeId, nodeIdPtr);
+	free(nodeIdPtr);
 
-	uint8_t command = COMMAND_NODE_CHECK_ALIVE;
-	size_t sBuffer = sizeof(command);
-	void *buffer = malloc(sBuffer);
-	memcpy(buffer, &command, sizeof(command));
+	uint8_t buffer = COMMAND_NODE_CHECK_ALIVE;
+	size_t sBuffer = sizeof(buffer);
 
 	while (1) {
 		node_connection_t *nodeConnection = connections_node_getNodeConnection(nodeId);
 		if (!nodeConnection) {
-			free(nodeId);
-			free(buffer);
 			return NULL;
 		}
 
 		pthread_mutex_lock(&nodeConnection->mutex);
-		e_socket_status status = socket_send_packet(nodeConnection->socket, buffer, sBuffer);
+		e_socket_status status = socket_send_packet(nodeConnection->socket, &buffer, sBuffer);
 		pthread_mutex_unlock(&nodeConnection->mutex);
 
 		if (0 > status) {
 			log_info(mdfs_logger, "Removing node %s because it was disconnected", nodeId);
 			connections_node_removeActiveNodeConnection(nodeId);
-			free(buffer);
-			free(nodeId);
+			// TODO sacarlo de standby tmb..
 			return NULL;
 		}
 
-		usleep(2 * 1000 * 1000); // 2 seconds
+		usleep(1 * 1000 * 1000); // 1 seconds
 	}
 }
 
