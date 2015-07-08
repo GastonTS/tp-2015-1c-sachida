@@ -115,12 +115,12 @@ char *recvResult(t_job *job) {
 }
 
 e_socket_status sendDieOrder(int socket, uint8_t result) {
-	char order = COMMAND_MARTA_TO_JOB_DIE;
-	size_t sbuffer = sizeof(char) + sizeof(uint8_t);
+	uint8_t order = COMMAND_MARTA_TO_JOB_DIE;
+	size_t sbuffer = sizeof(uint8_t) + sizeof(uint8_t);
 	void *buffer = malloc(sbuffer);
 
-	memcpy(buffer, &order, sizeof(char));
-	memcpy(buffer + sizeof(char), &result, sizeof(uint8_t));
+	memcpy(buffer, &order, sizeof(uint8_t));
+	memcpy(buffer + sizeof(uint8_t), &result, sizeof(uint8_t));
 
 	e_socket_status status = socket_send_packet(socket, buffer, sbuffer);
 	free(buffer);
@@ -216,7 +216,7 @@ void serializeTemp(t_temp *temporal, void *buffer, size_t *sbuffer) {
 }
 
 e_socket_status serializeReduceToOrder(int socket, t_reduce *reduce) {
-	char order = COMMAND_REDUCE;
+	uint8_t order = COMMAND_REDUCE;
 	uint16_t snodeIP = strlen(reduce->nodeIP);
 
 	uint16_t countTemps = 0;
@@ -234,11 +234,11 @@ e_socket_status serializeReduceToOrder(int socket, t_reduce *reduce) {
 	uint16_t serializedSNodeIP = htons(snodeIP);
 	countTemps = htons(countTemps);
 
-	size_t sbuffer = sizeof(char) + sizeof(reduceID) + sizeof(uint16_t) + snodeIP + sizeof(uint16_t) + sizeof(char) * 60 + sizeof(uint16_t) + stemps;
+	size_t sbuffer = sizeof(uint8_t) + sizeof(reduceID) + sizeof(uint16_t) + snodeIP + sizeof(uint16_t) + sizeof(char) * 60 + sizeof(uint16_t) + stemps;
 	void *buffer = malloc(sbuffer);
 
-	memcpy(buffer, &order, sizeof(char));
-	void *bufferOffset = buffer + sizeof(char);
+	memcpy(buffer, &order, sizeof(uint8_t));
+	void *bufferOffset = buffer + sizeof(uint8_t);
 	memcpy(bufferOffset, &reduceID, sizeof(reduceID));
 	bufferOffset += sizeof(reduceID);
 	memcpy(bufferOffset, &serializedSNodeIP, sizeof(snodeIP));
