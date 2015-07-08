@@ -90,12 +90,11 @@ void serializeReduce(int sock_nodo, t_reduce* reduce){
 	int envio;
 	envio = socket_send_packet(sock_nodo,buffer,sbuffer);
 	log_info(logger,"Enviado %d",envio);
-	log_info(logger,"Order: %c", order);
+	log_info(logger,"Order: %d", order);
 	log_info(logger,"sfileMap: %d",sfileReduce);
 	log_info(logger,"fileMap: %s",fileReduce);
 	log_info(logger,"stemp: %d",sTempName);
 	log_info(logger,"temp: %s",reduce->tempResultName);
-	log_info(logger,"buftmp: %s", reduce->buffer_tmps);
 	//free(fileMap);
 	free(buffer);
 }

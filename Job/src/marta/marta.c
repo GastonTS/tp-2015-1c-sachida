@@ -287,7 +287,6 @@ void atenderReducer(void * parametros) {
 		bool conf;
 		size_t sConf = sizeof(bool);
 		memcpy(&conf, buffer, sConf);
-
 		/* Confirmar Map */
 		confirmarReduce(conf, reduce, buffer);
 	}
@@ -362,8 +361,6 @@ void confirmarReduce(char confirmacion, t_reduce* reduce, void* bufferNodo) {
 	} else {
 		log_error(logger, "Unknown Command from nodo confirm reduce");
 	}
-	free(bufferNodo);
-
 }
 
 //**********************************************************************************//
