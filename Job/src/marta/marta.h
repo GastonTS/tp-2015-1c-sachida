@@ -17,8 +17,8 @@ void atenderMapper(void * parametros);
 void failMap(t_map* map);
 void confirmarMap(t_map* map, bool result);
 void atenderReducer(void* parametros);
-void failReduce(t_reduce* reduce);
-void confirmarReduce(char confirmacion, t_reduce* reduce, void* bufferNodo);
+void failReduce(t_reduce* reduce, char *fallenNode);
+void confirmarReduce(t_reduce* reduce, bool result, void* bufferNodo);
 
 /*serialize*/
 void serializeConfigMaRTA(int fd, bool combiner, char* fileResult, char* files);

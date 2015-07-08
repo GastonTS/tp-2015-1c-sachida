@@ -163,7 +163,6 @@ void atenderMapper(void * parametros) {
 	serializeMap(sock_nodo, map);
 
 	/* Wait for confirmation */
-
 	void *buffer;
 	size_t sbuffer;
 	e_socket_status status = socket_recv_packet(sock_nodo, &buffer, &sbuffer);
@@ -227,24 +226,19 @@ void confirmarMap(t_map* map, bool result) {
 }
 
 void atenderReducer(void * parametros) {
-	//struct parms_threads *p = (struct parms_threads *) parametros;
 	log_info(logger, "Thread reduce created");
 
 	t_reduce *reduce = (t_reduce *) parametros;
 
-	/* Desserializo el mensaje de Mapper de MaRTA */
-	//
 	/* Me conecto al Nodo */
-
 	int hand_nodo;
 	int sock_nodo;
-	int ret_val = 0;
 
 	if ((sock_nodo = socket_connect(reduce->ip_nodo, reduce->port_nodo)) < 0) {
 		log_error(logger, "Error al conectar reduce con Nodo %d", sock_nodo);
-		failReduce(reduce);
+		failReduce(reduce, "ErrorAlConectar");
 		freeThreadReduce(reduce);
-		pthread_exit(&ret_val);
+		pthread_exit(&sock_nodo);
 	}
 
 	log_info(logger, "Coneccion reduce con Nodo: %d", sock_nodo);
@@ -253,9 +247,9 @@ void atenderReducer(void * parametros) {
 	HANDSHAKE_JOB);
 	if (!hand_nodo) {
 		log_error(logger, "Error en reduce hand_nodo con Nodo %d", hand_nodo);
-		failReduce(reduce);
+		failReduce(reduce, "ErrorAlConectar");
 		freeThreadReduce(reduce);
-		pthread_exit(&ret_val);
+		pthread_exit(&hand_nodo);
 	}
 
 	/* Serializo y mando datos */
@@ -263,21 +257,17 @@ void atenderReducer(void * parametros) {
 	serializeReduce(sock_nodo, reduce);
 
 	/* Wait for confirmation */
-
 	void *buffer;
 	size_t sbuffer;
 	e_socket_status status = socket_recv_packet(sock_nodo, &buffer, &sbuffer);
 
 	/* Si se cae el nodo le mando que murio */
 	if (status < 0) {
-		failReduce(reduce);
-		//free(buffer);
+		failReduce(reduce, "ErrorAlConectar");
 	} else {
-		bool conf;
-		size_t sConf = sizeof(bool);
-		memcpy(&conf, buffer, sConf);
-		/* Confirmar Map */
-		confirmarReduce(conf, reduce, buffer);
+		bool result;
+		memcpy(&result, buffer, sizeof(result));
+		confirmarReduce(reduce, result, buffer + sizeof(result));
 	}
 	free(buffer);
 	socket_close(sock_nodo);
@@ -285,71 +275,56 @@ void atenderReducer(void * parametros) {
 	pthread_exit(&status);
 }
 
-void failReduce(t_reduce* reduce) {
+void failReduce(t_reduce* reduce, char *fallenNode) {
 	uint8_t comando = COMMAND_REDUCE;
-	size_t scomando = sizeof(uint8_t);
-	size_t sbool = sizeof(bool);
 	bool fallo = 0;
-	size_t sidreduce = sizeof(uint16_t);
-	size_t sbufferConf = scomando + sbool + sidreduce;
+	uint16_t sfallenNode = strlen(fallenNode);
+
+	uint16_t reduceID = htons(reduce->reduceID);
+	uint16_t serializedSFallenNode = htons(sfallenNode);
+
+	size_t sbufferConf = sizeof(comando) + sizeof(bool) + sizeof(reduceID);
 	void* bufferConf = malloc(sbufferConf);
-	bufferConf = memset(bufferConf, '\0', sbufferConf);
-	memcpy(bufferConf, &comando, scomando);
-	memcpy(bufferConf + scomando, &fallo, sbool);
-	memcpy(bufferConf + scomando + sbool, &reduce->reduceID, sidreduce);
+
+	memcpy(bufferConf, &comando, sizeof(comando));
+	void *bufferOffset = bufferConf + sizeof(comando);
+	memcpy(bufferOffset, &fallo, sizeof(bool));
+	bufferOffset += sizeof(bool);
+	memcpy(bufferOffset, &reduceID, sizeof(reduceID));
+	bufferOffset += sizeof(reduceID);
+	memcpy(bufferOffset, &serializedSFallenNode, sizeof(serializedSFallenNode));
+	bufferOffset += sizeof(serializedSFallenNode);
+	memcpy(bufferOffset, fallenNode, sfallenNode);
+
 	pthread_mutex_lock(&Msockmarta);
 	socket_send_packet(sock_marta, bufferConf, sbufferConf);
 	pthread_mutex_unlock(&Msockmarta);
 	free(bufferConf);
 }
-void confirmarReduce(char confirmacion, t_reduce* reduce, void* bufferNodo) {
-
-	/*TODO ARMAR METODO? */
+void confirmarReduce(t_reduce* reduce, bool result, void* bufferNodo) {
 	uint8_t comando = COMMAND_REDUCE;
-	size_t scomando = sizeof(uint8_t);
-	size_t sOrder = sizeof(bool);
-	size_t sIdJob = sizeof(uint16_t);
-	uint16_t idJob = htons(reduce->reduceID);
+	uint16_t reduceID = htons(reduce->reduceID);
 
-	if (confirmacion == 1) {
-		/* Armo el pkg reduce confirmation */
-		size_t sbuffer = scomando + sOrder + sIdJob;
-		void* buffer = malloc(sbuffer);
-		buffer = memset(buffer, '\0', sbuffer);
-		memcpy(buffer, &comando, scomando);
-		memcpy(buffer + scomando, &confirmacion, sOrder);
-		memcpy(buffer + scomando + sOrder, &idJob, sIdJob);
-		/* Envio todo a MaRTA */
-		pthread_mutex_lock(&Msockmarta);
-		socket_send_packet(sock_marta, &buffer, sbuffer);
-		pthread_mutex_unlock(&Msockmarta);
-		log_info(logger, "Reduce %d Successfully Completed", reduce->reduceID);
-		free(buffer);
-	} else if (confirmacion == 0) {
-		/* Armo el pkg reduce confirmation */
-		/*char* tmpfail;
-		 size_t stmpfail;
+	size_t sbuffer = sizeof(comando) + sizeof(result) + sizeof(reduceID);
+	void* buffer = malloc(sbuffer);
 
-		 memcpy(&stmpfail, bufferNodo + sIdJob, sizeof(size_t));
-		 tmpfail = malloc(stmpfail);
-		 memcpy(tmpfail, bufferNodo + sizeof(stmpfail), stmpfail);*/
+	memcpy(buffer, &comando, sizeof(comando));
+	void *bufferOffset = buffer + sizeof(comando);
+	memcpy(bufferOffset, &result, sizeof(result));
+	bufferOffset += sizeof(result);
+	memcpy(bufferOffset, &reduceID, sizeof(reduceID));
 
-		size_t sbuffer = scomando + sOrder + sIdJob + sizeof(size_t); //+ stmpfail;
-		void* buffer = malloc(sbuffer);
-		buffer = memset(buffer, '\0', sbuffer);
-		memcpy(buffer, &comando, scomando);
-		memcpy(buffer + scomando, &confirmacion, sOrder);
-		memcpy(buffer + scomando + sOrder, &idJob, sIdJob);
-		//memcpy(buffer + scomando + sOrder + sIdJob, &stmpfail, sizeof(size_t));
-		//memcpy(buffer + scomando + sOrder + sIdJob + sizeof(size_t), &tmpfail, stmpfail);
-		/* Envio todo a MaRTA */
-		pthread_mutex_lock(&Msockmarta);
-		socket_send_packet(sock_marta, &buffer, sbuffer);
-		pthread_mutex_unlock(&Msockmarta);
-		log_info(logger, "Reduce %d Failed", reduce->reduceID);
-	} else {
-		log_error(logger, "Unknown Command from nodo confirm reduce");
+	if (!result) { //XXX Testear
+		sbuffer += sizeof(bufferNodo);
+		buffer = realloc(buffer, sbuffer);
+		memcpy(buffer + sizeof(comando) + sizeof(result) + sizeof(reduceID), &bufferNodo, sizeof(bufferNodo));
 	}
+
+	pthread_mutex_lock(&Msockmarta);
+	socket_send_packet(sock_marta, &buffer, sbuffer);
+	pthread_mutex_unlock(&Msockmarta);
+	free(buffer);
+
 }
 
 //**********************************************************************************//
@@ -380,7 +355,6 @@ t_map* desserializeMapOrder(void *buffer) {
 	memcpy(&numBlock, buffer + sIdMap + sizeof(uint16_t) + snodeIP + snodePort, snumblock);
 	memcpy(&tempResultName, buffer + sIdMap + sizeof(uint16_t) + snodeIP + snodePort + snumblock, sizeof(char) * 60);
 
-	//TODO GUARDAR EN ESTRUCTURAS
 	idMap = ntohs(idMap);
 	nodePort = ntohs(nodePort);
 	numBlock = ntohs(numBlock);

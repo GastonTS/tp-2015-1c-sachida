@@ -287,9 +287,14 @@ char *desserializaReduceResult(void *buffer, t_job *job) {
 		uint16_t snodeID;
 		memcpy(&snodeID, bufferOffset, sizeof(snodeID));
 		snodeID = ntohs(snodeID);
-		char *nodeID = malloc(snodeID);
+		char *nodeID = malloc(snodeID + 1);
 		bufferOffset += sizeof(snodeID);
 		memcpy(nodeID, bufferOffset, snodeID);
+		nodeID[snodeID] = '\0';
+		if (strcmp(nodeID, "ErrorAlConectar")) {
+			free(nodeID);
+			nodeID = reduce->finalNode;
+		}
 		deactivateNode(nodeID);
 		return nodeID;
 	}
