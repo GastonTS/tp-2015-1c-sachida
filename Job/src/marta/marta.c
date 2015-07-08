@@ -235,22 +235,16 @@ void atenderReducer(void * parametros) {
 	serializeReduce(sock_nodo, reduce);
 
 	/* Wait for confirmation */
-	printf("\nRECIBE DEL NODO\n");
-	fflush(stdout);
 	void *buffer;
 	size_t sbuffer;
 	e_socket_status status = socket_recv_packet(sock_nodo, &buffer, &sbuffer);
 
 	/* Si se cae el nodo le mando que murio */
 	if (status < 0) {
-		printf("\nERROR AL RECIBIR DEL NODO\n");
-		fflush(stdout);
 		failReduce(reduce, "ErrorAlConectar");
 	} else {
 		bool result;
 		memcpy(&result, buffer, sizeof(result));
-		printf("\nRECIBIO DEL NODO RESULTADO: %d\n", result);
-		fflush(stdout);
 		confirmarReduce(reduce, result, buffer + sizeof(result));
 	}
 	free(buffer);
@@ -267,7 +261,7 @@ void failReduce(t_reduce* reduce, char *fallenNode) {
 	uint16_t reduceID = htons(reduce->reduceID);
 	uint16_t serializedSFallenNode = htons(sfallenNode);
 
-	size_t sbufferConf = sizeof(comando) + sizeof(bool) + sizeof(reduceID);
+	size_t sbufferConf = sizeof(comando) + sizeof(bool) + sizeof(reduceID) + sizeof(serializedSFallenNode) + sfallenNode;
 	void* bufferConf = malloc(sbufferConf);
 
 	memcpy(bufferConf, &comando, sizeof(comando));
