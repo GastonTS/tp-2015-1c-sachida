@@ -54,20 +54,23 @@ void atenderMarta(int socketMarta) {
 /* MANDO MIS CONFIGURACIONES INICIALES A MaRTA */
 void serializeConfigMaRTA(int fd, bool combiner, char* fileResult, char* stringFiles) {
 	uint16_t filesLength = strlen(stringFiles);
-	uint16_t scombiner = sizeof(combiner);
 	uint16_t sizeResult = strlen(fileResult);
 
 	/* Htons */
 	uint16_t sizeResultSerialize = htons(sizeResult);
-
-	size_t sbuffer = scombiner + sizeof(uint16_t) + sizeResult + filesLength;
-	void *buffer = malloc(sbuffer);
-	buffer = memset(buffer, '\0', sbuffer);
 	combiner = htons(combiner);
-	memcpy(buffer, &combiner, scombiner);
-	memcpy(buffer + scombiner, &sizeResultSerialize, sizeof(uint16_t));
-	memcpy(buffer + scombiner + sizeof(uint16_t), fileResult, sizeResult);
-	memcpy(buffer + scombiner + sizeof(uint16_t) + sizeResult, stringFiles, filesLength);
+
+	size_t sbuffer = sizeof(combiner) + sizeof(uint16_t) + sizeResult + filesLength;
+	void *buffer = malloc(sbuffer);
+
+	memcpy(buffer, &combiner, sizeof(combiner));
+	void *bufferOffset = buffer + sizeof(combiner);
+	memcpy(bufferOffset, &sizeResultSerialize, sizeof(sizeResultSerialize));
+	bufferOffset += sizeof(sizeResultSerialize);
+	memcpy(bufferOffset, fileResult, sizeResult);
+	bufferOffset += sizeResult;
+	memcpy(bufferOffset, stringFiles, filesLength);
+
 	socket_send_packet(fd, buffer, sbuffer);
 	free(buffer);
 }
@@ -98,28 +101,27 @@ void recvOrder(int fd) {
 	}
 
 	uint8_t order;
-	size_t sOrder = sizeof(uint8_t);
-	memcpy(&order, buffer, sOrder);
+	memcpy(&order, buffer, sizeof(order));
 
 	printf("\n\n%d\n\n", order);
 	fflush(stdout);
 	if (order == COMMAND_MAP) {
 		log_info(logger, "Map Recived");
 		t_map *map = malloc(sizeof(t_map));
-		map = desserializeMapOrder(buffer + sOrder);
+		map = desserializeMapOrder(buffer + sizeof(order));
 		pthread_create(&hilo_mapper, NULL, (void*) atenderMapper, (void *) map);
 		pthread_detach(hilo_mapper);
 
 	} else if (order == COMMAND_REDUCE) {
 		log_info(logger, "Reduce Recived");
 		t_reduce *reduce = malloc(sizeof(t_reduce));
-		reduce = desserializeReduceOrder(buffer + sOrder, sbuffer - sOrder);
+		reduce = desserializeReduceOrder(buffer + sizeof(order), sbuffer - sizeof(order));
 		pthread_create(&hilo_reduce, NULL, (void*) atenderReducer, (void *) reduce);
 		pthread_detach(hilo_reduce);
 	}
 
 	else if (order == COMMAND_MARTA_TO_JOB_DIE) {
-		desserializeDieOrder(buffer + sOrder);
+		desserializeDieOrder(buffer + sizeof(order));
 		freeCfg();
 		free(buffer);
 		exit(0);
@@ -169,14 +171,10 @@ void atenderMapper(void * parametros) {
 	/* Si se cae el nodo le mando que murio */
 	if (status < 0) {
 		failMap(map);
-		//free(buffer);
 	} else {
-		bool conf;
-		size_t sConf = sizeof(bool);
-		memcpy(&conf, buffer, sConf);
-
-		/* Confirmar Map */
-		confirmarMap(conf, map);
+		bool result;
+		memcpy(&result, buffer, sizeof(result));
+		confirmarMap(map, result);
 	}
 	free(buffer);
 	socket_close(sock_nodo);
@@ -187,54 +185,45 @@ void atenderMapper(void * parametros) {
 
 void failMap(t_map* map) {
 	uint8_t comando = COMMAND_MAP;
-	size_t scomando = sizeof(uint8_t);
-	size_t sbool = sizeof(bool);
-	bool fallo = 0;
-	size_t sidmap = sizeof(uint16_t);
-	size_t sbufferConf = scomando + sbool + sidmap;
+	bool fail = 0;
+
+	uint16_t mapID = htons(map->mapID);
+
+	size_t sbufferConf = sizeof(comando) + sizeof(comando) + sizeof(mapID);
 	void* bufferConf = malloc(sbufferConf);
-	bufferConf = memset(bufferConf, '\0', sbufferConf);
-	memcpy(bufferConf, &comando, scomando);
-	memcpy(bufferConf + scomando, &fallo, sbool);
-	memcpy(bufferConf + scomando + sbool, &map->mapID, sidmap);
+
+	memcpy(bufferConf, &comando, sizeof(comando));
+	void *bufferOffset = bufferConf + sizeof(comando);
+	memcpy(bufferOffset, &fail, sizeof(bool));
+	bufferOffset += sizeof(bool);
+	memcpy(bufferOffset, &mapID, sizeof(mapID));
+
 	pthread_mutex_lock(&Msockmarta);
 	socket_send_packet(sock_marta, bufferConf, sbufferConf);
 	pthread_mutex_unlock(&Msockmarta);
+
 	free(bufferConf);
 }
-void confirmarMap(bool confirmacion, t_map* map) {
 
-	/*TODO ARMAR METODO? */
+void confirmarMap(t_map* map, bool result) {
 	uint8_t comando = COMMAND_MAP;
-	size_t scomando = sizeof(uint8_t);
-	size_t sOrder = sizeof(bool);
-	size_t sIdJob = sizeof(uint16_t);
-	size_t sbuffer = scomando + sOrder + sIdJob;
 
-	uint16_t idJob = htons(map->mapID);
+	uint16_t mapID = htons(map->mapID);
 
+	size_t sbuffer = sizeof(comando) + sizeof(result) + sizeof(mapID);
 	void* buffer = malloc(sbuffer);
-	memset(buffer, '\0', sbuffer);
-	memcpy(buffer, &comando, scomando);
-	memcpy(buffer + scomando, &confirmacion, sOrder);
-	memcpy(buffer + scomando + sOrder, &idJob, sIdJob);
 
-	if (confirmacion == 1) {
-		pthread_mutex_lock(&Msockmarta);
-		socket_send_packet(sock_marta, buffer, sbuffer);
-		pthread_mutex_unlock(&Msockmarta);
-		log_info(logger, "Map %d Successfully Completed", map->mapID);
-	} else if (confirmacion == 0) {
-		pthread_mutex_lock(&Msockmarta);
-		socket_send_packet(sock_marta, buffer, sbuffer);
-		pthread_mutex_unlock(&Msockmarta);
-		log_info(logger, "Map %d Failed", map->mapID);
-	} else {
-		log_error(logger, "Unknown command from nodo map confirm");
-	}
-	free(buffer);
-	pthread_exit(NULL);
+	memcpy(buffer, &comando, sizeof(comando));
+	void *bufferOffset = buffer + sizeof(comando);
+	memcpy(bufferOffset, &result, sizeof(result));
+	bufferOffset += sizeof(result);
+	memcpy(bufferOffset, &mapID, sizeof(mapID));
 
+	pthread_mutex_lock(&Msockmarta);
+	socket_send_packet(sock_marta, buffer, sbuffer);
+	pthread_mutex_unlock(&Msockmarta);
+
+	log_info(logger, "Map: %d Done -> Result: %d", map->mapID, result);
 }
 
 void atenderReducer(void * parametros) {
