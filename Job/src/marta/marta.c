@@ -141,7 +141,7 @@ void atenderMapper(void * parametros) {
 
 	if ((sock_nodo = socket_connect(map->ip_nodo, map->port_nodo)) < 0) {
 		log_error(logger, "Error al conectar map con Nodo %d", sock_nodo);
-		failMap(map);
+		sendMapResult(map, 0);
 		freeThreadMap(map);
 		pthread_exit(&sock_nodo);
 		return;
@@ -169,11 +169,11 @@ void atenderMapper(void * parametros) {
 
 	/* Si se cae el nodo le mando que murio */
 	if (status < 0) {
-		failMap(map);
+		sendMapResult(map, 0);
 	} else {
 		bool result;
 		memcpy(&result, buffer, sizeof(result));
-		confirmarMap(map, result);
+		sendMapResult(map, result);
 	}
 	free(buffer);
 	socket_close(sock_nodo);
@@ -182,29 +182,7 @@ void atenderMapper(void * parametros) {
 
 }
 
-void failMap(t_map* map) {
-	uint8_t comando = COMMAND_MAP;
-	bool fail = 0;
-
-	uint16_t mapID = htons(map->mapID);
-
-	size_t sbufferConf = sizeof(comando) + sizeof(comando) + sizeof(mapID);
-	void* bufferConf = malloc(sbufferConf);
-
-	memcpy(bufferConf, &comando, sizeof(comando));
-	void *bufferOffset = bufferConf + sizeof(comando);
-	memcpy(bufferOffset, &fail, sizeof(bool));
-	bufferOffset += sizeof(bool);
-	memcpy(bufferOffset, &mapID, sizeof(mapID));
-
-	pthread_mutex_lock(&Msockmarta);
-	socket_send_packet(sock_marta, bufferConf, sbufferConf);
-	pthread_mutex_unlock(&Msockmarta);
-
-	free(bufferConf);
-}
-
-void confirmarMap(t_map* map, bool result) {
+void sendMapResult(t_map* map, bool result) {
 	uint8_t comando = COMMAND_MAP;
 
 	uint16_t mapID = htons(map->mapID);
@@ -257,16 +235,22 @@ void atenderReducer(void * parametros) {
 	serializeReduce(sock_nodo, reduce);
 
 	/* Wait for confirmation */
+	printf("\nRECIBE DEL NODO\n");
+	fflush(stdout);
 	void *buffer;
 	size_t sbuffer;
 	e_socket_status status = socket_recv_packet(sock_nodo, &buffer, &sbuffer);
 
 	/* Si se cae el nodo le mando que murio */
 	if (status < 0) {
+		printf("\nERROR AL RECIBIR DEL NODO\n");
+		fflush(stdout);
 		failReduce(reduce, "ErrorAlConectar");
 	} else {
 		bool result;
 		memcpy(&result, buffer, sizeof(result));
+		printf("\nRECIBIO DEL NODO RESULTADO: %d\n", result);
+		fflush(stdout);
 		confirmarReduce(reduce, result, buffer + sizeof(result));
 	}
 	free(buffer);
@@ -300,30 +284,35 @@ void failReduce(t_reduce* reduce, char *fallenNode) {
 	socket_send_packet(sock_marta, bufferConf, sbufferConf);
 	pthread_mutex_unlock(&Msockmarta);
 	free(bufferConf);
+	free(fallenNode);
 }
+
 void confirmarReduce(t_reduce* reduce, bool result, void* bufferNodo) {
 	uint8_t comando = COMMAND_REDUCE;
 	uint16_t reduceID = htons(reduce->reduceID);
 
-	size_t sbuffer = sizeof(comando) + sizeof(result) + sizeof(reduceID);
-	void* buffer = malloc(sbuffer);
+	if (result) {
+		size_t sbuffer = sizeof(comando) + sizeof(result) + sizeof(reduceID);
+		void* buffer = malloc(sbuffer);
 
-	memcpy(buffer, &comando, sizeof(comando));
-	void *bufferOffset = buffer + sizeof(comando);
-	memcpy(bufferOffset, &result, sizeof(result));
-	bufferOffset += sizeof(result);
-	memcpy(bufferOffset, &reduceID, sizeof(reduceID));
+		memcpy(buffer, &comando, sizeof(comando));
+		void *bufferOffset = buffer + sizeof(comando);
+		memcpy(bufferOffset, &result, sizeof(result));
+		bufferOffset += sizeof(result);
+		memcpy(bufferOffset, &reduceID, sizeof(reduceID));
 
-	if (!result) { //XXX Testear
-		sbuffer += sizeof(bufferNodo);
-		buffer = realloc(buffer, sbuffer);
-		memcpy(buffer + sizeof(comando) + sizeof(result) + sizeof(reduceID), &bufferNodo, sizeof(bufferNodo));
+		pthread_mutex_lock(&Msockmarta);
+		socket_send_packet(sock_marta, buffer, sbuffer);
+		pthread_mutex_unlock(&Msockmarta);
+		free(buffer);
+	} else {
+		uint16_t snodeID;
+		memcpy(&snodeID, bufferNodo, sizeof(snodeID));
+		snodeID = ntohs(snodeID);
+		char *nodeID = malloc(snodeID);
+		memcpy(nodeID, bufferNodo, snodeID);
+		failReduce(reduce, nodeID);
 	}
-
-	pthread_mutex_lock(&Msockmarta);
-	socket_send_packet(sock_marta, &buffer, sbuffer);
-	pthread_mutex_unlock(&Msockmarta);
-	free(buffer);
 
 }
 
@@ -417,7 +406,7 @@ t_reduce* desserializeReduceOrder(void *buffer, size_t sbuffer) {
 	char* nodeIP;
 	uint16_t nodePort;
 	char tempResultName[60];
-	//uint16_t countTemps = 0;
+//uint16_t countTemps = 0;
 
 	memcpy(&reduceID, buffer, sreduceID);
 	memcpy(&snodeIP, buffer + sreduceID, sizeof(uint16_t));

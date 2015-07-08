@@ -15,7 +15,7 @@ int conectarMarta();
 void atenderMarta(int socketMarta);
 void atenderMapper(void * parametros);
 void failMap(t_map* map);
-void confirmarMap(t_map* map, bool result);
+void sendMapResult(t_map* map, bool result);
 void atenderReducer(void* parametros);
 void failReduce(t_reduce* reduce, char *fallenNode);
 void confirmarReduce(t_reduce* reduce, bool result, void* bufferNodo);

@@ -293,7 +293,7 @@ char *desserializaReduceResult(void *buffer, t_job *job) {
 		nodeID[snodeID] = '\0';
 		if (strcmp(nodeID, "ErrorAlConectar")) {
 			free(nodeID);
-			nodeID = reduce->finalNode;
+			nodeID = strdup(reduce->finalNode);
 		}
 		deactivateNode(nodeID);
 		return nodeID;
