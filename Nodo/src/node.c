@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <signal.h>
+#include <errno.h>
 
 int node_initConfig(char* configFile);
 void node_waitUntilExit();
@@ -33,6 +34,10 @@ int main(int argc, char *argv[]) {
 	}
 
 	node_config = malloc(sizeof(t_nodeCfg));
+	node_config->binFilePath = NULL;
+	node_config->fsIp = NULL;
+	node_config->name = NULL;
+	node_config->tmpDir = NULL;
 
 	if (!node_initConfig(argv[1])) {
 		log_error(node_logger, "Config failed");
@@ -255,6 +260,10 @@ bool node_popen_write(char *command, char *data) {
 	return 1;
 }
 
+size_t node_getBinFileSize() {
+	return node_config->blocksCount * BLOCK_SIZE;
+}
+
 bool node_init() {
 	bool createFile = 0;
 	bool binFileExists = access(node_config->binFilePath, F_OK) != -1;
@@ -275,17 +284,27 @@ bool node_init() {
 		return 0;
 	}
 
+	size_t binFileSize = node_getBinFileSize();
 	if (createFile) {
-		if (ftruncate(fd, BLOCK_SIZE * node_config->blocksCount) == -1) {
-			log_error(node_logger, "Error while trying to truncate the binFile.");
+		/*
+		 lseek(fd, 0, SEEK_SET);
+		 int i = 0;
+		 for (i = 0; i < node_config->blocksCount; i++) {
+		 lseek(fd, BLOCK_SIZE -1, SEEK_CUR);
+		 write(fd, "", 1);
+		 }
+		 lseek(fd, 0, SEEK_SET);
+		 */
+		if (ftruncate(fd, binFileSize) == -1) {
+			log_error(node_logger, "Error while trying to truncate the binFile. errno: %d", errno);
 			return 0;
 		}
 	} else {
 		// File exists, should check that size matches
 		struct stat stat;
 		fstat(fd, &stat);
-		if (stat.st_size != BLOCK_SIZE * node_config->blocksCount) {
-			log_error(node_logger, "You cannot change the size of the bin file if you are not a new node..");
+		if (stat.st_size != binFileSize) {
+			log_error(node_logger, "You cannot change the size of the bin file if you are not a new node.. is %zd != %zd should be", stat.st_size, binFileSize);
 			return 0;
 		}
 	}
@@ -293,7 +312,7 @@ bool node_init() {
 
 	// Map the file
 	log_info(node_logger, "Mapping the binFile..");
-	binFileMap = mmap(0, BLOCK_SIZE * node_config->blocksCount, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, fd, 0);
+	binFileMap = mmap(0, binFileSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, fd, 0);
 	close(fd);
 
 	if (!binFileMap) {
@@ -342,6 +361,11 @@ int node_initConfig(char* configFile) {
 
 	config = config_create(configFile);
 
+	if (!config) {
+		log_error(node_logger, "Config file %s not found!", configFile);
+		return 0;
+	}
+
 	log_info(node_logger, "Loading config...");
 
 	node_config->fsIp = strdup(getConfigString("FS_IP"));
@@ -388,7 +412,7 @@ void node_waitUntilExit() {
 
 void node_free() {
 	if (binFileMap) {
-		munmap(binFileMap, BLOCK_SIZE * node_config->blocksCount);
+		munmap(binFileMap, node_getBinFileSize());
 	}
 
 	if (node_config) {

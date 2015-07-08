@@ -10,6 +10,8 @@
 #include <commons/string.h>
 #include <commons/collections/list.h>
 
+// TODO ver q onda esto..
+#define _FILE_OFFSET_BITS 64
 #define BLOCK_SIZE 20 * 1024 * 1024 // 20 MB de bloques
 
 typedef struct {
