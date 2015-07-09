@@ -11,9 +11,9 @@ typedef struct {
 
 void notificarReduce(t_job *job, t_reduce *reduce) {
 	if (reduce->id)
-		log_info(logger, "|JOB %d|Planned Partial Reduce: %d on Node: %s", job->id, reduce->id, reduce->finalNode);
+		log_info(logger, "|JOB %d| Planned Partial Reduce: %d on Node: %s", job->id, reduce->id, reduce->finalNode);
 	else
-		log_info(logger, "|JOB %d|Planned Final Reduce: %d on Node: %s", job->id, reduce->id, reduce->finalNode);
+		log_info(logger, "|JOB %d| Planned Final Reduce: %d on Node: %s", job->id, reduce->id, reduce->finalNode);
 	reduce->done = false;
 
 	pthread_mutex_lock(&Mnodes);

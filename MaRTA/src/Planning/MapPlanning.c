@@ -18,7 +18,7 @@ void selectNode(t_copy *copy, t_node **selectedNode, uint16_t *numBlock) {
 }
 
 void notificarMap(t_job *job, t_map *map) {
-	log_info(logger, "|JOB %d|Planned Map: %d on Node: %s (Block:%d)", job->id, map->id, map->nodeName, map->numBlock);
+	log_info(logger, "|JOB %d| Planned Map: %d on Node: %s (Block:%d)", job->id, map->id, map->nodeName, map->numBlock);
 	map->done = false;
 	if (0 > serializeMapToOrder(job->socket, map)) {
 		log_error(logger, "Job %d Died when sending map order", job->id);

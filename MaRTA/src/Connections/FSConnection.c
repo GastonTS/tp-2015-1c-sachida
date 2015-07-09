@@ -1,6 +1,4 @@
 #include "Connection.h"
-#include "../structs/job.h"
-#include "../structs/node.h"
 
 void connectFS();
 

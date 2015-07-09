@@ -9,6 +9,5 @@
 #include "../structs/node.h"
 
 void initConnection();
-int requestFileBlocks(t_file *file);
 
 #endif
