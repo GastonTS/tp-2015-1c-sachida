@@ -44,6 +44,11 @@ int socket_listen(t_port port) {
 		return SOCKET_ERROR_BIND;
 	}
 
+	int yes = 1;
+	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
+		return SOCKET_ERROR_SETSOCKETOPT;
+	}
+
 	freeaddrinfo(serverInfo);
 
 	if (0 > listen(fd, 5)) {
