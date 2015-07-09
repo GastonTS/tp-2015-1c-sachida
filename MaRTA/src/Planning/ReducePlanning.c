@@ -10,7 +10,10 @@ typedef struct {
 } t_temporalCount;
 
 void notificarReduce(t_job *job, t_reduce *reduce) {
-	log_trace(logger, "Planned: %s", reduce->tempResultName);
+	if (reduce->id)
+		log_info(logger, "|JOB %d|Planned Partial Reduce: %d on Node: %s", job->id, reduce->id, reduce->finalNode);
+	else
+		log_info(logger, "|JOB %d|Planned Final Reduce: %d on Node: %s", job->id, reduce->id, reduce->finalNode);
 	reduce->done = false;
 
 	pthread_mutex_lock(&Mnodes);

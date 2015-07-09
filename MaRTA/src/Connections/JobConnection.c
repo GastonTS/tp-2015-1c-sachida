@@ -162,12 +162,11 @@ void desserializeMapResult(void *buffer, t_job *job) {
 	memcpy(&idMap, buffer + sizeof(result), sizeof(idMap));
 	idMap = ntohs(idMap);
 
-	log_trace(logger, "Map: %d Done -> Result: %d", idMap, result);
 	bool findMap(t_map *map) {
 		return isMap(map, idMap);
 	}
 	t_map *map = list_find(job->maps, (void *) findMap);
-
+	log_info(logger, "|JOB %d| Map: %d Done on Node: %s -> Result: %d", job->id, map->id, map->nodeName, result);
 	removeMapNode(map);
 	if (result) {
 		map->done = true;
@@ -275,7 +274,7 @@ char *desserializaReduceResult(void *buffer, t_job *job) {
 		}
 		reduce = list_find(job->partialReduces, (void *) findReduce);
 	}
-	log_trace(logger, "Reduce: %d Done -> Result: %d", idReduce, result);
+	log_info(logger, "|JOB %d| Reduce: %d Done on Node: %s -> Result: %d", job->id, reduce->id, reduce->finalNode, result);
 	removeReduceNode(reduce);
 	if (result) {
 		reduce->done = 1;

@@ -18,7 +18,7 @@ void selectNode(t_copy *copy, t_node **selectedNode, uint16_t *numBlock) {
 }
 
 void notificarMap(t_job *job, t_map *map) {
-	log_trace(logger, "Planned: %s", map->tempResultName);
+	log_info(logger, "|JOB %d|Planned Map: %d on Node: %s (Block:%d)", job->id, map->id, map->nodeName, map->numBlock);
 	map->done = false;
 	if (0 > serializeMapToOrder(job->socket, map)) {
 		log_error(logger, "Job %d Died when sending map order", job->id);
@@ -28,7 +28,7 @@ void notificarMap(t_job *job, t_map *map) {
 }
 
 void planMaps(t_job *job) {
-	log_trace(logger, "Planning Job %d...", job->id);
+	log_info(logger, "Planning Job %d...", job->id);
 	int filesAvailables = 1;
 	void requestBlocks(t_file *file) {
 		if (!requestFileBlocks(file))
@@ -64,8 +64,8 @@ void planMaps(t_job *job) {
 	}
 	if (filesAvailables) {
 		list_iterate(job->files, (void *) fileMap);
-		log_trace(logger, "Finished Map Planning Job %d", job->id);
-		log_trace(logger, "Waiting Map Results from Job %d...", job->id);
+		log_info(logger, "Finished Map Planning Job %d", job->id);
+		log_info(logger, "Waiting Map Results from Job %d...", job->id);
 		int i;
 		int mapsCount = list_size(job->maps);
 		for (i = 0; i < mapsCount; i++)
