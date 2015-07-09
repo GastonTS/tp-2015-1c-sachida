@@ -253,14 +253,15 @@ e_socket_status socket_recv(int socket, void* stream, size_t size) {
 e_socket_status socket_send_packet(int socket, void* packet, size_t size) {
 	if (!packet)
 		return SOCKET_ERROR_SEND;
-	size_t ssize = sizeof(size_t),  //El tamaño del tamaño de lo que va a mandar
-			spacket = size, 	//el tamaño de lo que realmente va a mandar
-			sbufer = ssize + spacket; //El tamaño de header+contenido
-	void* buffer = malloc(sbufer);
-	hton(memcpy(buffer, &size, ssize), ssize); //copia el tamaño de lo que va mandar
-	memcpy(buffer + ssize, packet, spacket); //copia el contenido del paquete en el buffer
-	e_socket_status status = socket_send(socket, buffer, sbufer); //manda el buffer
-	free(buffer);
+	size_t ssize = sizeof(size_t);  //El tamaño del tamaño de lo que va a mandar
+	size_t spacket = size; 			//El tamaño de lo que realmente va a mandar
+
+	hton(&size, ssize);
+	e_socket_status status = socket_send(socket, &size, ssize); 	// manda el header
+	if (0 > status)
+		return status;
+	status = socket_send(socket, packet, spacket);					// manda el buffer
+
 	return status;
 }
 
@@ -276,7 +277,6 @@ e_socket_status socket_recv_packet(int socket, void** packet, size_t* size) {
 }
 
 // Es igual a recv packet pero NO hace un malloc, esto sirve para tirar el resultado a una memoria que ya fue malloc'ed en otro lado (mmap por ej)
-
 e_socket_status socket_recv_packet_to_memory(int socket, void** packet, size_t* size) {
 	e_socket_status status = socket_recv_integer(socket, size, sizeof(size_t));
 	if (0 > status)
