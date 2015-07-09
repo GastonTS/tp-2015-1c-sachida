@@ -232,7 +232,7 @@ bool connections_marta_copyFinalResult(void *bufferReceived) {
 
 	memcpy(finalTmpName, bufferReceived + offset, sizeof(char) * 60);
 
-	bool result = filesystem_copyTmpFileToMDFS("Nodo", finalTmpName, resultFileName);
+	bool result = filesystem_copyTmpFileToMDFS(nodeId, finalTmpName, resultFileName);
 
 	void *buffer = malloc(sizeof(result));
 	memcpy(buffer, &result, sizeof(result));
