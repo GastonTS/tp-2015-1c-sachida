@@ -66,10 +66,7 @@ void removeReduceNode(t_reduce *reduce) {
 
 void deactivateNode(char *nodeName) {
 	t_node *node = findNode(nodes, nodeName);
-	printf("\nAAA\n");
-	fflush(stdout);
 	if (node != NULL){
-		printf("\nBBB\n");
 		node->active = 0;
 	}
 }

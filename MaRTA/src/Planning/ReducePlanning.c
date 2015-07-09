@@ -109,6 +109,7 @@ void noCombinerReducePlanning(t_job *job) {
 			if (!finalResult)
 				fallenNode = strdup(job->finalReduce->finalNode);
 		}
+
 		if (fallenNode != NULL) {
 			finalFailed = true;
 			if (!rePlanMapsFromNode(job, fallenNode))
