@@ -266,7 +266,7 @@ char* connections_node_getBlock(file_block_t *fileBlock) {
 	return block;
 }
 
-char* connections_node_getFileContent(char *nodeId, char *tmpFileName) {
+char* connections_node_getFileContent(char *nodeId, char *tmpFileName, size_t *tmpFileLength) {
 	node_connection_t *nodeConnection = connections_node_getActiveNodeConnection(nodeId);
 	if (!nodeConnection) {
 		return NULL;
@@ -299,7 +299,8 @@ char* connections_node_getFileContent(char *nodeId, char *tmpFileName) {
 
 	free(buffer);
 
-	status = socket_recv_packet(nodeConnection->socket, &buffer, &sBuffer);
+	buffer = NULL;
+	status = socket_recv_packet(nodeConnection->socket, &buffer, tmpFileLength);
 	pthread_mutex_unlock(&nodeConnection->mutex);
 	if (0 > status) {
 		log_info(mdfs_logger, "Removing node %s because it was disconnected", nodeId);
@@ -307,10 +308,7 @@ char* connections_node_getFileContent(char *nodeId, char *tmpFileName) {
 		return NULL;
 	}
 
-	char *tmpFileContent = realloc(buffer, sBuffer + 1);
-	tmpFileContent[sBuffer] = '\0';
-
-	return tmpFileContent;
+	return buffer;
 }
 
 void* connections_node_checkAlive(void *param) {
