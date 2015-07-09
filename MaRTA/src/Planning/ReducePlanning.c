@@ -38,14 +38,17 @@ t_temp * reduceToTemporal(t_reduce *reduce) {
 	return temporal;
 }
 
-void rePlanMapsFromNode(t_job *job, char *node) {
+int rePlanMapsFromNode(t_job *job, char *node) {
+	int fileAvailable = 1;
 	void rePlanByNode(t_map *map) {
 		if (!strcmp(map->nodeName, node)) {
-			rePlanMap(job, map);
+			if (!rePlanMap(job, map))
+				fileAvailable = 0;
 		}
 	}
 	list_iterate(job->maps, (void *) rePlanByNode);
 	free(node);
+	return fileAvailable;
 }
 
 void noCombinerReducePlanning(t_job *job) {
@@ -111,7 +114,8 @@ void noCombinerReducePlanning(t_job *job) {
 		}
 		if (fallenNode != NULL) {
 			finalFailed = true;
-			rePlanMapsFromNode(job, fallenNode);
+			if (!rePlanMapsFromNode(job, fallenNode))
+				notifFileUnavailable(job);
 			list_clean_and_destroy_elements(job->finalReduce->temps, (void *) freeTemp);
 			free(job->finalReduce->finalNode);
 			free(job->finalReduce->nodeIP);
@@ -195,16 +199,22 @@ void combinerReducePlanning(t_job *job) {
 					list_add(fallenNodes, fallenNode);
 				}
 			}
+			int filesAvailables = 1;
 			if (partialsFailed) {
 				void replanMaps(char *node) {
-					rePlanMapsFromNode(job, node);
+					if (!rePlanMapsFromNode(job, node))
+						filesAvailables = 0;
 				}
 				list_iterate(fallenNodes, (void *) replanMaps);
-				list_clean_and_destroy_elements(fallenNodes, (void *) free);
+				if (!filesAvailables) {
+					list_destroy(fallenNodes);
+					notifFileUnavailable(job);
+				}
+				list_clean(fallenNodes);
 				list_clean_and_destroy_elements(job->partialReduces, (void *) freeReduce);
 			}
 		} while (partialsFailed);
-		list_clean_and_destroy_elements(fallenNodes, (void *) free);
+		list_clean(fallenNodes);
 		combinerFinalReducePlanning(job);
 		fallenNode = recvResult(job);
 		if (fallenNode == NULL) {
@@ -214,11 +224,13 @@ void combinerReducePlanning(t_job *job) {
 		}
 		if (fallenNode != NULL) {
 			finalFailed = true;
-			rePlanMapsFromNode(job, fallenNode);
+			if (!rePlanMapsFromNode(job, fallenNode)) {
+				list_destroy(fallenNodes);
+				notifFileUnavailable(job);
+			}
 			list_clean_and_destroy_elements(job->partialReduces, (void *) freeReduce);
 			list_clean_and_destroy_elements(job->finalReduce->temps, (void *) freeTemp);
 		}
 	} while (finalFailed);
-	list_destroy(fallenNodes);
 }
 

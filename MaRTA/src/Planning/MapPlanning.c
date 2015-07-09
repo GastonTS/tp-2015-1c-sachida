@@ -27,6 +27,15 @@ void notificarMap(t_job *job, t_map *map) {
 	}
 }
 
+
+void notifFileUnavailable(t_job *job) {
+	log_error(logger, "Job %d Failed: One file is unavailable", job->id);
+	sendDieOrder(job->socket, COMMAND_RESULT_FILEUNAVAILABLE);
+	freeJob(job);
+	pthread_exit(0);
+}
+
+
 void planMaps(t_job *job) {
 	log_info(logger, "Planning Job %d...", job->id);
 	int filesAvailables = 1;
@@ -71,14 +80,11 @@ void planMaps(t_job *job) {
 		for (i = 0; i < mapsCount; i++)
 			recvResult(job);
 	} else {
-		log_error(logger, "Job %d Failed: One file is unavailable", job->id);
-		sendDieOrder(job->socket, COMMAND_RESULT_FILEUNAVAILABLE);
-		freeJob(job);
-		pthread_exit(0);
+		notifFileUnavailable(job);
 	}
 }
 
-void rePlanMap(t_job *job, t_map *map) {
+int rePlanMap(t_job *job, t_map *map) {
 	t_node *selectedNode = NULL;
 	uint16_t numBlock;
 
@@ -101,10 +107,7 @@ void rePlanMap(t_job *job, t_map *map) {
 
 		notificarMap(job, map);
 		recvResult(job);
-	} else {
-		log_error(logger, "Job %d Failed: One file is unavailable", job->id);
-		sendDieOrder(job->socket, COMMAND_RESULT_FILEUNAVAILABLE);
-		freeJob(job);
-		pthread_exit(0);
+		return 1;
 	}
+	return 0;
 }

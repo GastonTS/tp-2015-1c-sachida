@@ -173,7 +173,8 @@ void desserializeMapResult(void *buffer, t_job *job) {
 		map->done = true;
 	} else {
 		deactivateNode(map->nodeName);
-		rePlanMap(job, map);
+		if(!rePlanMap(job, map))
+			notifFileUnavailable(job);
 	}
 }
 

@@ -5,6 +5,7 @@
 #include "../structs/job.h"
 
 void planMaps(t_job *job);
-void rePlanMap(t_job *job, t_map *map);
+int rePlanMap(t_job *job, t_map *map);
+void notifFileUnavailable(t_job *job);
 
 #endif
