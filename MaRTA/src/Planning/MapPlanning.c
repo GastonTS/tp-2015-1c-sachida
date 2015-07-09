@@ -32,7 +32,7 @@ void notifFileUnavailable(t_job *job) {
 	log_error(logger, "Job %d Failed: One file is unavailable", job->id);
 	sendDieOrder(job->socket, COMMAND_RESULT_FILEUNAVAILABLE);
 	freeJob(job);
-	pthread_exit(0);
+	pthread_exit(NULL);
 }
 
 

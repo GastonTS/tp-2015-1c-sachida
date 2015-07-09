@@ -110,7 +110,7 @@ void noCombinerReducePlanning(t_job *job) {
 		if (fallenNode == NULL) {
 			bool finalResult = copyFinalTemporal(job);
 			if (!finalResult)
-				fallenNode = job->finalReduce->finalNode;
+				fallenNode = strdup(job->finalReduce->finalNode);
 		}
 		if (fallenNode != NULL) {
 			finalFailed = true;
@@ -220,7 +220,7 @@ void combinerReducePlanning(t_job *job) {
 		if (fallenNode == NULL) {
 			bool finalResult = copyFinalTemporal(job);
 			if (!finalResult)
-				fallenNode = job->finalReduce->finalNode;
+				fallenNode = strdup(job->finalReduce->finalNode);
 		}
 		if (fallenNode != NULL) {
 			finalFailed = true;

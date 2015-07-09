@@ -54,8 +54,7 @@ void stringsToPathFile(t_list *list, char *string) {
 t_job *desserializeJob(int socket, uint16_t id) {
 	size_t sbuffer;
 	void *buffer;
-	e_socket_status status = socket_recv_packet(socket, &buffer, &sbuffer);
-	if (0 > status) {
+	if (0 > socket_recv_packet(socket, &buffer, &sbuffer)) {
 		log_error(logger, "Job %d Died when deserializing", id);
 		free(buffer);
 		pthread_exit(NULL);
@@ -103,13 +102,12 @@ char *recvResult(t_job *job) {
 	memcpy(&resultFrom, buffer, sizeof(resultFrom));
 	switch (resultFrom) {
 	case COMMAND_MAP:
-		desserializeMapResult(buffer + sizeof(resultFrom), job);
+		desserializeMapResult(buffer, sizeof(resultFrom), job);
 		break;
 	case COMMAND_REDUCE:
-		nodeID = desserializaReduceResult(buffer + sizeof(resultFrom), job);
+		nodeID = desserializaReduceResult(buffer, sizeof(resultFrom), job);
 		break;
 	}
-	free(buffer);
 	return nodeID;
 }
 
@@ -155,12 +153,16 @@ e_socket_status serializeMapToOrder(int socket, t_map *map) {
 	return status;
 }
 
-void desserializeMapResult(void *buffer, t_job *job) {
+void desserializeMapResult(void *buffer, size_t offset, t_job *job) {
 	bool result;
 	uint16_t idMap;
+	void *bufferOffset = buffer + offset;
+	memcpy(&result, bufferOffset, sizeof(result));
+	bufferOffset += sizeof(result);
+	memcpy(&idMap, bufferOffset, sizeof(idMap));
 
-	memcpy(&result, buffer, sizeof(result));
-	memcpy(&idMap, buffer + sizeof(result), sizeof(idMap));
+	free(buffer);
+
 	idMap = ntohs(idMap);
 
 	bool findMap(t_map *map) {
@@ -261,12 +263,14 @@ e_socket_status serializeReduceToOrder(int socket, t_reduce *reduce) {
 	return status;
 }
 
-char *desserializaReduceResult(void *buffer, t_job *job) {
+char *desserializaReduceResult(void *buffer, size_t offset, t_job *job) {
 	bool result;
 	uint16_t idReduce;
-	memcpy(&result, buffer, sizeof(result));
-	void *bufferOffset = buffer + sizeof(result);
+	void *bufferOffset = buffer + offset;
+	memcpy(&result, bufferOffset, sizeof(result));
+	bufferOffset += sizeof(result);
 	memcpy(&idReduce, bufferOffset, sizeof(idReduce));
+
 	idReduce = ntohs(idReduce);
 
 	t_reduce *reduce;
@@ -282,23 +286,30 @@ char *desserializaReduceResult(void *buffer, t_job *job) {
 	removeReduceNode(reduce);
 	if (result) {
 		reduce->done = 1;
+		free(buffer);
 		return NULL;
 	} else {
 		bufferOffset += sizeof(idReduce);
 		uint16_t snodeID;
+
 		memcpy(&snodeID, bufferOffset, sizeof(snodeID));
 		snodeID = ntohs(snodeID);
+
 		char *nodeID = malloc(snodeID + 1);
 		bufferOffset += sizeof(snodeID);
 		memcpy(nodeID, bufferOffset, snodeID);
 		nodeID[snodeID] = '\0';
+
 		if (strcmp(nodeID, "ErrorAlConectar")) {
 			free(nodeID);
 			nodeID = strdup(reduce->finalNode);
 		}
+
 		pthread_mutex_lock(&Mnodes);
 		deactivateNode(nodeID);
 		pthread_mutex_unlock(&Mnodes);
+
+		free(buffer);
 		return nodeID;
 	}
 
