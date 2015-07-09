@@ -172,8 +172,10 @@ void desserializeMapResult(void *buffer, t_job *job) {
 	if (result) {
 		map->done = true;
 	} else {
+		pthread_mutex_lock(&Mnodes);
 		deactivateNode(map->nodeName);
-		if(!rePlanMap(job, map))
+		pthread_mutex_unlock(&Mnodes);
+		if (!rePlanMap(job, map))
 			notifFileUnavailable(job);
 	}
 }
@@ -294,7 +296,9 @@ char *desserializaReduceResult(void *buffer, t_job *job) {
 			free(nodeID);
 			nodeID = strdup(reduce->finalNode);
 		}
+		pthread_mutex_lock(&Mnodes);
 		deactivateNode(nodeID);
+		pthread_mutex_unlock(&Mnodes);
 		return nodeID;
 	}
 
