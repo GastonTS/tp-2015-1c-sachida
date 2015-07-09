@@ -6,8 +6,8 @@
 #include <commons/collections/list.h>
 
 void *connections_marta_listenActions(void *param);
-bool connection_marta_sendFileBlocks(void *bufferReceived);
-void connection_marta_finalresult(void *buffer);
+bool connections_marta_sendFileBlocks(void *bufferReceived);
+bool connections_marta_copyFinalResult(void *buffer);
 
 int martaSocket;
 
@@ -60,13 +60,13 @@ void *connections_marta_listenActions(void *param) {
 
 			switch (command) {
 			case COMMAND_MARTA_TO_FS_GET_FILE_BLOCKS:
-				if (!connection_marta_sendFileBlocks(buffer)) {
+				if (!connections_marta_sendFileBlocks(buffer)) {
 					log_error(mdfs_logger, "MaRTA was disconnected");
 					exit = 1;
 				}
 				break;
 			case COMMAND_MARTA_TO_FS_GET_COPY_FINAL_RESULT:
-				connection_marta_finalresult(buffer);
+				connections_marta_copyFinalResult(buffer);
 				break;
 			}
 		}
@@ -80,7 +80,7 @@ void *connections_marta_listenActions(void *param) {
 	return NULL;
 }
 
-bool connection_marta_sendFileBlocks(void *bufferReceived) {
+bool connections_marta_sendFileBlocks(void *bufferReceived) {
 	bool sendFailed() {
 		uint16_t blocksCount = 0; // We send 0 as an error.
 		uint16_t blocksCountSerialized = htons(blocksCount);
@@ -153,14 +153,18 @@ bool connection_marta_sendFileBlocks(void *bufferReceived) {
 				uint16_t nodePortSerialized = htons(nodeConnection->listenPort);
 				uint16_t blockIndexSerialized = htons(blockCopy->blockIndex);
 
-				memcpy(blockCopiesBuffer + sBlockCopiesBuffer, &sNodeIdSerialized, sizeof(sNodeId));
-				memcpy(blockCopiesBuffer + sBlockCopiesBuffer + sizeof(sNodeId), blockCopy->nodeId, sNodeId);
-				memcpy(blockCopiesBuffer + sBlockCopiesBuffer + sizeof(sNodeId) + sNodeId, &sNodeIpSerialized, sizeof(sNodeIp));
-				memcpy(blockCopiesBuffer + sBlockCopiesBuffer + sizeof(sNodeId) + sNodeId + sizeof(sNodeIp), nodeConnection->ip, sNodeIp);
-				memcpy(blockCopiesBuffer + sBlockCopiesBuffer + sizeof(sNodeId) + sNodeId + sizeof(sNodeIp) + sNodeIp, &nodePortSerialized,
-						sizeof(nodeConnection->listenPort));
-				memcpy(blockCopiesBuffer + sBlockCopiesBuffer + sizeof(sNodeId) + sNodeId + sizeof(sNodeIp) + sNodeIp + sizeof(nodeConnection->listenPort),
-						&blockIndexSerialized, sizeof(blockCopy->blockIndex));
+				size_t offset = 0;
+				memcpy(blockCopiesBuffer + sBlockCopiesBuffer + offset, &sNodeIdSerialized, sizeof(sNodeId));
+				offset += sizeof(sNodeId);
+				memcpy(blockCopiesBuffer + sBlockCopiesBuffer + offset, blockCopy->nodeId, sNodeId);
+				offset += sNodeId;
+				memcpy(blockCopiesBuffer + sBlockCopiesBuffer + offset, &sNodeIpSerialized, sizeof(sNodeIp));
+				offset += sizeof(sNodeIp);
+				memcpy(blockCopiesBuffer + sBlockCopiesBuffer + offset, nodeConnection->ip, sNodeIp);
+				offset += sNodeIp;
+				memcpy(blockCopiesBuffer + sBlockCopiesBuffer + offset, &nodePortSerialized, sizeof(nodeConnection->listenPort));
+				offset += sizeof(nodeConnection->listenPort);
+				memcpy(blockCopiesBuffer + sBlockCopiesBuffer + offset, &blockIndexSerialized, sizeof(blockCopy->blockIndex));
 
 				sBlockCopiesBuffer += sBlockCopy;
 			}
@@ -201,28 +205,34 @@ bool connection_marta_sendFileBlocks(void *bufferReceived) {
 	return success;
 }
 
-void connection_marta_finalresult(void *buffer) {
-	uint16_t sarchivoResultado;
-	char temporalFinal[60];
+bool connections_marta_copyFinalResult(void *bufferReceived) {
+	uint16_t sResultFileName;
+	char finalTmpName[60];
 
-	memcpy(&sarchivoResultado, buffer, sizeof(sarchivoResultado));
-	sarchivoResultado = ntohs(sarchivoResultado);
-	char *archivoResultado = malloc(sarchivoResultado + 1);
-	void *bufferOffset = buffer + sizeof(sarchivoResultado);
-	memcpy(archivoResultado, bufferOffset, sarchivoResultado);
-	archivoResultado[sarchivoResultado] = '\0';
-	bufferOffset += sarchivoResultado;
-	memcpy(temporalFinal, bufferOffset, sizeof(char) * 60);
+	size_t offset = 0;
+
+	memcpy(&sResultFileName, bufferReceived + offset, sizeof(sResultFileName));
+	sResultFileName = ntohs(sResultFileName);
+	offset += sizeof(sResultFileName);
+
+	char *resultFileName = malloc(sResultFileName + 1);
+	memcpy(resultFileName, bufferReceived + offset, sResultFileName);
+	resultFileName[sResultFileName] = '\0';
+	offset += sResultFileName;
+
+	memcpy(finalTmpName, bufferReceived + offset, sizeof(char) * 60);
 
 	/*TODO Copiar el temporalFinal al MDFS
 	 Aca hacer el getfile para el temporal del nodo pidiendole temporalFinal y una vez que lo tenes lo
 	 copias en el MDFS con copias como cualquier otro archivo guardandolo con el nombre archivoResultado
 	 */
-	bool result = true;
 
-	void *finalBuffer = malloc(sizeof(bool));
+	bool result = 1;
+	void *buffer = malloc(sizeof(result));
+	memcpy(buffer, &result, sizeof(result));
 
-	memcpy(finalBuffer, result, sizeof(bool));
+	e_socket_status status = socket_send_packet(martaSocket, buffer, sizeof(bool));
+	free(buffer);
 
-	socket_send_packet(martaSocket, finalBuffer, sizeof(bool));
+	return status == SOCKET_ERROR_NONE;
 }
