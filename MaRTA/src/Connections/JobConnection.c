@@ -79,6 +79,7 @@ t_job *desserializeJob(int socket, uint16_t id) {
 	stringFiles[sfiles] = '\0';
 
 	t_job *job = CreateJob(id, combiner, resultadoFinal);
+	free(resultadoFinal);
 
 	stringsToPathFile(job->files, stringFiles);
 

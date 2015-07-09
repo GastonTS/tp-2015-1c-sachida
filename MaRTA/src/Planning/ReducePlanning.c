@@ -45,6 +45,7 @@ void rePlanMapsFromNode(t_job *job, char *node) {
 		}
 	}
 	list_iterate(job->maps, (void *) rePlanByNode);
+	free(node);
 }
 
 void noCombinerReducePlanning(t_job *job) {
@@ -112,6 +113,8 @@ void noCombinerReducePlanning(t_job *job) {
 			finalFailed = true;
 			rePlanMapsFromNode(job, fallenNode);
 			list_clean_and_destroy_elements(job->finalReduce->temps, (void *) freeTemp);
+			free(job->finalReduce->finalNode);
+			free(job->finalReduce->nodeIP);
 		}
 	} while (finalFailed);
 
