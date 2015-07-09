@@ -118,7 +118,7 @@ t_job *CreateJob(uint16_t id, bool combiner, char *resultadoFinal) {
 	t_job *job = malloc(sizeof(t_job));
 	job->id = id;
 	job->combiner = combiner;
-	job->resultadoFinal = strdup(resultadoFinal);
+	job->resultFile = strdup(resultadoFinal);
 	job->files = list_create();
 	job->partialReduces = list_create();
 	job->finalReduce = initReduce();
@@ -180,7 +180,7 @@ void freeJob(t_job *job) {
 	list_destroy_and_destroy_elements(job->maps, (void *) freeMap);
 	list_destroy_and_destroy_elements(job->partialReduces, (void *) freeReduce);
 	freeReduce(job->finalReduce);
-	free(job->resultadoFinal);
+	free(job->resultFile);
 	free(job);
 }
 

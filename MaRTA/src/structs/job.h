@@ -46,7 +46,7 @@ typedef struct {
 	int socket;
 	uint16_t id;
 	bool combiner;
-	char *resultadoFinal;
+	char *resultFile;
 	t_list *files;
 	t_list *maps;
 	t_list *partialReduces;
