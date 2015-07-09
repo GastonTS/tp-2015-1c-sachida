@@ -100,6 +100,11 @@ void noCombinerReducePlanning(t_job *job) {
 		notificarReduce(job, job->finalReduce);
 		finalFailed = false;
 		char *fallenNode = recvResult(job);
+		if (fallenNode == NULL) {
+			bool finalResult = copyFinalTemporal(job);
+			if (!finalResult)
+				fallenNode = job->finalReduce->finalNode;
+		}
 		if (fallenNode != NULL) {
 			finalFailed = true;
 			rePlanMapsFromNode(job, fallenNode);
@@ -196,6 +201,11 @@ void combinerReducePlanning(t_job *job) {
 		list_clean_and_destroy_elements(fallenNodes, (void *) free);
 		combinerFinalReducePlanning(job);
 		fallenNode = recvResult(job);
+		if (fallenNode == NULL) {
+			bool finalResult = copyFinalTemporal(job);
+			if (!finalResult)
+				fallenNode = job->finalReduce->finalNode;
+		}
 		if (fallenNode != NULL) {
 			finalFailed = true;
 			rePlanMapsFromNode(job, fallenNode);

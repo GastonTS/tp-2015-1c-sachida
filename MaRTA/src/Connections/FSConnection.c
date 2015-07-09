@@ -145,3 +145,34 @@ int requestFileBlocks(t_file *file) {
 	return 1;
 }
 
+bool copyFinalTemporal(t_job *job) {
+	uint8_t command = COMMAND_MARTA_TO_FS_GET_COPY_FINAL_RESULT;
+	uint16_t sarchivoResultado = strlen(job->resultadoFinal);
+
+	uint16_t serializedsresult = htons(sarchivoResultado);
+
+	size_t sbuffer = sizeof(sarchivoResultado) + sizeof(command) + sarchivoResultado + sizeof(char) * 60;
+	void *buffer = malloc(sbuffer);
+
+	memcpy(buffer, &command, sizeof(command));
+	void *bufferOffset = buffer + sizeof(command);
+	memcpy(buffer, &serializedsresult, sizeof(serializedsresult));
+	bufferOffset += sizeof(serializedsresult);
+	memcpy(bufferOffset, job->resultadoFinal, sarchivoResultado);
+	bufferOffset += sarchivoResultado;
+	memcpy(bufferOffset, job->finalReduce->tempResultName, sizeof(char) * 60);
+
+	while (0 > socket_send_packet(fsSocket, buffer, sbuffer)) {
+		FSConnectionLost();
+	}
+	void *finalBuffer;
+	size_t sfinalBuffer;
+	while (0 > socket_recv_packet(fsSocket, &finalBuffer, &sfinalBuffer)) {
+		FSConnectionLost();
+	}
+	bool result;
+	memcpy(&result, finalBuffer, sizeof(result));
+	free(finalBuffer);
+	return result;
+}
+
