@@ -106,9 +106,9 @@ bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpFileName
 	// TODO chech stderr ?
 
 	return result;
-	}
+}
 
-	bool node_executeReduceRutine(char *reduceRutine, char *tmpFileNameToReduce, char *finalTmpFileName) {
+bool node_executeReduceRutine(char *reduceRutine, char *tmpFileNameToReduce, char *finalTmpFileName) {
 	log_info(node_logger, "Executing REDUCE rutine to %s. Saving final result to file in tmp dir as: %s ", tmpFileNameToReduce, finalTmpFileName);
 
 	size_t commandSize;
@@ -142,7 +142,7 @@ bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpFileName
 	commandSize = 4 + strlen(node_config->tmpDir) + 1 + strlen(tmpFileNameToReduce) + 3 + strlen(pathToReduceRutine) + 2 + strlen(pathToFinalFile) + 3 + strlen(pathToSTDERRFile) + 10;
 	command = malloc(commandSize);
 	snprintf(command, commandSize, "cat %s/%s | sort | %s >%s 2>%s", node_config->tmpDir, tmpFileNameToReduce, pathToReduceRutine, pathToFinalFile, pathToSTDERRFile);
-
+	//TODO ver sort
 	bool result = system(command) != -1;
 	free(command);
 
@@ -230,12 +230,6 @@ bool node_createExecutableFileFromString(char *pathToFile, char *str) {
 		return 0;
 	}
 
- /*	struct stat st;
-	if (fstat(fd, &st)) {
-		fclose(fp);
-		return 0;
-	}*/
-
 	// Sets exec mode.
 	if (fchmod(fd, 0755)) {
 		fclose(fp);
@@ -245,7 +239,6 @@ bool node_createExecutableFileFromString(char *pathToFile, char *str) {
 	fflush(fp);
 	int response = fclose(fp);
 	if (response) {
-		//printf("AAAAAA  %d\n ",response);
 		return 0;
 	}
 	return 1;
@@ -275,7 +268,6 @@ bool node_createTmpFileFromStringList(char *tmpFileName, t_list *stringParts) {
 }
 
 bool node_popen_write(char *command, char *data) {
-	//printf("\n\nBEFORE OPEN COMMAND: \n%s\n\n", command);
 	FILE *pipe = popen(command, "w");
 
 	if (!pipe) {
