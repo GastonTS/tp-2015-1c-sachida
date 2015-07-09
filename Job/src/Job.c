@@ -53,6 +53,7 @@ void freeCfg() {
 	free(cfgJob->RESULTADO);
 	free(cfgJob->LIST_ARCHIVOS);
 	free(cfgJob);
+	pthread_mutex_destroy(&Msockmarta);
 }
 
 //**********************************Free Thread Map****************************************//
