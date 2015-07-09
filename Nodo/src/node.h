@@ -9,6 +9,7 @@
 #include <commons/log.h>
 #include <commons/string.h>
 #include <commons/collections/list.h>
+#include "utils/socket.h"
 
 #define _FILE_OFFSET_BITS  64
 #define BLOCK_SIZE 20 * 1024 * 1024 // 20 MB de bloques
@@ -28,8 +29,8 @@ extern t_log* node_logger;
 extern t_nodeCfg* node_config;
 
 char* node_getBlock(uint16_t numBlock);
-void node_freeBlock(char *blockStr);
 void node_setBlock(uint16_t numBlock, char *blockData);
+e_socket_status node_setBlockFromPacket(uint16_t numBlock, int socket);
 
 bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpFileName);
 bool node_executeReduceRutine(char *reduceRutine, char *tmpFileNameToReduce, char *finalTmpFileName);
