@@ -210,7 +210,7 @@ bool connections_marta_copyFinalResult(void *bufferReceived) {
 	uint16_t sResultFileName;
 	char finalTmpName[60];
 
-	size_t offset = 0;
+	size_t offset = sizeof(uint8_t);
 
 	memcpy(&sNodeId, bufferReceived + offset, sizeof(sNodeId));
 	sNodeId = ntohs(sNodeId);
@@ -233,6 +233,8 @@ bool connections_marta_copyFinalResult(void *bufferReceived) {
 	memcpy(finalTmpName, bufferReceived + offset, sizeof(char) * 60);
 
 	bool result = filesystem_copyTmpFileToMDFS(nodeId, finalTmpName, resultFileName);
+	free(nodeId);
+	free(resultFileName);
 
 	void *buffer = malloc(sizeof(result));
 	memcpy(buffer, &result, sizeof(result));
