@@ -206,10 +206,20 @@ bool connections_marta_sendFileBlocks(void *bufferReceived) {
 }
 
 bool connections_marta_copyFinalResult(void *bufferReceived) {
+	uint16_t sNodeId;
 	uint16_t sResultFileName;
 	char finalTmpName[60];
 
 	size_t offset = 0;
+
+	memcpy(&sNodeId, bufferReceived + offset, sizeof(sNodeId));
+	sNodeId = ntohs(sNodeId);
+	offset += sizeof(sNodeId);
+
+	char *nodeId = malloc(sNodeId + 1);
+	memcpy(nodeId, bufferReceived + offset, sNodeId);
+	nodeId[sNodeId] = '\0';
+	offset += sNodeId;
 
 	memcpy(&sResultFileName, bufferReceived + offset, sizeof(sResultFileName));
 	sResultFileName = ntohs(sResultFileName);

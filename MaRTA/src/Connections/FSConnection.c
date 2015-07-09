@@ -145,19 +145,25 @@ int requestFileBlocks(t_file *file) {
 
 bool copyFinalTemporal(t_job *job) {
 	uint8_t command = COMMAND_MARTA_TO_FS_GET_COPY_FINAL_RESULT;
-	uint16_t sarchivoResultado = strlen(job->resultadoFinal);
+	uint16_t sNodeID = strlen(job->finalReduce->finalNode);
+	uint16_t sResultFile = strlen(job->resultFile);
 
-	uint16_t serializedsresult = htons(sarchivoResultado);
+	uint16_t serializedSNodeID = htons(sNodeID);
+	uint16_t serializedSResultFile = htons(sResultFile);
 
-	size_t sbuffer = sizeof(sarchivoResultado) + sizeof(command) + sarchivoResultado + sizeof(char) * 60;
+	size_t sbuffer = sizeof(sNodeID) + sNodeID + sizeof(sResultFile) + sizeof(command) + sResultFile + sizeof(char) * 60;
 	void *buffer = malloc(sbuffer);
 
 	memcpy(buffer, &command, sizeof(command));
 	void *bufferOffset = buffer + sizeof(command);
-	memcpy(buffer, &serializedsresult, sizeof(serializedsresult));
-	bufferOffset += sizeof(serializedsresult);
-	memcpy(bufferOffset, job->resultadoFinal, sarchivoResultado);
-	bufferOffset += sarchivoResultado;
+	memcpy(bufferOffset, &serializedSNodeID, sizeof(serializedSNodeID));
+	bufferOffset += sizeof(serializedSNodeID);
+	memcpy(bufferOffset, job->finalReduce->finalNode, sNodeID);
+	bufferOffset += sNodeID;
+	memcpy(bufferOffset, &serializedSResultFile, sizeof(serializedSResultFile));
+	bufferOffset += sizeof(serializedSResultFile);
+	memcpy(bufferOffset, job->resultFile, sResultFile);
+	bufferOffset += sResultFile;
 	memcpy(bufferOffset, job->finalReduce->tempResultName, sizeof(char) * 60);
 
 	while (0 > socket_send_packet(fsSocket, buffer, sbuffer)) {
