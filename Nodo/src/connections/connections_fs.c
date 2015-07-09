@@ -124,16 +124,21 @@ void connections_fs_listenActions() {
 }
 
 void connections_fs_deserializeSetBlock(void *buffer) {
+	size_t offset = sizeof(uint8_t);
+
 	uint16_t numBlock;
-	memcpy(&numBlock, buffer + sizeof(uint8_t), sizeof(uint16_t));
+	memcpy(&numBlock, buffer + offset, sizeof(numBlock));
 	numBlock = ntohs(numBlock);
+	offset += sizeof(numBlock);
 
 	uint32_t sBlockData;
-	memcpy(&sBlockData, buffer + sizeof(uint8_t) + sizeof(uint16_t), sizeof(uint32_t));
+	memcpy(&sBlockData, buffer + offset, sizeof(sBlockData));
 	sBlockData = ntohl(sBlockData);
+	offset += sizeof(sBlockData);
 
+	// TODO, aca es donde tengo que hacer una funcion que lo tire directo a la memoria del mmap y no hacer todo este mmaloc..
 	char *blockData = malloc(sizeof(char) * (sBlockData + 1));
-	memcpy(blockData, buffer + sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint32_t), sBlockData);
+	memcpy(blockData, buffer + offset, sBlockData);
 	blockData[sBlockData] = '\0';
 
 	node_setBlock(numBlock, blockData);
@@ -143,9 +148,10 @@ void connections_fs_deserializeSetBlock(void *buffer) {
 
 void connections_fs_deserializeGetBlock(void *buffer) {
 	uint16_t numBlock;
-	memcpy(&numBlock, buffer + sizeof(uint8_t), sizeof(uint16_t));
+	memcpy(&numBlock, buffer + sizeof(uint8_t), sizeof(numBlock));
 	numBlock = ntohs(numBlock);
 
+	// ACA LO MISMO.. ver se hacer un send que saque la data del mmap.....
 	char *blockData = node_getBlock(numBlock);
 
 	if (blockData) {

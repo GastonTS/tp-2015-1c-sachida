@@ -229,7 +229,7 @@ bool node_createExecutableFileFromString(char *pathToFile, char *str) {
 }
 
 bool node_createTmpFileFromStringList(char *tmpFileName, t_list *stringParts) {
-	char pathToTmpFileName[strlen(node_config->tmpDir) + 1 + strlen(tmpFileName)];
+	char pathToTmpFileName[strlen(node_config->tmpDir) + 1 + strlen(tmpFileName) + 1];
 	strcpy(pathToTmpFileName, node_config->tmpDir);
 	strcat(pathToTmpFileName, "/");
 	strcat(pathToTmpFileName, tmpFileName);
