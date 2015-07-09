@@ -23,6 +23,7 @@ bool filesystem_nodeComparatorByBlocksFree(node_t *node, node_t *node2);
 bool filesystem_isRootDirId(char *id);
 bool filesystem_isRootDir(dir_t *dir);
 t_list* filesystem_getAllActivatedNodes();
+t_list* filesystem_getBlocksFromStr(char *str, size_t length);
 
 t_log* mdfs_logger;
 
@@ -184,6 +185,7 @@ node_t* filesystem_getNodeById(char *nodeId) {
 }
 
 void filesystem_addNode(char *nodeId, uint16_t blocksCount, bool isNewNode) {
+	// TODO mutex.
 	node_t *node = filesystem_getNodeById(nodeId);
 	if (node) {
 		if (node->blocksCount != blocksCount) {
@@ -564,6 +566,49 @@ int filesystem_saveFileToLocalFS(file_t *file, char *pathToFile) {
 	return -2;
 }
 
+/*
+ * Saves the contents of a tmp file of a node into a file in the MDFS
+ *
+ */
+bool filesystem_copyTmpFileToMDFS(char *nodeId, char *finalTmpName, char *resultFileName) {
+	log_info(mdfs_logger, "Going to get the tmp file content '%s' from node %s and saving it to the MDFS as '%s'", finalTmpName, nodeId, resultFileName);
+
+	size_t tmpFileLength = 0;
+	char *tmpFileContent = connections_node_getFileContent(nodeId, finalTmpName, &tmpFileLength);
+
+	if (!tmpFileContent) {
+		log_error(mdfs_logger, "Couldn't get the tmp file content from the node");
+		return 0;
+	}
+
+	tmpFileLength--;
+	t_list *blocks = filesystem_getBlocksFromStr(tmpFileContent, tmpFileLength);
+	free(tmpFileContent);
+
+	file_t *file = file_create();
+	// TODO resolver dir previo...
+	file->name = strdup(resultFileName);
+	file->size = tmpFileLength;
+	strcpy(file->parentId, ROOT_DIR_ID);
+
+	if (!filesystem_distributeBlocksToNodes(blocks, file)) {
+		file_free(file);
+		list_destroy_and_destroy_elements(blocks, free);
+		return 0;
+	}
+	list_destroy_and_destroy_elements(blocks, free);
+
+	if (!mongo_file_save(file)) {
+		// If for some reason, the file could not be saved in the db, then should destroy the blocks that were used for that file.
+		file_free(file);
+		filesystem_deleteFile(file);
+		return 0;
+	}
+	file_free(file);
+
+	return 1;
+}
+
 //**********************************************************************************//
 //									PRIVATE											//
 //**********************************************************************************//
@@ -660,8 +705,15 @@ t_list* filesystem_getFSFileBlocks(char *route, size_t *fileSize) {
 	*fileSize = stat.st_size;
 
 	char *fileStr = (char *) mmap(0, *fileSize, PROT_READ, MAP_PRIVATE, fd, 0);
+	close(fd);
 
-	char *buffer;
+	t_list *blocks = filesystem_getBlocksFromStr(fileStr, *fileSize);
+	munmap(fileStr, *fileSize);
+
+	return blocks;
+}
+
+t_list* filesystem_getBlocksFromStr(char *str, size_t length) {
 	char *startBlock;
 	t_list *blocks = list_create();
 
@@ -670,32 +722,30 @@ t_list* filesystem_getFSFileBlocks(char *route, size_t *fileSize) {
 	int finished = 0;
 
 	void addBlock(int blockLength) {
-		buffer = malloc(blockLength + 1);
-		strncpy(buffer, startBlock, blockLength);
-		buffer[blockLength] = '\0';
-		list_add(blocks, buffer);
+		char *block = malloc(blockLength + 1);
+		memcpy(block, startBlock, blockLength);
+		block[blockLength] = '\0';
+		list_add(blocks, block);
 	}
 
 	while (!finished) {
-		startBlock = fileStr + i;
+		startBlock = str + i;
 
 		// It's the last block.
-		if (i + NODE_BLOCK_SIZE > *fileSize) {
-			addBlock(*fileSize - i);
+		if (i + NODE_BLOCK_SIZE > length) {
+			addBlock(length - i);
 			finished = 1;
 		} else {
 			for (j = i + NODE_BLOCK_SIZE - 1; j > i; j--) {
-				if (fileStr[j] == '\n') {
+				if (str[j] == '\n') {
 					addBlock(j - i + 1);
 					i = j + 1;
 					break;
 				}
-			} // TODO que pasa si la linea supera el maximo tamaño del buffer?
+			}
+			// what happens if the line length exceeds the block size limit??
 		}
 	}
-
-	munmap(fileStr, *fileSize);
-	close(fd);
 
 	return blocks;
 }

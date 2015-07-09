@@ -81,7 +81,7 @@ void connections_deserializeGetFileContent(int socket, void *buffer) {
 
 	char *tmpFileContent = node_getTmpFileContent(tmpName);
 
-	socket_send_packet(socket, tmpFileContent, strlen(tmpFileContent));
+	socket_send_packet(socket, tmpFileContent, strlen(tmpFileContent) + 1);
 
 	free(tmpName);
 	free(tmpFileContent);

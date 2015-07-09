@@ -232,12 +232,8 @@ bool connections_marta_copyFinalResult(void *bufferReceived) {
 
 	memcpy(finalTmpName, bufferReceived + offset, sizeof(char) * 60);
 
-	/*TODO Copiar el temporalFinal al MDFS
-	 Aca hacer el getfile para el temporal del nodo pidiendole temporalFinal y una vez que lo tenes lo
-	 copias en el MDFS con copias como cualquier otro archivo guardandolo con el nombre archivoResultado
-	 */
+	bool result = filesystem_copyTmpFileToMDFS(nodeId, finalTmpName, resultFileName);
 
-	bool result = 1;
 	void *buffer = malloc(sizeof(result));
 	memcpy(buffer, &result, sizeof(result));
 

@@ -45,6 +45,7 @@ char* connections_node_getFileContent(node_connection_getTmpFileOperation_t *ope
 			}
 			free(buffer);
 
+			buffer = NULL;
 			status = socket_recv_packet(socket, &buffer, &sBuffer);
 			if (0 > status) {
 				log_error(node_logger, "Connection to node failed.");
@@ -52,11 +53,8 @@ char* connections_node_getFileContent(node_connection_getTmpFileOperation_t *ope
 				return NULL;
 			}
 
-			char *tmpFileContent = realloc(buffer, sBuffer + 1);
-			tmpFileContent[sBuffer] = '\0';
-
 			socket_close(socket);
-			return tmpFileContent;
+			return buffer;
 		}
 	} else {
 		log_error(node_logger, "Connection to node failed.");
