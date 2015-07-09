@@ -6,7 +6,8 @@
 t_configMaRTA *cfgMaRTA;
 t_log *logger;
 t_list *nodes;
-pthread_mutex_t McantJobs;
+pthread_mutex_t McantJobs = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t Mnodes = PTHREAD_MUTEX_INITIALIZER;
 uint16_t cantJobs;
 
 int initConfig(char* configFile);
@@ -87,6 +88,8 @@ void freeMaRTA() {
 	}
 	free(cfgMaRTA);
 	list_destroy_and_destroy_elements(nodes, (void *) freeNode);
+	pthread_mutex_destroy(&McantJobs);
+	pthread_mutex_destroy(&Mnodes);
 	log_destroy(logger);
 	exit(0);
 }

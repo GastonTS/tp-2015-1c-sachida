@@ -12,8 +12,12 @@ typedef struct {
 void notificarReduce(t_job *job, t_reduce *reduce) {
 	log_trace(logger, "Planned: %s", reduce->tempResultName);
 	reduce->done = false;
+
+	pthread_mutex_lock(&Mnodes);
 	t_node *selectedNode = findNode(nodes, reduce->finalNode);
-	selectedNode->reduces++; //TODO: mutex nodo
+	selectedNode->reduces++;
+	pthread_mutex_unlock(&Mnodes);
+
 	if (0 > serializeReduceToOrder(job->socket, reduce)) {
 		log_error(logger, "Job %d Died when sending reduce order", job->id);
 		freeJob(job);
@@ -60,7 +64,6 @@ void noCombinerReducePlanning(t_job *job) {
 	}
 
 	list_iterate(counts, (void *) selectMoreTempsNode);
-	t_node *selectedNode = findNode(nodes, selectedCount->nodeName);
 	void freeCounts(t_temporalCount *count) {
 		if (count->nodeName) {
 			free(count->nodeName);
@@ -69,7 +72,10 @@ void noCombinerReducePlanning(t_job *job) {
 	}
 	list_destroy_and_destroy_elements(counts, (void *) freeCounts);
 
-	setFinalReduce(job->finalReduce, selectedNode->name, selectedNode->ip, selectedNode->port, job->id); //TODO: Mutex nodo
+	pthread_mutex_lock(&Mnodes);
+	t_node *selectedNode = findNode(nodes, selectedCount->nodeName);
+	setFinalReduce(job->finalReduce, selectedNode->name, selectedNode->ip, selectedNode->port, job->id);
+	pthread_mutex_unlock(&Mnodes);
 
 	void createTemporal(t_map *map) {
 		t_temp *temporal = mapToTemporal(map);
@@ -104,7 +110,7 @@ void combinerPartialsReducePlanning(t_job *job) {
 }
 
 void searchNode(t_reduce *reduce, t_node **selectedNode) {
-	bool lessWorkLoad(t_node *lessBusy, t_node *busy) { //TODO: mutex nodo
+	bool lessWorkLoad(t_node *lessBusy, t_node *busy) {
 		if (lessBusy && busy)
 			return workLoad(lessBusy->maps, lessBusy->reduces) < workLoad(busy->maps, busy->reduces);
 		return 0;
@@ -120,12 +126,13 @@ void searchNode(t_reduce *reduce, t_node **selectedNode) {
 void combinerFinalReducePlanning(t_job *job) {
 	t_node *selectedNode = NULL;
 
+	pthread_mutex_lock(&Mnodes);
 	void selectFinalNode(t_reduce *reduce) {
 		searchNode(reduce, &selectedNode);
 	}
-
 	list_iterate(job->partialReduces, (void *) selectFinalNode);
 	setFinalReduce(job->finalReduce, selectedNode->name, selectedNode->ip, selectedNode->port, job->id);
+	pthread_mutex_unlock(&Mnodes);
 
 	void createFinalTemporals(t_reduce *reduce) {
 		t_temp *temporal = reduceToTemporal(reduce);

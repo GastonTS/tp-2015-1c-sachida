@@ -39,7 +39,7 @@ t_node *findNode(t_list *nodes, char *nodeName) {
 	bool nodeWithName(t_node *node) {
 		return nodeByName(node, nodeName);
 	}
-	//XXX Mutex toda la lista?
+
 	return list_find(nodes, (void*) nodeWithName);
 }
 
@@ -48,16 +48,20 @@ void showTasks(t_node *node) {
 }
 
 void removeMapNode(t_map *map) {
+	pthread_mutex_lock(&Mnodes);
 	t_node *selectedNode = findNode(nodes, map->nodeName);
 	bool isNumBlock(uint16_t numBlock) {
 		return numBlock == map->numBlock;
 	}
-	list_remove_by_condition(selectedNode->maps, (void *) isNumBlock); //TODO: mutex nodo
+	list_remove_by_condition(selectedNode->maps, (void *) isNumBlock);
+	pthread_mutex_unlock(&Mnodes);
 }
 
 void removeReduceNode(t_reduce *reduce) {
+	pthread_mutex_lock(&Mnodes);
 	t_node *node = findNode(nodes, reduce->finalNode);
-	node->reduces--; //TODO: mutex nodo
+	node->reduces--;
+	pthread_mutex_unlock(&Mnodes);
 }
 
 void deactivateNode(char *nodeName) {

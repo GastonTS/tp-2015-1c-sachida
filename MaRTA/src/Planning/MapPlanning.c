@@ -3,7 +3,7 @@
 #include "../Connections/Connection.h"
 
 void selectNode(t_copy *copy, t_node **selectedNode, uint16_t *numBlock) {
-	bool lessWorkLoad(t_node *lessBusy, t_node *busy) { //TODO: Mutex nodos
+	bool lessWorkLoad(t_node *lessBusy, t_node *busy) {
 		if (lessBusy && busy)
 			return workLoad(lessBusy->maps, lessBusy->reduces) < workLoad(busy->maps, busy->reduces);
 		return 0;
@@ -44,7 +44,10 @@ void planMaps(t_job *job) {
 			void selectNodeToMap(t_copy *copy) {
 				selectNode(copy, &selectedNode, &numBlock);
 			}
+			pthread_mutex_lock(&Mnodes);
 			list_iterate(copies, (void*) selectNodeToMap);
+			pthread_mutex_unlock(&Mnodes);
+
 			if (selectedNode == NULL) {
 				log_info(logger, "File %s not available", file->path);
 				list_iterate(job->maps, (void *) removeMapNode);
@@ -83,7 +86,9 @@ void rePlanMap(t_job *job, t_map *map) {
 		selectNode(copy, &selectedNode, &numBlock);
 	}
 
+	pthread_mutex_lock(&Mnodes);
 	list_iterate(map->copies, (void*) selectNodeToMap);
+	pthread_mutex_unlock(&Mnodes);
 
 	if (selectedNode != NULL) {
 		free(map->nodeName);

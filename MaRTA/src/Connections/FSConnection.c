@@ -36,15 +36,15 @@ void connectFS() {
 }
 
 void updateNodes(char* nodeID, char *nodeIP, uint16_t nodePort) {
-	t_node *node = findNode(nodes, nodeID); //TODO:Mutex Nodo
-	if (node != NULL) { //XXX Es necesario actualizar el ip y el puerto?
+	t_node *node = findNode(nodes, nodeID);
+	if (node != NULL) {
 		free(node->ip);
 		node->ip = strdup(nodeIP);
 		node->port = nodePort;
 		node->active = 1;
 	} else {
 		node = CreateNode(1, nodeIP, nodePort, nodeID);
-		list_add(nodes, node); //XXX Mutex lista?
+		list_add(nodes, node);
 	}
 }
 
@@ -127,7 +127,10 @@ int requestFileBlocks(t_file *file) {
 			nodeBlockNumber = ntohs(nodeBlockNumber);
 			bufferOffset += sizeof(nodeBlockNumber);
 
+			pthread_mutex_lock(&Mnodes);
 			updateNodes(nodeId, nodeIp, nodePort);
+			pthread_mutex_unlock(&Mnodes);
+
 			t_copy *copy = CreateCopy(nodeId, nodeBlockNumber);
 
 			list_add(copies, copy);
