@@ -275,6 +275,16 @@ e_socket_status socket_recv_packet(int socket, void** packet, size_t* size) {
 	return status;
 }
 
+// Es igual a recv packet pero NO hace un malloc, esto sirve para tirar el resultado a una memoria que ya fue malloc'ed en otro lado (mmap por ej)
+
+e_socket_status socket_recv_packet_to_memory(int socket, void** packet, size_t* size) {
+	e_socket_status status = socket_recv_integer(socket, size, sizeof(size_t));
+	if (0 > status)
+		return status;
+	status = socket_recv(socket, *packet, *size); //recibe ese tamaño en el buffer (packet) para desserializarlo en implementacion particular
+	return status;
+}
+
 //**********************************************************************************//
 //									STRING											//
 //**********************************************************************************//

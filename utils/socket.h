@@ -59,6 +59,7 @@ e_socket_status socket_recv(int socket, void* stream, size_t size);
 
 e_socket_status socket_send_packet(int socket, void* packet, size_t size);
 e_socket_status socket_recv_packet(int socket, void** packet, size_t* size);
+e_socket_status socket_recv_packet_to_memory(int socket, void** packet, size_t* size);
 
 //**********************************************************************************//
 //									STRING											//
