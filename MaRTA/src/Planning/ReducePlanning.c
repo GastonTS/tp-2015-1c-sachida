@@ -5,7 +5,7 @@
 #include "../Connections/Connection.h"
 
 typedef struct {
-	char *nodeName;
+	t_node *node;
 	uint16_t count;
 } t_temporalCount;
 
@@ -56,15 +56,16 @@ void noCombinerReducePlanning(t_job *job) {
 	do {
 		t_list *counts = list_create();
 
+		pthread_mutex_lock(&Mnodes);
 		void countTemporals(t_map *map) {
 			bool findNodeInMaps(t_temporalCount *count) {
-				return !strcmp(count->nodeName, map->nodeName);
+				return !strcmp(count->node->name, map->nodeName);
 			}
 			t_temporalCount *nodeCount = NULL;
 			nodeCount = list_find(counts, (void*) findNodeInMaps);
 			if (nodeCount == NULL) {
 				nodeCount = malloc(sizeof(t_temporalCount));
-				nodeCount->nodeName = strdup(map->nodeName);
+				nodeCount->node = findNode(nodes, map->nodeName);
 				nodeCount->count = 1;
 				list_add(counts, (void *) nodeCount);
 			} else
@@ -75,27 +76,23 @@ void noCombinerReducePlanning(t_job *job) {
 		t_temporalCount *selectedCount = NULL;
 		void selectMoreTempsNode(t_temporalCount *count) {
 			if (selectedCount == NULL) {
-				selectedCount = count;
+				if (isActive(count->node))
+					selectedCount = count;
 			} else {
-				if (selectedCount->count < count->count)
+				if ((selectedCount->count < count->count) && isActive(count->node))
 					selectedCount = count;
 			}
 		}
-
 		list_iterate(counts, (void *) selectMoreTempsNode);
-
-		pthread_mutex_lock(&Mnodes);
-		t_node *selectedNode = findNode(nodes, selectedCount->nodeName);
-		setFinalReduce(job->finalReduce, selectedNode->name, selectedNode->ip, selectedNode->port, job->id);
 		pthread_mutex_unlock(&Mnodes);
 
-		void freeCounts(t_temporalCount *count) {
-			if (count->nodeName) {
-				free(count->nodeName);
-			}
-			free(count);
+		if (selectedCount == NULL) {
+			list_destroy_and_destroy_elements(counts, (void *) free);
+			notifFileUnavailable(job);
 		}
-		list_destroy_and_destroy_elements(counts, (void *) freeCounts);
+
+		setFinalReduce(job->finalReduce, selectedCount->node->name, selectedCount->node->ip, selectedCount->node->port, job->id);
+		list_destroy_and_destroy_elements(counts, (void *) free);
 
 		void createTemporal(t_map *map) {
 			t_temp *temporal = mapToTemporal(map);

@@ -154,10 +154,10 @@ void freeTemp(t_temp *temp) {
 }
 
 void freeReduce(t_reduce *reduce) {
-	if (reduce->finalNode) {
+	if (reduce->finalNode!=NULL) {
 		free(reduce->finalNode);
 	}
-	if (reduce->nodeIP) {
+	if (reduce->nodeIP!=NULL) {
 		free(reduce->nodeIP);
 	}
 	list_destroy_and_destroy_elements(reduce->temps, (void *) freeTemp);
