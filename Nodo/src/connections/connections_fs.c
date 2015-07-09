@@ -131,19 +131,8 @@ void connections_fs_deserializeSetBlock(void *buffer) {
 	numBlock = ntohs(numBlock);
 	offset += sizeof(numBlock);
 
-	uint32_t sBlockData;
-	memcpy(&sBlockData, buffer + offset, sizeof(sBlockData));
-	sBlockData = ntohl(sBlockData);
-	offset += sizeof(sBlockData);
-
-	// TODO, aca es donde tengo que hacer una funcion que lo tire directo a la memoria del mmap y no hacer todo este mmaloc..
-	char *blockData = malloc(sizeof(char) * (sBlockData + 1));
-	memcpy(blockData, buffer + offset, sBlockData);
-	blockData[sBlockData] = '\0';
-
-	node_setBlock(numBlock, blockData);
-
-	free(blockData);
+	node_setBlockFromPacket(numBlock, fsSocket);
+	// TODO status check
 }
 
 void connections_fs_deserializeGetBlock(void *buffer) {

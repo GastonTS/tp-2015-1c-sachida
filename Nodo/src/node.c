@@ -196,6 +196,21 @@ void node_setBlock(uint16_t numBlock, char *blockStr) {
 	pthread_rwlock_unlock(&blocks_mutex[numBlock]);
 }
 
+e_socket_status node_setBlockFromPacket(uint16_t numBlock, int socket) {
+	log_info(node_logger, "Setting block number %d from packet", numBlock);
+
+	void *address = binFileMap + (numBlock * BLOCK_SIZE);
+
+	pthread_rwlock_wrlock(&blocks_mutex[numBlock]);
+	size_t sBuffer = 0;
+	e_socket_status status = socket_recv_packet_to_memory(socket, &address, &sBuffer);
+	((char *)address)[sBuffer] = '\0';
+	msync(address, sBuffer, MS_SYNC);
+	pthread_rwlock_unlock(&blocks_mutex[numBlock]);
+
+	return status;
+}
+
 bool node_createExecutableFileFromString(char *pathToFile, char *str) {
 	FILE *fp = fopen(pathToFile, "w");
 	if (!fp) {

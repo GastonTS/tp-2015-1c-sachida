@@ -184,21 +184,22 @@ bool connections_node_sendBlock(nodeBlockSendOperation_t *sendOperation) {
 
 	uint8_t command = COMMAND_FS_TO_NODE_SET_BLOCK;
 	uint16_t numBlock = sendOperation->blockIndex;
-	uint32_t sBlockData = strlen(sendOperation->block);
 
-	size_t sBuffer = sizeof(command) + sizeof(numBlock) + sizeof(sBlockData) + sBlockData;
-
+	size_t sBuffer = sizeof(command) + sizeof(numBlock);
 	uint16_t numBlockSerialized = htons(numBlock);
-	uint32_t sBlockDataSerialized = htonl(sBlockData);
 
 	void *buffer = malloc(sBuffer);
 	memcpy(buffer, &command, sizeof(command));
 	memcpy(buffer + sizeof(command), &numBlockSerialized, sizeof(numBlock));
-	memcpy(buffer + sizeof(command) + sizeof(numBlock), &sBlockDataSerialized, sizeof(sBlockData));
-	memcpy(buffer + sizeof(command) + sizeof(numBlock) + sizeof(sBlockData), sendOperation->block, sBlockData);
 
+	// send the data in other packet.
+	size_t sBlockData = strlen(sendOperation->block);
+
+	e_socket_status status;
 	pthread_mutex_lock(&nodeConnection->mutex);
-	e_socket_status status = socket_send_packet(nodeConnection->socket, buffer, sBuffer);
+	status = socket_send_packet(nodeConnection->socket, buffer, sBuffer);
+	status = socket_send_packet(nodeConnection->socket, sendOperation->block, sBlockData);
+	// TODO status.
 	pthread_mutex_unlock(&nodeConnection->mutex);
 
 	free(buffer);
