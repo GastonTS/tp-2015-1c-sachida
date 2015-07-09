@@ -160,17 +160,19 @@ void connections_job_deserializeReduce(int socket, void *buffer) {
 		offset += sizeof(nodePort);
 
 		tmpFileName = malloc(sizeof(char) * 60);
-		memcpy(tmpFileName, buffer + offset, 60);
+		memcpy(tmpFileName, buffer + offset, sizeof(char) * 60);
+		offset += sizeof(char) * 60;
 
 		if (countTemps == 1 && strcmp(node_config->name, nodeId) == 0) {
 			// Just one tmpFile and it's mine, then should use that..
-			tmpFileNameToReduce = tmpFileName;
-			free(nodeId);
-			free(nodeIp);
+			tmpFileNameToReduce = strdup(tmpFileName);
 		} else {
 			node_connection_getTmpFileOperation_t *operation = node_connection_getTmpFileOperation_create(nodeId, nodeIp, nodePort, tmpFileName);
 			list_add(getTmpFileOperations, operation);
 		}
+		free(tmpFileName);
+		free(nodeId);
+		free(nodeIp);
 	}
 
 	if (!tmpFileNameToReduce) {
@@ -212,6 +214,10 @@ void connections_job_deserializeReduce(int socket, void *buffer) {
 			count++;
 		}
 		list_iterate(getTmpFileOperations, (void *) runOperations);
+		int i;
+		for (i = 0; i < count; i++) {
+			pthread_join(threads[i], NULL);
+		}
 		pthread_mutex_destroy(&tmpFileParts_mutex);
 
 		// Join to one file (to be reduced then..)

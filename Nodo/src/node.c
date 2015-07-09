@@ -60,7 +60,6 @@ int main(int argc, char *argv[]) {
 }
 
 bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpFileName) {
-	log_info(node_logger, "Executing MAP rutine on block number %d. Saving sorted to file in tmp dir as: %s", numBlock, tmpFileName);
 	// First, get the block data..
 	char *blockData = node_getBlock(numBlock);
 
@@ -90,12 +89,16 @@ bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpFileName
 	strcat(pathToSTDERRFile, "_stderr");
 	/************** WRITE ALL FILE PATHS. ******************/
 
-	node_createExecutableFileFromString(pathToMapRutine, mapRutine);
+	bool fileCreated = node_createExecutableFileFromString(pathToMapRutine, mapRutine);
+	if (!fileCreated) {
+		return 0; // TODO ver malocs
+	}
 
 	commandSize = strlen(pathToMapRutine) + 9 + strlen(pathToFinalSortedFile) + 3 + strlen(pathToSTDERRFile) + 1;
 	command = malloc(commandSize);
 	snprintf(command, commandSize, "%s | sort >%s 2>%s", pathToMapRutine, pathToFinalSortedFile, pathToSTDERRFile);
 
+	log_info(node_logger, "Executing MAP rutine on block number %d. Saving sorted to file in tmp dir as: %s", numBlock, tmpFileName);
 	bool result = node_popen_write(command, blockData);
 	free(command);
 	free(blockData);
@@ -103,9 +106,9 @@ bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpFileName
 	// TODO chech stderr ?
 
 	return result;
-}
+	}
 
-bool node_executeReduceRutine(char *reduceRutine, char *tmpFileNameToReduce, char *finalTmpFileName) {
+	bool node_executeReduceRutine(char *reduceRutine, char *tmpFileNameToReduce, char *finalTmpFileName) {
 	log_info(node_logger, "Executing REDUCE rutine to %s. Saving final result to file in tmp dir as: %s ", tmpFileNameToReduce, finalTmpFileName);
 
 	size_t commandSize;
@@ -136,9 +139,9 @@ bool node_executeReduceRutine(char *reduceRutine, char *tmpFileNameToReduce, cha
 
 	node_createExecutableFileFromString(pathToReduceRutine, reduceRutine);
 
-	commandSize = 4 + strlen(node_config->tmpDir) + 1 + strlen(tmpFileNameToReduce) + 3 + strlen(pathToReduceRutine) + 2 + strlen(pathToFinalFile) + 3 + strlen(pathToSTDERRFile) + 1;
+	commandSize = 4 + strlen(node_config->tmpDir) + 1 + strlen(tmpFileNameToReduce) + 3 + strlen(pathToReduceRutine) + 2 + strlen(pathToFinalFile) + 3 + strlen(pathToSTDERRFile) + 10;
 	command = malloc(commandSize);
-	snprintf(command, commandSize, "cat %s/%s | %s >%s 2>%s", node_config->tmpDir, tmpFileNameToReduce, pathToReduceRutine, pathToFinalFile, pathToSTDERRFile);
+	snprintf(command, commandSize, "cat %s/%s | sort | %s >%s 2>%s", node_config->tmpDir, tmpFileNameToReduce, pathToReduceRutine, pathToFinalFile, pathToSTDERRFile);
 
 	bool result = system(command) != -1;
 	free(command);
@@ -164,10 +167,10 @@ char* node_getTmpFileContent(char *tmpFileName) {
 	fstat(fd, &stat);
 
 	char *fileMap = (char *) mmap(0, stat.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-	char *fileStr = strdup(fileMap);
-
-	munmap(fileMap, stat.st_size);
 	close(fd);
+
+	char *fileStr = strdup(fileMap);
+	munmap(fileMap, stat.st_size); //TODO Check performance
 
 	return fileStr;
 }
@@ -204,7 +207,7 @@ e_socket_status node_setBlockFromPacket(uint16_t numBlock, int socket) {
 	pthread_rwlock_wrlock(&blocks_mutex[numBlock]);
 	size_t sBuffer = 0;
 	e_socket_status status = socket_recv_packet_to_memory(socket, &address, &sBuffer);
-	((char *)address)[sBuffer] = '\0';
+	((char *) address)[sBuffer] = '\0';
 	msync(address, sBuffer, MS_SYNC);
 	pthread_rwlock_unlock(&blocks_mutex[numBlock]);
 
@@ -227,11 +230,11 @@ bool node_createExecutableFileFromString(char *pathToFile, char *str) {
 		return 0;
 	}
 
-	struct stat st;
+ /*	struct stat st;
 	if (fstat(fd, &st)) {
 		fclose(fp);
 		return 0;
-	}
+	}*/
 
 	// Sets exec mode.
 	if (fchmod(fd, 0755)) {
@@ -239,7 +242,12 @@ bool node_createExecutableFileFromString(char *pathToFile, char *str) {
 		return 0;
 	}
 
-	fclose(fp);
+	fflush(fp);
+	int response = fclose(fp);
+	if (response) {
+		//printf("AAAAAA  %d\n ",response);
+		return 0;
+	}
 	return 1;
 }
 
@@ -267,14 +275,17 @@ bool node_createTmpFileFromStringList(char *tmpFileName, t_list *stringParts) {
 }
 
 bool node_popen_write(char *command, char *data) {
+	//printf("\n\nBEFORE OPEN COMMAND: \n%s\n\n", command);
 	FILE *pipe = popen(command, "w");
+
 	if (!pipe) {
 		free(command);
 		return 0;
 	}
 
 	fputs(data, pipe);
-	pclose(pipe);
+
+	pclose(pipe); //TODO checkResult
 	return 1;
 }
 

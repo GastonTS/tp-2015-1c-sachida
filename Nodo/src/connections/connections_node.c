@@ -110,10 +110,10 @@ void* connections_node_listenActions(void *param) {
 
 node_connection_getTmpFileOperation_t* node_connection_getTmpFileOperation_create(char *nodeId, char *ip, uint16_t port, char *tmpFileName) {
 	node_connection_getTmpFileOperation_t *operation = malloc(sizeof(node_connection_getTmpFileOperation_t));
-	operation->nodeId = nodeId;
-	operation->ip = ip;
+	operation->nodeId = strdup(nodeId);
+	operation->ip = strdup(ip);
 	operation->port = port;
-	operation->tmpFileName = tmpFileName;
+	operation->tmpFileName = strdup(tmpFileName);
 	return operation;
 }
 
