@@ -16,7 +16,8 @@
 int conectarMarta() {
 	int handshake;
 
-	if ((sock_marta = socket_connect(cfgJob->IP_MARTA, cfgJob->PUERTO_MARTA)) < 0) {
+	if ((sock_marta = socket_connect(cfgJob->IP_MARTA, cfgJob->PUERTO_MARTA))
+			< 0) {
 		log_error(logger, "Error al conectar con MaRTA %d", sock_marta);
 		freeCfg();
 		return -1;
@@ -39,7 +40,8 @@ int conectarMarta() {
 void atenderMarta(int socketMarta) {
 
 	/* Mando el Config a MaRTA */
-	serializeConfigMaRTA(sock_marta, cfgJob->COMBINER, cfgJob->RESULTADO, cfgJob->LIST_ARCHIVOS);
+	serializeConfigMaRTA(sock_marta, cfgJob->COMBINER, cfgJob->RESULTADO,
+			cfgJob->LIST_ARCHIVOS);
 	log_info(logger, "SerializeConfigMaRTA OK");
 	while (1) {
 		/*Recibo Orden de Map o Reduce */
@@ -52,7 +54,8 @@ void atenderMarta(int socketMarta) {
 //**********************************************************************************//
 
 /* MANDO MIS CONFIGURACIONES INICIALES A MaRTA */
-void serializeConfigMaRTA(int fd, bool combiner, char* fileResult, char* stringFiles) {
+void serializeConfigMaRTA(int fd, bool combiner, char* fileResult,
+		char* stringFiles) {
 	uint16_t filesLength = strlen(stringFiles);
 	uint16_t sizeResult = strlen(fileResult);
 
@@ -60,7 +63,8 @@ void serializeConfigMaRTA(int fd, bool combiner, char* fileResult, char* stringF
 	uint16_t sizeResultSerialize = htons(sizeResult);
 	combiner = htons(combiner);
 
-	size_t sbuffer = sizeof(combiner) + sizeof(uint16_t) + sizeResult + filesLength;
+	size_t sbuffer = sizeof(combiner) + sizeof(uint16_t) + sizeResult
+			+ filesLength;
 	void *buffer = malloc(sbuffer);
 
 	memcpy(buffer, &combiner, sizeof(combiner));
@@ -103,7 +107,7 @@ void recvOrder(int fd) {
 	uint8_t order;
 	memcpy(&order, buffer, sizeof(order));
 
-	printf("\n\n%d\n\n", order);
+	printf("\n Orden Rcv: %d\n", order);
 	fflush(stdout);
 	if (order == COMMAND_MAP) {
 		log_info(logger, "Map Recived");
@@ -115,8 +119,10 @@ void recvOrder(int fd) {
 	} else if (order == COMMAND_REDUCE) {
 		log_info(logger, "Reduce Recived");
 		t_reduce *reduce = malloc(sizeof(t_reduce));
-		reduce = desserializeReduceOrder(buffer + sizeof(order), sbuffer - sizeof(order));
-		pthread_create(&hilo_reduce, NULL, (void*) atenderReducer, (void *) reduce);
+		reduce = desserializeReduceOrder(buffer + sizeof(order),
+				sbuffer - sizeof(order));
+		pthread_create(&hilo_reduce, NULL, (void*) atenderReducer,
+				(void *) reduce);
 		pthread_detach(hilo_reduce);
 	}
 
@@ -131,8 +137,8 @@ void recvOrder(int fd) {
 }
 
 void atenderMapper(void * parametros) {
-	log_info(logger, "Thread map created");
 	t_map *map = (t_map *) parametros;
+	log_info(logger, "Map: %d NEW --> Thread created",map->mapID);
 
 	/* Me conecto al Nodo */
 
@@ -140,26 +146,26 @@ void atenderMapper(void * parametros) {
 	int sock_nodo;
 
 	if ((sock_nodo = socket_connect(map->ip_nodo, map->port_nodo)) < 0) {
-		log_error(logger, "Error al conectar map con Nodo %d", sock_nodo);
+		log_error(logger, "Map: %d ERROR --> connecting to Nodo %d",map->mapID, sock_nodo);
 		sendMapResult(map, 0);
 		freeThreadMap(map);
 		pthread_exit(&sock_nodo);
 		return;
 	}
 
-	log_info(logger, "Coneccion con Nodo: %d", sock_nodo);
+	log_info(logger, "Map: %d --> connecting nodo: %d",map->mapID, sock_nodo);
 
 	hand_nodo = socket_handshake_to_server(sock_nodo, HANDSHAKE_NODO,
 	HANDSHAKE_JOB);
 	if (!hand_nodo) {
-		log_error(logger, "Error en map hand_nodo con Nodo %d", hand_nodo);
+		log_error(logger, "Map: %d ERROR --> hand_nodo con Nodo %d",map->mapID, hand_nodo);
 		freeThreadMap(map);
 		pthread_exit(&hand_nodo);
 		return;
 	}
 
 	/* Serializo y mando datos */
-	log_info(logger, "Handshake Map Nodo: %d", hand_nodo);
+	log_info(logger, "Map: %d --> Handshake Map Nodo: %d",map->mapID, hand_nodo);
 	serializeMap(sock_nodo, map);
 
 	/* Wait for confirmation */
@@ -199,41 +205,41 @@ void sendMapResult(t_map* map, bool result) {
 	pthread_mutex_lock(&Msockmarta);
 	socket_send_packet(sock_marta, buffer, sbuffer);
 	pthread_mutex_unlock(&Msockmarta);
-
+	free(buffer);
 	log_info(logger, "Map: %d Done -> Result: %d", map->mapID, result);
 }
 
 void atenderReducer(void * parametros) {
-	log_info(logger, "Thread reduce created");
-
 	t_reduce *reduce = (t_reduce *) parametros;
+	log_info(logger, "Reduce: %d NEW --> Thread created",reduce->reduceID);
 
 	/* Me conecto al Nodo */
 	int hand_nodo;
 	int sock_nodo;
 
 	if ((sock_nodo = socket_connect(reduce->ip_nodo, reduce->port_nodo)) < 0) {
-		log_error(logger, "Error al conectar reduce con Nodo %d", sock_nodo);
-		failReduce(reduce, "ErrorAlConectar");
+		log_error(logger, "Reduce: %d ERROR --> to connect reduce con Nodo %d",reduce->reduceID, sock_nodo);
+		char *errorAlConectar = strdup("ErrorAlConectar");
+		failReduce(reduce, errorAlConectar);
 		freeThreadReduce(reduce);
 		pthread_exit(&sock_nodo);
 	}
 
-	log_info(logger, "Coneccion reduce con Nodo: %d", sock_nodo);
+	log_info(logger, "Reduce: %d --> Connect to Nodo: %d", reduce->reduceID, sock_nodo);
 
 	hand_nodo = socket_handshake_to_server(sock_nodo, HANDSHAKE_NODO,
 	HANDSHAKE_JOB);
 	if (!hand_nodo) {
-		log_error(logger, "Error en reduce hand_nodo con Nodo %d", hand_nodo);
+		log_error(logger, "Reduce: %d ERROR --> hand_nodo con Nodo %d", reduce->reduceID,hand_nodo);
 		failReduce(reduce, "ErrorAlConectar");
 		freeThreadReduce(reduce);
 		pthread_exit(&hand_nodo);
 	}
 
 	/* Serializo y mando datos */
-	log_info(logger, "Handshake Reduce Nodo: %d", hand_nodo);
+	log_info(logger, "Reduce: %d --> Handshake to Nodo: %d",reduce->reduceID, hand_nodo);
 	serializeReduce(sock_nodo, reduce);
-
+	log_info(logger,"Reduce: %d --> Sending2 to nodo: ",reduce->reduceID);
 	/* Wait for confirmation */
 	void *buffer;
 	size_t sbuffer;
@@ -241,13 +247,16 @@ void atenderReducer(void * parametros) {
 
 	/* Si se cae el nodo le mando que murio */
 	if (status < 0) {
-		failReduce(reduce, "ErrorAlConectar");
+		char *errorAlConectar = strdup("ErrorAlConectar");
+		failReduce(reduce, errorAlConectar);
+		free(buffer);
+		log_error(logger,"Reduce: %d ERROR --> Fail Recv Nodo",reduce->reduceID);
 	} else {
 		bool result;
 		memcpy(&result, buffer, sizeof(result));
 		confirmarReduce(reduce, result, buffer + sizeof(result));
+		log_info(logger,"Reduce: %d OK --> finalize",reduce->reduceID);
 	}
-	free(buffer);
 	socket_close(sock_nodo);
 	freeThreadReduce(reduce);
 	pthread_exit(&status);
@@ -261,7 +270,8 @@ void failReduce(t_reduce* reduce, char *fallenNode) {
 	uint16_t reduceID = htons(reduce->reduceID);
 	uint16_t serializedSFallenNode = htons(sfallenNode);
 
-	size_t sbufferConf = sizeof(comando) + sizeof(bool) + sizeof(reduceID) + sizeof(serializedSFallenNode) + sfallenNode;
+	size_t sbufferConf = sizeof(comando) + sizeof(bool) + sizeof(reduceID)
+			+ sizeof(serializedSFallenNode) + sfallenNode;
 	void* bufferConf = malloc(sbufferConf);
 
 	memcpy(bufferConf, &comando, sizeof(comando));
@@ -277,8 +287,8 @@ void failReduce(t_reduce* reduce, char *fallenNode) {
 	pthread_mutex_lock(&Msockmarta);
 	socket_send_packet(sock_marta, bufferConf, sbufferConf);
 	pthread_mutex_unlock(&Msockmarta);
-	free(bufferConf);
 	free(fallenNode);
+	free(bufferConf);
 }
 
 void confirmarReduce(t_reduce* reduce, bool result, void* bufferNodo) {
@@ -335,8 +345,11 @@ t_map* desserializeMapOrder(void *buffer) {
 	memcpy(nodeIP, buffer + sIdMap + sizeof(uint16_t), snodeIP);
 	nodeIP[snodeIP] = '\0';
 	memcpy(&nodePort, buffer + sIdMap + sizeof(uint16_t) + snodeIP, snodePort);
-	memcpy(&numBlock, buffer + sIdMap + sizeof(uint16_t) + snodeIP + snodePort, snumblock);
-	memcpy(&tempResultName, buffer + sIdMap + sizeof(uint16_t) + snodeIP + snodePort + snumblock, sizeof(char) * 60);
+	memcpy(&numBlock, buffer + sIdMap + sizeof(uint16_t) + snodeIP + snodePort,
+			snumblock);
+	memcpy(&tempResultName,
+			buffer + sIdMap + sizeof(uint16_t) + snodeIP + snodePort
+					+ snumblock, sizeof(char) * 60);
 
 	idMap = ntohs(idMap);
 	nodePort = ntohs(nodePort);
@@ -349,11 +362,7 @@ t_map* desserializeMapOrder(void *buffer) {
 	map->numBlock = numBlock;
 	map->tempResultName = strdup(tempResultName);
 
-	printf("\nID: %d\n", map->mapID);
-	printf("IP:  %s  \n", map->ip_nodo);
-	printf("PUERTO: %d\n", map->port_nodo);
-	printf("NUMBLOCK: %d\n", map->numBlock);
-	printf("%s\n", map->tempResultName);
+
 	fflush(stdout);
 	free(nodeIP);
 	return (map);
@@ -408,12 +417,18 @@ t_reduce* desserializeReduceOrder(void *buffer, size_t sbuffer) {
 	nodeIP = malloc(snodeIP + 1);
 	memcpy(nodeIP, buffer + sreduceID + sizeof(uint16_t), snodeIP);
 	nodeIP[snodeIP] = '\0';
-	memcpy(&nodePort, buffer + sreduceID + sizeof(uint16_t) + snodeIP, snodePort);
+	memcpy(&nodePort, buffer + sreduceID + sizeof(uint16_t) + snodeIP,
+			snodePort);
 	nodePort = ntohs(nodePort);
-	memcpy(tempResultName, buffer + sreduceID + sizeof(uint16_t) + snodeIP + snodePort, stempName);
-	stemps = (sbuffer - (sreduceID + sizeof(uint16_t) + snodeIP + snodePort + stempName));
+	memcpy(tempResultName,
+			buffer + sreduceID + sizeof(uint16_t) + snodeIP + snodePort,
+			stempName);
+	stemps = (sbuffer
+			- (sreduceID + sizeof(uint16_t) + snodeIP + snodePort + stempName));
 	void *buffer_tmps = malloc(stemps);
-	memcpy(buffer_tmps, buffer + sreduceID + sizeof(uint16_t) + snodeIP + snodePort + stempName, stemps);
+	memcpy(buffer_tmps,
+			buffer + sreduceID + sizeof(uint16_t) + snodeIP + snodePort
+					+ stempName, stemps);
 
 	reduceID = ntohs(reduceID);
 
