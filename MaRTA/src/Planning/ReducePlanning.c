@@ -35,56 +35,78 @@ t_temp * reduceToTemporal(t_reduce *reduce) {
 	return temporal;
 }
 
+void rePlanMapsFromNode(t_job *job, char *node) {
+	void rePlanByNode(t_map *map) {
+		if (!strcmp(map->nodeName, node)) {
+			rePlanMap(job, map);
+		}
+	}
+	list_iterate(job->maps, (void *) rePlanByNode);
+}
+
 void noCombinerReducePlanning(t_job *job) {
-	t_list *counts = list_create();
-	void countTemporals(t_map *map) {
-		bool findNodeInMaps(t_temporalCount *count) {
-			return !strcmp(count->nodeName, map->nodeName);
-		}
-		t_temporalCount *nodeCount = NULL;
-		nodeCount = list_find(counts, (void*) findNodeInMaps);
-		if (nodeCount == NULL) {
-			nodeCount = malloc(sizeof(t_temporalCount));
-			nodeCount->nodeName = strdup(map->nodeName);
-			nodeCount->count = 1;
-			list_add(counts, (void *) nodeCount);
-		} else
-			nodeCount->count++;
-	}
-	list_iterate(job->maps, (void *) countTemporals);
+	bool finalFailed;
+	do {
+		t_list *counts = list_create();
 
-	t_temporalCount *selectedCount = NULL;
-	void selectMoreTempsNode(t_temporalCount *count) {
-		if (selectedCount == NULL) {
-			selectedCount = count;
-		} else {
-			if (selectedCount->count < count->count)
+		void countTemporals(t_map *map) {
+			bool findNodeInMaps(t_temporalCount *count) {
+				return !strcmp(count->nodeName, map->nodeName);
+			}
+			t_temporalCount *nodeCount = NULL;
+			nodeCount = list_find(counts, (void*) findNodeInMaps);
+			if (nodeCount == NULL) {
+				nodeCount = malloc(sizeof(t_temporalCount));
+				nodeCount->nodeName = strdup(map->nodeName);
+				nodeCount->count = 1;
+				list_add(counts, (void *) nodeCount);
+			} else
+				nodeCount->count++;
+		}
+		list_iterate(job->maps, (void *) countTemporals);
+
+		t_temporalCount *selectedCount = NULL;
+		void selectMoreTempsNode(t_temporalCount *count) {
+			if (selectedCount == NULL) {
 				selectedCount = count;
+			} else {
+				if (selectedCount->count < count->count)
+					selectedCount = count;
+			}
 		}
-	}
 
-	list_iterate(counts, (void *) selectMoreTempsNode);
-	void freeCounts(t_temporalCount *count) {
-		if (count->nodeName) {
-			free(count->nodeName);
+		list_iterate(counts, (void *) selectMoreTempsNode);
+
+		pthread_mutex_lock(&Mnodes);
+		t_node *selectedNode = findNode(nodes, selectedCount->nodeName);
+		setFinalReduce(job->finalReduce, selectedNode->name, selectedNode->ip, selectedNode->port, job->id);
+		pthread_mutex_unlock(&Mnodes);
+
+		void freeCounts(t_temporalCount *count) {
+			if (count->nodeName) {
+				free(count->nodeName);
+			}
+			free(count);
 		}
-		free(count);
-	}
-	list_destroy_and_destroy_elements(counts, (void *) freeCounts);
+		list_destroy_and_destroy_elements(counts, (void *) freeCounts);
 
-	pthread_mutex_lock(&Mnodes);
-	t_node *selectedNode = findNode(nodes, selectedCount->nodeName);
-	setFinalReduce(job->finalReduce, selectedNode->name, selectedNode->ip, selectedNode->port, job->id);
-	pthread_mutex_unlock(&Mnodes);
+		void createTemporal(t_map *map) {
+			t_temp *temporal = mapToTemporal(map);
+			list_add(job->finalReduce->temps, (void *) temporal);
+		}
 
-	void createTemporal(t_map *map) {
-		t_temp *temporal = mapToTemporal(map);
-		list_add(job->finalReduce->temps, (void *) temporal);
-	}
+		list_iterate(job->maps, (void *) createTemporal);
 
-	list_iterate(job->maps, (void *) createTemporal);
+		notificarReduce(job, job->finalReduce);
+		finalFailed = false;
+		char *fallenNode = recvResult(job);
+		if (fallenNode != NULL) {
+			finalFailed = true;
+			rePlanMapsFromNode(job, fallenNode);
+			list_clean_and_destroy_elements(job->finalReduce->temps, (void *) freeTemp);
+		}
+	} while (finalFailed);
 
-	notificarReduce(job, job->finalReduce);
 }
 
 void combinerPartialsReducePlanning(t_job *job) {
@@ -141,15 +163,6 @@ void combinerFinalReducePlanning(t_job *job) {
 	list_iterate(job->partialReduces, (void *) createFinalTemporals);
 
 	notificarReduce(job, job->finalReduce);
-}
-
-void rePlanMapsFromNode(t_job *job, char *node) {
-	void rePlanByNode(t_map *map) {
-		if (!strcmp(map->nodeName, node)) {
-			rePlanMap(job, map);
-		}
-	}
-	list_iterate(job->maps, (void *) rePlanByNode);
 }
 
 void combinerReducePlanning(t_job *job) {
