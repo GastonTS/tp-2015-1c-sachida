@@ -232,14 +232,24 @@ bool connections_marta_copyFinalResult(void *bufferReceived) {
 
 	memcpy(finalTmpName, bufferReceived + offset, sizeof(char) * 60);
 
-	bool result = filesystem_copyTmpFileToMDFS(nodeId, finalTmpName, resultFileName);
+	uint8_t failReason = 0;
+	bool result = filesystem_copyTmpFileToMDFS(nodeId, finalTmpName, resultFileName, &failReason);
 	free(nodeId);
 	free(resultFileName);
 
-	void *buffer = malloc(sizeof(result));
-	memcpy(buffer, &result, sizeof(result));
+	size_t sbuffer = sizeof(result);
+	void *buffer;
+	if (result) {
+		buffer = malloc(sbuffer);
+		memcpy(buffer, &result, sizeof(result));
+	} else {
+		sbuffer += sizeof(failReason);
+		buffer = malloc(sbuffer);
+		memcpy(buffer, &result, sizeof(result));
+		memcpy(buffer + sizeof(result), &failReason, sizeof(failReason));
+	}
 
-	e_socket_status status = socket_send_packet(martaSocket, buffer, sizeof(bool));
+	e_socket_status status = socket_send_packet(martaSocket, buffer, sbuffer);
 	free(buffer);
 
 	return status == SOCKET_ERROR_NONE;

@@ -8,6 +8,7 @@
 // #include <semaphore.h>
 
 #include "../connections/connections_node.h"
+#include "../connections/connections.h"
 
 void filesystem_formatNode(node_t *node);
 void filesystem_createLocalFileFromString(char *pathToFile, char *str);
@@ -570,7 +571,7 @@ int filesystem_saveFileToLocalFS(file_t *file, char *pathToFile) {
  * Saves the contents of a tmp file of a node into a file in the MDFS
  *
  */
-bool filesystem_copyTmpFileToMDFS(char *nodeId, char *finalTmpName, char *resultFilePath) {
+bool filesystem_copyTmpFileToMDFS(char *nodeId, char *finalTmpName, char *resultFilePath, uint8_t *failReason) {
 	log_info(mdfs_logger, "Going to get the tmp file content '%s' from node %s and saving it to the MDFS as '%s'", finalTmpName, nodeId, resultFilePath);
 
 	file_t *file = file_create();
@@ -604,6 +605,7 @@ bool filesystem_copyTmpFileToMDFS(char *nodeId, char *finalTmpName, char *result
 
 	if (!tmpFileContent) {
 		log_error(mdfs_logger, "Couldn't get the tmp file content from the node");
+		*failReason = COMMAND_FS_TO_MARTA_CANT_COPY;
 		file_free(file);
 		return 0;
 	}

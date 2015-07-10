@@ -83,8 +83,8 @@ void desserializeDieOrder(void *buffer) {
 		log_info(logger, "Job Success!");
 	else if (finalResult == COMMAND_RESULT_FILEUNAVAILABLE)
 		log_info(logger, "Job Failed: One of the files is unavailable");
-	else if (finalResult == COMMAND_RESULT_REDUCEFAILED)
-		log_info(logger, "Job Failed: Reduce failed");
+	else if (finalResult == COMMAND_RESULT_CANT_COPY)
+		log_info(logger, "Job Failed: Canto copy final result to MDFS");
 	else
 		log_info(logger, "Job Failed: don't know why");
 }

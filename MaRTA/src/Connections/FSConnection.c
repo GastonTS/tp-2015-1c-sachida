@@ -169,13 +169,31 @@ bool copyFinalTemporal(t_job *job) {
 	while (0 > socket_send_packet(fsSocket, buffer, sbuffer)) {
 		FSConnectionLost();
 	}
+
 	void *finalBuffer;
 	size_t sfinalBuffer;
+	log_info(logger, "|JOB %d| Copying final result to MDFS", job->id);
 	while (0 > socket_recv_packet(fsSocket, &finalBuffer, &sfinalBuffer)) {
 		FSConnectionLost();
 	}
+
 	bool result;
+
 	memcpy(&result, finalBuffer, sizeof(result));
+
+	if (!result) {
+		uint8_t reason;
+
+		memcpy(&reason, finalBuffer, sizeof(reason));
+		if (reason == COMMAND_FS_TO_MARTA_CANT_COPY) {
+			log_error(logger, "|JOB %d| Cant copy final result to MDFS, not enough space", job->id);
+			sendDieOrder(job->socket, reason);
+			freeJob(job);
+			free(finalBuffer);
+			pthread_exit(NULL);
+		}
+	}
+
 	free(finalBuffer);
 	return result;
 }
