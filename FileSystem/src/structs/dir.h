@@ -2,7 +2,6 @@
 #define DIR_H
 
 #include "../mongo/mongo.h"
-#include <commons/string.h>
 
 #define	ROOT_DIR_ID	"0"
 

@@ -4,8 +4,14 @@ MODS=-Wall -MMD -MP
 CC=gcc -g
 MV=mv -f
 RM=rm -rf
-GO=./$(NAME).o config.cfg
+CFG_FILE=config.cfg
+GO=./$(NAME).o $(CFG_FILE)
 SRCS=$(shell find ./ -iname *.c)
+
+goi: CFG_FILE=config${i}.cfg
+goi: go
+vali: CFG_FILE=config${i}.cfg
+vali: val
 
 all: clean dependents build
 debug: CC += -DDEBUG -g -O0
@@ -15,7 +21,7 @@ clean:
 dependents:
 
 build:
-	$(CC) $(MODS) -o $(NAME).o $(SRCS) $(UTILS) $(LIBS)
+	$(CC) $(MODS) -o $(NAME).o $(SRCS) $(LIBS)
 go:
 	$(GO)
 val:

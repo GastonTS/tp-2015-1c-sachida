@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <commons/string.h>
 
 #include "dir.h"
 
@@ -28,14 +29,6 @@ dir_t* dir_getDirFromBSON(const bson_t *doc) {
 				dir->name = strdup(value->value.v_utf8.str);
 			} else if (strcmp(key, "parentId") == 0) {
 				strcpy(dir->parentId, value->value.v_utf8.str);
-
-				/*
-				char *parentId = malloc(value->value.v_utf8.len);
-				memcpy(parentId, value->value.v_utf8.str, value->value.v_utf8.len);
-				free(dir->parentId);
-				dir->parentId = parentId;
-				*/
-
 			}
 			/*
 			 if (bson_iter_find(&iter, "_id")) strcpy(dir->id, bson_iter_utf8(&iter, NULL));
