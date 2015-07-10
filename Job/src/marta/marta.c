@@ -312,7 +312,7 @@ void confirmarReduce(t_reduce* reduce, bool result, void* bufferNodo, size_t buf
 		char *nodeID = malloc(snodeID + 1);
 		memcpy(nodeID, bufferNodo + bufferOffset, snodeID);
 		nodeID[snodeID] = '\0';
-		log_info(logger,"nodeIDFail: %s",nodeID);
+		log_info(logger, "nodeIDFail: %s", nodeID);
 		free(bufferNodo);
 		failReduce(reduce, nodeID);
 	}

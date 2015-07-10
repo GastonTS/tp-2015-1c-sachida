@@ -61,7 +61,7 @@ t_temp *CreateTemp(char *nodeID, char *nodeIP, uint16_t nodePort, uint16_t origi
 t_file *CreateFile(char *path);
 t_job *CreateJob(uint16_t id, bool combiner, char *resultadoFinal);
 void setTempMapName(char tempMapName[60], uint16_t mapID, uint16_t jobID);
-void setTempReduceName(char tempResultName[60], uint16_t jobID, char *tipo);
+void setTempReduceName(char tempResultName[60], uint16_t reduceID, uint16_t jobID);
 void freeTemp(t_temp *temp);
 void freeMap(t_map* map);
 void freeReduce(t_reduce *reduce);

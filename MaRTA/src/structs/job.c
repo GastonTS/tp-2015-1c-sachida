@@ -71,7 +71,7 @@ t_file *CreateFile(char *path) {
 	return file;
 }
 
-void setTempReduceName(char tempResultName[60], uint16_t jobID, char *tipo) {
+void setTempReduceName(char tempResultName[60], uint16_t reduceID, uint16_t jobID) {
 	char resultName[60];
 	memset(resultName, '\0', sizeof(char) * 60);
 	strcat(resultName, getTime());
@@ -80,7 +80,9 @@ void setTempReduceName(char tempResultName[60], uint16_t jobID, char *tipo) {
 	sprintf(idJob, "%i", jobID);
 	strcat(resultName, idJob);
 	strcat(resultName, "-Red");
-	strcat(resultName, tipo);
+	char numReduce[4];
+	sprintf(numReduce, "%i", reduceID);
+	strcat(resultName, numReduce);
 	strcat(resultName, ".txt");
 	strcpy(tempResultName, resultName);
 }
@@ -92,7 +94,7 @@ t_reduce *CreateReduce(uint16_t id, char *nodeName, char *nodeIP, uint16_t nodeP
 	reduce->nodeIP = strdup(nodeIP);
 	reduce->nodePort = nodePort;
 	memset(reduce->tempResultName, '\0', sizeof(char) * 60);
-	setTempReduceName(reduce->tempResultName, jobID, "Par");
+	setTempReduceName(reduce->tempResultName, reduce->id, jobID);
 	reduce->temps = list_create();
 	return reduce;
 }
@@ -111,7 +113,7 @@ void setFinalReduce(t_reduce *reduce, char *nodeName, char *nodeIP, uint16_t nod
 	reduce->finalNode = strdup(nodeName);
 	reduce->nodeIP = strdup(nodeIP);
 	reduce->nodePort = nodePort;
-	setTempReduceName(reduce->tempResultName, jobID, "Fin");
+	setTempReduceName(reduce->tempResultName, reduce->id, jobID);
 }
 
 t_job *CreateJob(uint16_t id, bool combiner, char *resultadoFinal) {
@@ -154,10 +156,10 @@ void freeTemp(t_temp *temp) {
 }
 
 void freeReduce(t_reduce *reduce) {
-	if (reduce->finalNode!=NULL) {
+	if (reduce->finalNode != NULL) {
 		free(reduce->finalNode);
 	}
-	if (reduce->nodeIP!=NULL) {
+	if (reduce->nodeIP != NULL) {
 		free(reduce->nodeIP);
 	}
 	list_destroy_and_destroy_elements(reduce->temps, (void *) freeTemp);
