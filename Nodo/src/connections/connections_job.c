@@ -224,7 +224,7 @@ void connections_job_deserializeReduce(int socket, void *buffer) {
 
 		// Join to one file (to be reduced then..)
 		if (failed) {
-			log_error(node_logger, "Couldn't get all the files to make a reduce..");
+			log_error(node_logger, "Couldn't get all the files to make a reduce. Failed Node %s..", nodeIdFailed);
 		} else {
 			char *tmpFileNameJoined = malloc(sizeof(char) * strlen(finalTmpName) + 20);
 			strcpy(tmpFileNameJoined, finalTmpName);
