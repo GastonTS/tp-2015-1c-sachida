@@ -23,17 +23,21 @@ void connections_node_initialize() {
 }
 
 void connections_node_shutdown() {
-	pthread_mutex_lock(&activeNodesLock);
-	pthread_mutex_lock(&standbyNodesLock);
-	pthread_mutex_lock(&nodexMutexLock);
-
 	void disconnectNode(node_connection_t *nodeConnection) {
 		socket_close(nodeConnection->socket);
 		connections_node_connection_free(nodeConnection);
 	}
+	pthread_mutex_lock(&activeNodesLock);
 	dictionary_destroy_and_destroy_elements(activeNodesSockets, (void*) disconnectNode);
+	pthread_mutex_lock(&standbyNodesLock);
 	dictionary_destroy_and_destroy_elements(standbyNodesSockets, (void*) disconnectNode);
-	dictionary_destroy_and_destroy_elements(nodesMutex, (void*) pthread_mutex_destroy); // TODO free.
+
+	void freeNodeMutex(pthread_mutex_t *nodeMutex) {
+		pthread_mutex_destroy(nodeMutex);
+		free(nodeMutex);
+	}
+	pthread_mutex_lock(&nodexMutexLock);
+	dictionary_destroy_and_destroy_elements(nodesMutex, (void*) freeNodeMutex); // TODO free.
 
 	pthread_mutex_destroy(&activeNodesLock);
 	pthread_mutex_destroy(&standbyNodesLock);
