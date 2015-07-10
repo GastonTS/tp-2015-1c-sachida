@@ -5,33 +5,57 @@
 
 pthread_mutex_t activeNodesLock;
 pthread_mutex_t standbyNodesLock;
+pthread_mutex_t nodexMutexLock;
 t_dictionary *activeNodesSockets;
 t_dictionary *standbyNodesSockets;
+t_dictionary *nodesMutex;
 
 void* connections_node_checkAlive(void *param);
 
 void connections_node_initialize() {
-	if (pthread_mutex_init(&activeNodesLock, NULL) != 0 || pthread_mutex_init(&standbyNodesLock, NULL) != 0) {
+	if (pthread_mutex_init(&activeNodesLock, NULL) != 0 || pthread_mutex_init(&standbyNodesLock, NULL) != 0 || pthread_mutex_init(&nodexMutexLock, NULL) != 0) {
 		log_error(mdfs_logger, "Error while trying to create new mutex");
 		return;
 	}
 	activeNodesSockets = dictionary_create();
 	standbyNodesSockets = dictionary_create();
+	nodesMutex = dictionary_create();
 }
 
 void connections_node_shutdown() {
-	pthread_mutex_lock(&activeNodesLock);
-	pthread_mutex_lock(&standbyNodesLock);
-
 	void disconnectNode(node_connection_t *nodeConnection) {
 		socket_close(nodeConnection->socket);
 		connections_node_connection_free(nodeConnection);
 	}
+	pthread_mutex_lock(&activeNodesLock);
 	dictionary_destroy_and_destroy_elements(activeNodesSockets, (void*) disconnectNode);
+	pthread_mutex_lock(&standbyNodesLock);
 	dictionary_destroy_and_destroy_elements(standbyNodesSockets, (void*) disconnectNode);
+
+	void freeNodeMutex(pthread_mutex_t *nodeMutex) {
+		pthread_mutex_destroy(nodeMutex);
+		free(nodeMutex);
+	}
+	pthread_mutex_lock(&nodexMutexLock);
+	dictionary_destroy_and_destroy_elements(nodesMutex, (void*) freeNodeMutex);
 
 	pthread_mutex_destroy(&activeNodesLock);
 	pthread_mutex_destroy(&standbyNodesLock);
+	pthread_mutex_destroy(&nodexMutexLock);
+}
+
+pthread_mutex_t* connections_node_getNodeMutex(char *nodeId) {
+	pthread_mutex_lock(&nodexMutexLock);
+	pthread_mutex_t *nodeMutex = dictionary_get(nodesMutex, nodeId);
+	pthread_mutex_unlock(&nodexMutexLock);
+	if (!nodeMutex) {
+		nodeMutex = malloc(sizeof(pthread_mutex_t));
+		pthread_mutex_init(nodeMutex, NULL);
+		pthread_mutex_lock(&nodexMutexLock);
+		dictionary_put(nodesMutex, nodeId, nodeMutex);
+		pthread_mutex_unlock(&nodexMutexLock);
+	}
+	return nodeMutex;
 }
 
 /*
@@ -156,7 +180,7 @@ void* connections_node_accept(void *param) {
 	free(buffer);
 	// ...
 
-	//  Save the connection as a reference to this node.
+	//  Save the connection as a reference to this node and create the mutex
 	nodeConnection->listenPort = listenPort;
 	connections_node_setAcceptedNodeConnection(nodeId, nodeConnection);
 
@@ -175,13 +199,6 @@ void* connections_node_accept(void *param) {
 }
 
 bool connections_node_sendBlock(nodeBlockSendOperation_t *sendOperation) {
-	node_connection_t *nodeConnection = connections_node_getActiveNodeConnection(sendOperation->node->id);
-	if (!nodeConnection) {
-		return 0;
-	}
-
-	log_info(mdfs_logger, "Going to SET block %d to node %s.", sendOperation->blockIndex, sendOperation->node->id);
-
 	uint8_t command = COMMAND_FS_TO_NODE_SET_BLOCK;
 	uint16_t numBlock = sendOperation->blockIndex;
 
@@ -195,32 +212,34 @@ bool connections_node_sendBlock(nodeBlockSendOperation_t *sendOperation) {
 	// send the data in other packet.
 	size_t sBlockData = strlen(sendOperation->block);
 
-	e_socket_status status;
-	pthread_mutex_lock(&nodeConnection->mutex);
-	status = socket_send_packet(nodeConnection->socket, buffer, sBuffer);
-	status = socket_send_packet(nodeConnection->socket, sendOperation->block, sBlockData);
-	// TODO status.
-	pthread_mutex_unlock(&nodeConnection->mutex);
+	pthread_mutex_t *nodeMutex = connections_node_getNodeMutex(sendOperation->node->id);
+	pthread_mutex_lock(nodeMutex);
+	node_connection_t *nodeConnection = connections_node_getActiveNodeConnection(sendOperation->node->id);
+	if (!nodeConnection) {
+		free(buffer);
+		pthread_mutex_unlock(nodeMutex);
+		return 0;
+	}
 
+	log_info(mdfs_logger, "Going to SET block %d to node %s.", sendOperation->blockIndex, sendOperation->node->id);
+
+	e_socket_status status = socket_send_packet(nodeConnection->socket, buffer, sBuffer);
+	if (status == SOCKET_ERROR_NONE) {
+		status = socket_send_packet(nodeConnection->socket, sendOperation->block, sBlockData);
+	}
 	free(buffer);
-
 	if (0 > status) {
 		log_info(mdfs_logger, "Removing node %s because it was disconnected", sendOperation->node->id);
 		connections_node_removeActiveNodeConnection(sendOperation->node->id);
+		pthread_mutex_unlock(nodeMutex);
 		return 0;
 	}
+	pthread_mutex_unlock(nodeMutex);
 
 	return (status == SOCKET_ERROR_NONE);
 }
 
 char* connections_node_getBlock(file_block_t *fileBlock) {
-	node_connection_t *nodeConnection = connections_node_getActiveNodeConnection(fileBlock->nodeId);
-	if (!nodeConnection) {
-		return NULL;
-	}
-
-	log_info(mdfs_logger, "Going to GET block %d from node %s.", fileBlock->blockIndex, fileBlock->nodeId);
-
 	uint8_t command = COMMAND_FS_TO_NODE_GET_BLOCK;
 	uint16_t numBlock = fileBlock->blockIndex;
 
@@ -232,15 +251,23 @@ char* connections_node_getBlock(file_block_t *fileBlock) {
 	memcpy(buffer, &command, sizeof(command));
 	memcpy(buffer + sizeof(command), &numBlockSerialized, sizeof(numBlock));
 
-	pthread_mutex_lock(&nodeConnection->mutex);
+	pthread_mutex_t *nodeMutex = connections_node_getNodeMutex(fileBlock->nodeId);
+	pthread_mutex_lock(nodeMutex);
+	node_connection_t *nodeConnection = connections_node_getActiveNodeConnection(fileBlock->nodeId);
+	if (!nodeConnection) {
+		free(buffer);
+		pthread_mutex_unlock(nodeMutex);
+		return NULL;
+	}
+
+	log_info(mdfs_logger, "Going to GET block %d from node %s.", fileBlock->blockIndex, fileBlock->nodeId);
+
 	e_socket_status status = socket_send_packet(nodeConnection->socket, buffer, sBuffer);
-
 	free(buffer);
-
-	if (status != SOCKET_ERROR_NONE) {
-		pthread_mutex_unlock(&nodeConnection->mutex);
+	if (0 > SOCKET_ERROR_NONE) {
 		log_info(mdfs_logger, "Removing node %s because it was disconnected", fileBlock->nodeId);
 		connections_node_removeActiveNodeConnection(fileBlock->nodeId);
+		pthread_mutex_unlock(nodeMutex);
 		return NULL;
 	}
 
@@ -249,33 +276,20 @@ char* connections_node_getBlock(file_block_t *fileBlock) {
 	buffer = NULL;
 	sBuffer = 0;
 	status = socket_recv_packet(nodeConnection->socket, &buffer, &sBuffer);
-	pthread_mutex_unlock(&nodeConnection->mutex);
-
 	if (0 > status) {
 		log_info(mdfs_logger, "Removing node %s because it was disconnected", fileBlock->nodeId);
 		connections_node_removeActiveNodeConnection(fileBlock->nodeId);
+		pthread_mutex_unlock(nodeMutex);
 		return NULL;
 	}
+	pthread_mutex_unlock(nodeMutex);
 
-	char *block = malloc(sBuffer + 1);
-	memcpy(block, buffer, sBuffer);
+	char *block = realloc(buffer, sBuffer + 1);
 	block[sBuffer] = '\0';
-
-	free(buffer);
-
 	return block;
 }
 
 char* connections_node_getFileContent(char *nodeId, char *tmpFileName, size_t *tmpFileLength) {
-	node_connection_t *nodeConnection = connections_node_getActiveNodeConnection(nodeId);
-	if (!nodeConnection) {
-		return NULL;
-	}
-
-	log_info(mdfs_logger, "Going to GET tmpFileContent '%s' from node %s.", tmpFileName, nodeId);
-
-	e_socket_status status;
-
 	// Request the tmp file content.
 	uint8_t command = COMMAND_NODE_GET_TMP_FILE_CONTENT;
 	uint32_t sTmpName = strlen(tmpFileName);
@@ -288,25 +302,35 @@ char* connections_node_getFileContent(char *nodeId, char *tmpFileName, size_t *t
 	memcpy(buffer + sizeof(command), &sTmpNameSerialized, sizeof(sTmpName));
 	memcpy(buffer + sizeof(command) + sizeof(sTmpName), tmpFileName, sTmpName);
 
-	pthread_mutex_lock(&nodeConnection->mutex);
-	status = socket_send_packet(nodeConnection->socket, buffer, sBuffer);
-	if (0 > status) {
-		pthread_mutex_unlock(&nodeConnection->mutex);
-		log_info(mdfs_logger, "Removing node %s because it was disconnected", nodeId);
-		connections_node_removeActiveNodeConnection(nodeId);
+	pthread_mutex_t *nodeMutex = connections_node_getNodeMutex(nodeId);
+	pthread_mutex_lock(nodeMutex);
+	node_connection_t *nodeConnection = connections_node_getActiveNodeConnection(nodeId);
+	if (!nodeConnection) {
+		free(buffer);
+		pthread_mutex_unlock(nodeMutex);
 		return NULL;
 	}
 
+	log_info(mdfs_logger, "Going to GET tmpFileContent '%s' from node %s.", tmpFileName, nodeId);
+
+	e_socket_status status = socket_send_packet(nodeConnection->socket, buffer, sBuffer);
 	free(buffer);
+	if (0 > status) {
+		log_info(mdfs_logger, "Removing node %s because it was disconnected", nodeId);
+		connections_node_removeActiveNodeConnection(nodeId);
+		pthread_mutex_unlock(nodeMutex);
+		return NULL;
+	}
 
 	buffer = NULL;
 	status = socket_recv_packet(nodeConnection->socket, &buffer, tmpFileLength);
-	pthread_mutex_unlock(&nodeConnection->mutex);
 	if (0 > status) {
 		log_info(mdfs_logger, "Removing node %s because it was disconnected", nodeId);
 		connections_node_removeActiveNodeConnection(nodeId);
+		pthread_mutex_unlock(nodeMutex);
 		return NULL;
 	}
+	pthread_mutex_unlock(nodeMutex);
 
 	return buffer;
 }
@@ -320,22 +344,26 @@ void* connections_node_checkAlive(void *param) {
 	uint8_t buffer = COMMAND_NODE_CHECK_ALIVE;
 	size_t sBuffer = sizeof(buffer);
 
+	pthread_mutex_t *nodeMutex = connections_node_getNodeMutex(nodeId);
+
 	while (1) {
+		pthread_mutex_lock(nodeMutex);
 		node_connection_t *nodeConnection = connections_node_getNodeConnection(nodeId);
 		if (!nodeConnection) {
+			pthread_mutex_unlock(nodeMutex);
 			return NULL;
 		}
 
-		pthread_mutex_lock(&nodeConnection->mutex);
 		e_socket_status status = socket_send_packet(nodeConnection->socket, &buffer, sBuffer);
-		pthread_mutex_unlock(&nodeConnection->mutex);
 
 		if (0 > status) {
 			log_info(mdfs_logger, "Removing node %s because it was disconnected", nodeId);
 			connections_node_removeActiveNodeConnection(nodeId);
 			// TODO sacarlo de standby tmb..
+			pthread_mutex_unlock(nodeMutex);
 			return NULL;
 		}
+		pthread_mutex_unlock(nodeMutex);
 
 		usleep(1 * 1000 * 1000); // 1 seconds
 	}
@@ -345,7 +373,6 @@ node_connection_t* connections_node_connection_create(int socket, char *ip) {
 	node_connection_t *nodeConnection = malloc(sizeof(node_connection_t));
 	nodeConnection->ip = strdup(ip);
 	nodeConnection->socket = socket;
-	pthread_mutex_init(&nodeConnection->mutex, NULL);
 	return nodeConnection;
 }
 
@@ -354,7 +381,6 @@ void connections_node_connection_free(node_connection_t *nodeConnection) {
 		if (nodeConnection->ip) {
 			free(nodeConnection->ip);
 		}
-		pthread_mutex_destroy(&nodeConnection->mutex);
 		free(nodeConnection);
 	}
 }
