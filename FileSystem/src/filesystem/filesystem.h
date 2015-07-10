@@ -59,6 +59,6 @@ int filesystem_makeNewFileBlockCopy(file_t *file, uint16_t blockIndex);
 int filesystem_deleteFileBlockCopy(file_t *file, uint16_t blockIndex, uint16_t copyIndex);
 int filesystem_saveFileToLocalFS(file_t *file, char *pathToFile);
 
-bool filesystem_copyTmpFileToMDFS(char *nodeId, char *finalTmpName, char *resultFileName);
+bool filesystem_copyTmpFileToMDFS(char *nodeId, char *finalTmpName, char *resultFilePath);
 
 #endif

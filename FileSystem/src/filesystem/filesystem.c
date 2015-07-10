@@ -570,26 +570,48 @@ int filesystem_saveFileToLocalFS(file_t *file, char *pathToFile) {
  * Saves the contents of a tmp file of a node into a file in the MDFS
  *
  */
-bool filesystem_copyTmpFileToMDFS(char *nodeId, char *finalTmpName, char *resultFileName) {
-	log_info(mdfs_logger, "Going to get the tmp file content '%s' from node %s and saving it to the MDFS as '%s'", finalTmpName, nodeId, resultFileName);
+bool filesystem_copyTmpFileToMDFS(char *nodeId, char *finalTmpName, char *resultFilePath) {
+	log_info(mdfs_logger, "Going to get the tmp file content '%s' from node %s and saving it to the MDFS as '%s'", finalTmpName, nodeId, resultFilePath);
+
+	file_t *file = file_create();
+
+	char *destFileName = getFileName(resultFilePath);
+	if (strlen(destFileName) < strlen(resultFilePath)) {
+		char *pathToFolder = string_substring_until(resultFilePath, strlen(resultFilePath) - strlen(destFileName));
+		dir_t *dir = filesystem_resolveDirPath(pathToFolder, ROOT_DIR_ID, "/", NULL);
+		free(pathToFolder);
+		if (dir) {
+
+			strcpy(file->parentId, dir->id);
+			dir_free(dir);
+		} else {
+			log_error(mdfs_logger, "Cannot create file '%s': No such file or directory.\n", resultFilePath);
+			free(destFileName);
+			file_free(file);
+			return 0;
+		}
+	} else { // There are no folders just a file in the ROOT folder.
+		strcpy(file->parentId, ROOT_DIR_ID);
+	}
+	file->name = destFileName;
+
+	if (!filesystem_canCreateResource(file->name, file->parentId)) {
+		return 0;
+	}
 
 	size_t tmpFileLength = 0;
 	char *tmpFileContent = connections_node_getFileContent(nodeId, finalTmpName, &tmpFileLength);
 
 	if (!tmpFileContent) {
 		log_error(mdfs_logger, "Couldn't get the tmp file content from the node");
+		file_free(file);
 		return 0;
 	}
 
 	tmpFileLength--;
 	t_list *blocks = filesystem_getBlocksFromStr(tmpFileContent, tmpFileLength);
 	free(tmpFileContent);
-
-	file_t *file = file_create();
-	// TODO resolver dir previo...
-	file->name = strdup(resultFileName);
 	file->size = tmpFileLength;
-	strcpy(file->parentId, ROOT_DIR_ID);
 
 	if (!filesystem_distributeBlocksToNodes(blocks, file)) {
 		file_free(file);
