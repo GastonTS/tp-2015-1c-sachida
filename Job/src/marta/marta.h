@@ -18,7 +18,7 @@ void failMap(t_map* map);
 void sendMapResult(t_map* map, bool result);
 void atenderReducer(void* parametros);
 void failReduce(t_reduce* reduce, char *fallenNode);
-void confirmarReduce(t_reduce* reduce, bool result, void* bufferNodo);
+void confirmarReduce(t_reduce* reduce, bool result, void* bufferNodo, size_t bufferOffset);
 
 /*serialize*/
 void serializeConfigMaRTA(int fd, bool combiner, char* fileResult, char* files);
