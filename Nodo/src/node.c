@@ -60,12 +60,6 @@ int main(int argc, char *argv[]) {
 }
 
 bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpFileName) {
-	// First, get the block data..
-	char *blockData = node_getBlock(numBlock);
-
-	size_t commandSize;
-	char *command;
-
 	/************** WRITE ALL FILE PATHS. ******************/
 	size_t pathToTmpFileSize = strlen(node_config->tmpDir) + 1 + strlen(tmpFileName) + 1;
 
@@ -91,11 +85,14 @@ bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpFileName
 
 	bool fileCreated = node_createExecutableFileFromString(pathToMapRutine, mapRutine);
 	if (!fileCreated) {
-		return 0; // TODO ver malocs
+		return 0;
 	}
 
-	commandSize = strlen(pathToMapRutine) + 9 + strlen(pathToFinalSortedFile) + 3 + strlen(pathToSTDERRFile) + 1;
-	command = malloc(commandSize);
+	// Get the block data..
+	char *blockData = node_getBlock(numBlock);
+
+	size_t commandSize = strlen(pathToMapRutine) + 9 + strlen(pathToFinalSortedFile) + 3 + strlen(pathToSTDERRFile) + 1;
+	char *command = malloc(commandSize);
 	snprintf(command, commandSize, "%s | sort >%s 2>%s", pathToMapRutine, pathToFinalSortedFile, pathToSTDERRFile);
 
 	log_info(node_logger, "Executing MAP rutine on block number %d. Saving sorted to file in tmp dir as: %s", numBlock, tmpFileName);
@@ -103,17 +100,10 @@ bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpFileName
 	free(command);
 	free(blockData);
 
-	// TODO chech stderr ?
-
 	return result;
 }
 
 bool node_executeReduceRutine(char *reduceRutine, char *tmpFileNameToReduce, char *finalTmpFileName) {
-	log_info(node_logger, "Executing REDUCE rutine to %s. Saving final result to file in tmp dir as: %s ", tmpFileNameToReduce, finalTmpFileName);
-
-	size_t commandSize;
-	char *command;
-
 	/************** WRITE ALL FILE PATHS. ******************/
 	size_t pathToTmpFileSize = strlen(node_config->tmpDir) + 1 + strlen(finalTmpFileName) + 1;
 
@@ -139,14 +129,14 @@ bool node_executeReduceRutine(char *reduceRutine, char *tmpFileNameToReduce, cha
 
 	node_createExecutableFileFromString(pathToReduceRutine, reduceRutine);
 
-	commandSize = 4 + strlen(node_config->tmpDir) + 1 + strlen(tmpFileNameToReduce) + 3 + strlen(pathToReduceRutine) + 2 + strlen(pathToFinalFile) + 3 + strlen(pathToSTDERRFile) + 10;
-	command = malloc(commandSize);
+	size_t commandSize = 4 + strlen(node_config->tmpDir) + 1 + strlen(tmpFileNameToReduce) + 3 + strlen(pathToReduceRutine) + 2 + strlen(pathToFinalFile) + 3 + strlen(pathToSTDERRFile) + 10;
+	char *command = malloc(commandSize);
 	snprintf(command, commandSize, "cat %s/%s | sort | %s >%s 2>%s", node_config->tmpDir, tmpFileNameToReduce, pathToReduceRutine, pathToFinalFile, pathToSTDERRFile);
-	//TODO ver sort
+	//TODO ver sort y ver cat.
+
+	log_info(node_logger, "Executing REDUCE rutine to %s. Saving final result to file in tmp dir as: %s ", tmpFileNameToReduce, finalTmpFileName);
 	bool result = system(command) != -1;
 	free(command);
-
-	// TODO chech stderr ?
 
 	return result;
 }
@@ -169,7 +159,7 @@ char* node_getTmpFileContent(char *tmpFileName) {
 	char *fileMap = (char *) mmap(0, stat.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 	close(fd);
 
-	char *fileStr = strdup(fileMap);
+	char *fileStr = strdup(fileMap); // TODO memcpy?
 	munmap(fileMap, stat.st_size); //TODO Check performance
 
 	return fileStr;
@@ -237,10 +227,11 @@ bool node_createExecutableFileFromString(char *pathToFile, char *str) {
 	}
 
 	fflush(fp);
-	int response = fclose(fp);
-	if (response) {
+	int result = fclose(fp);
+	if (result) {
 		return 0;
 	}
+
 	return 1;
 }
 
@@ -269,15 +260,18 @@ bool node_createTmpFileFromStringList(char *tmpFileName, t_list *stringParts) {
 
 bool node_popen_write(char *command, char *data) {
 	FILE *pipe = popen(command, "w");
-
 	if (!pipe) {
-		free(command);
 		return 0;
 	}
 
-	fputs(data, pipe);
+	int result = fputs(data, pipe);
 
-	pclose(pipe); //TODO checkResult
+	if (result < 0) {
+		pclose(pipe);
+		return 0;
+	}
+
+	pclose(pipe);
 	return 1;
 }
 

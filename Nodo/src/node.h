@@ -11,7 +11,7 @@
 #include <commons/collections/list.h>
 #include "utils/socket.h"
 
-#define _FILE_OFFSET_BITS  64
+//#define _FILE_OFFSET_BITS  64
 #define BLOCK_SIZE 20 * 1024 * 1024 // 20 MB de bloques
 
 typedef struct {
