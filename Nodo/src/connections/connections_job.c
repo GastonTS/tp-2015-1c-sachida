@@ -269,6 +269,7 @@ void connections_job_deserializeReduce(int socket, void *buffer) {
 	}
 
 	socket_send_packet(socket, bufferResponse, sBufferResponse);
+	free(bufferResponse);
 
 	free(reduceRutine);
 	free(finalTmpName);
