@@ -175,6 +175,7 @@ void connections_job_deserializeReduce(int socket, void *buffer) {
 		free(nodeIp);
 	}
 
+	char *nodeIdFailed = NULL;
 	if (!tmpFileNameToReduce) {
 		t_list *tmpFileParts = list_create();
 		pthread_mutex_t tmpFileParts_mutex;
@@ -183,10 +184,11 @@ void connections_job_deserializeReduce(int socket, void *buffer) {
 			return;
 		}
 		bool failed = 0;
-		void addPartToList(char *part) {
+		void addPartToList(char *part, char *nodeId) {
 			pthread_mutex_lock(&tmpFileParts_mutex);
 			if (!part) {
 				failed = 1;
+				nodeIdFailed = strdup(nodeId);
 			}
 			list_add(tmpFileParts, part);
 			pthread_mutex_unlock(&tmpFileParts_mutex);
@@ -201,7 +203,7 @@ void connections_job_deserializeReduce(int socket, void *buffer) {
 				log_info(node_logger, "Getting tmp file %s from node %s", operation->tmpFileName, operation->nodeId);
 				tmpFile = connections_node_getFileContent(operation);
 			}
-			addPartToList(tmpFile);
+			addPartToList(tmpFile, operation->nodeId);
 			return NULL;
 		}
 		pthread_t threads[list_size(getTmpFileOperations)];
@@ -244,7 +246,29 @@ void connections_job_deserializeReduce(int socket, void *buffer) {
 		free(tmpFileNameToReduce);
 	}
 
-	socket_send_packet(socket, &ok, sizeof(ok));
+	void *bufferResponse;
+	size_t sBufferResponse;
+	if (!ok) {
+		if (!nodeIdFailed) {
+			nodeIdFailed = node_config->name;
+		}
+		uint16_t sNodeId = strlen(nodeIdFailed);
+		uint16_t sNodeIdSerialized = htons(sNodeId);
+
+		sBufferResponse = sizeof(ok) + sizeof(sNodeId) + sNodeId;
+		bufferResponse = malloc(sBufferResponse);
+
+		memcpy(bufferResponse, &ok, sizeof(ok));
+		memcpy(bufferResponse + sizeof(ok), &sNodeIdSerialized, sizeof(sNodeId));
+		memcpy(bufferResponse + sizeof(ok) + sizeof(sNodeId), nodeIdFailed, sNodeId);
+		free(nodeIdFailed);
+	} else {
+		sBufferResponse = sizeof(ok);
+		bufferResponse = malloc(sBufferResponse);
+		memcpy(bufferResponse, &ok, sizeof(ok));
+	}
+
+	socket_send_packet(socket, bufferResponse, sBufferResponse);
 
 	free(reduceRutine);
 	free(finalTmpName);
