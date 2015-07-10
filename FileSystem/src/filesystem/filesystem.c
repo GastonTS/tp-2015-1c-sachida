@@ -868,7 +868,7 @@ bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 	if (success) {
 
 		pthread_mutex_t failed_mutex;
-		int failed = 0;
+		bool failed = 0;
 		if (pthread_mutex_init(&failed_mutex, NULL) != 0) {
 			log_error(mdfs_logger, "Error while trying to create new mutex (failed_mutex)");
 			return 0;
@@ -878,11 +878,19 @@ bool filesystem_distributeBlocksToNodes(t_list *blocks, file_t *file) {
 			failed = 1;
 			pthread_mutex_unlock(&failed_mutex);
 		}
+		bool isFailed() {
+			pthread_mutex_lock(&failed_mutex);
+			bool isFailed = failed;
+			pthread_mutex_unlock(&failed_mutex);
+			return isFailed;
+		}
 
 		void *sendBlockToNode(void *param) {
-			nodeBlockSendOperation_t *nodeBlockSendOperation = (nodeBlockSendOperation_t*) param;
-			if (!filesystem_sendBlockToNode(nodeBlockSendOperation)) {
-				setFailed();
+			if (!isFailed()) {
+				nodeBlockSendOperation_t *nodeBlockSendOperation = (nodeBlockSendOperation_t*) param;
+				if (!filesystem_sendBlockToNode(nodeBlockSendOperation)) {
+					setFailed();
+				}
 			}
 			return NULL;
 		}

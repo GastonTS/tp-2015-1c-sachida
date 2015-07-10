@@ -221,6 +221,7 @@ bool connections_node_sendBlock(nodeBlockSendOperation_t *sendOperation) {
 	pthread_mutex_lock(nodeMutex);
 	node_connection_t *nodeConnection = connections_node_getActiveNodeConnection(sendOperation->node->id);
 	if (!nodeConnection) {
+		free(buffer);
 		pthread_mutex_unlock(nodeMutex);
 		return 0;
 	}
@@ -259,6 +260,7 @@ char* connections_node_getBlock(file_block_t *fileBlock) {
 	pthread_mutex_lock(nodeMutex);
 	node_connection_t *nodeConnection = connections_node_getActiveNodeConnection(fileBlock->nodeId);
 	if (!nodeConnection) {
+		free(buffer);
 		pthread_mutex_unlock(nodeMutex);
 		return NULL;
 	}
@@ -313,6 +315,7 @@ char* connections_node_getFileContent(char *nodeId, char *tmpFileName, size_t *t
 	pthread_mutex_lock(nodeMutex);
 	node_connection_t *nodeConnection = connections_node_getActiveNodeConnection(nodeId);
 	if (!nodeConnection) {
+		free(buffer);
 		pthread_mutex_unlock(nodeMutex);
 		return NULL;
 	}
@@ -359,9 +362,9 @@ void* connections_node_checkAlive(void *param) {
 			pthread_mutex_unlock(nodeMutex);
 			return NULL;
 		}
-		
+
 		e_socket_status status = socket_send_packet(nodeConnection->socket, &buffer, sBuffer);
-		
+
 		if (0 > status) {
 			log_info(mdfs_logger, "Removing node %s because it was disconnected", nodeId);
 			connections_node_removeActiveNodeConnection(nodeId);
