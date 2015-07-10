@@ -21,21 +21,21 @@ void notificarMap(t_job *job, t_map *map) {
 	log_info(logger, "|JOB %d| Planned Map: %d on Node: %s (Block:%d)", job->id, map->id, map->nodeName, map->numBlock);
 	map->done = false;
 	if (0 > serializeMapToOrder(job->socket, map)) {
-		log_error(logger, "Job %d Died when sending map order", job->id);
+		log_error(logger, "|JOB %d| Died when sending map order", job->id);
 		freeJob(job);
 		pthread_exit(NULL);
 	}
 }
 
 void notifFileUnavailable(t_job *job) {
-	log_error(logger, "Job %d Failed: One file is unavailable", job->id);
+	log_error(logger, "|JOB %d| Failed: One file is unavailable", job->id);
 	sendDieOrder(job->socket, COMMAND_RESULT_FILEUNAVAILABLE);
 	freeJob(job);
 	pthread_exit(NULL);
 }
 
 void planMaps(t_job *job) {
-	log_info(logger, "Planning Job %d...", job->id);
+	log_info(logger, "|JOB %d| Planning", job->id);
 	int filesAvailables = 1;
 	void requestBlocks(t_file *file) {
 		if (!requestFileBlocks(file))
@@ -71,8 +71,8 @@ void planMaps(t_job *job) {
 	}
 	if (filesAvailables) {
 		list_iterate(job->files, (void *) fileMap);
-		log_info(logger, "Finished Map Planning Job %d", job->id);
-		log_info(logger, "Waiting Map Results from Job %d...", job->id);
+		log_info(logger, "|JOB %d| Finished Map Planning", job->id);
+		log_info(logger, "|JOB %d| Waiting Map Results...", job->id);
 		int i;
 		int mapsCount = list_size(job->maps);
 		for (i = 0; i < mapsCount; i++)

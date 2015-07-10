@@ -20,9 +20,9 @@ void *acceptJob(void * param) {
 	job->socket = jobSocket;
 
 	if (job->combiner)
-		log_info(logger, "Begin Job: %d (Combiner)", job->id);
+		log_info(logger, "|JOB %d| Begin (Combiner)------------", job->id);
 	else
-		log_info(logger, "Begin Job: %d (No combiner)", job->id);
+		log_info(logger, "|JOB %d| Begin (No Combiner)---------", job->id);
 
 	planMaps(job);
 
@@ -30,8 +30,7 @@ void *acceptJob(void * param) {
 		combinerReducePlanning(job);
 	} else
 		noCombinerReducePlanning(job);
-
-	log_info(logger, "Finished Job: %d", job->id);
+	log_info(logger, "|JOB %d| Finished -------------------", job->id);
 	sendDieOrder(job->socket, COMMAND_RESULT_OK);
 	freeJob(job);
 	return NULL;
@@ -55,7 +54,7 @@ t_job *desserializeJob(int socket, uint16_t id) {
 	size_t sbuffer;
 	void *buffer;
 	if (0 > socket_recv_packet(socket, &buffer, &sbuffer)) {
-		log_error(logger, "Job %d Died when deserializing", id);
+		log_error(logger, "|JOB %d| Died when deserializing", id);
 		free(buffer);
 		pthread_exit(NULL);
 	}
@@ -92,7 +91,7 @@ char *recvResult(t_job *job) {
 	char *nodeID = NULL;
 	size_t sbuffer = 0;
 	if (0 > socket_recv_packet(job->socket, &buffer, &sbuffer)) {
-		log_error(logger, "Job %d Died when reciving results", job->id);
+		log_error(logger, "|JOB %d| Died when reciving results", job->id);
 		freeJob(job);
 		pthread_exit(NULL);
 		return NULL;

@@ -22,7 +22,7 @@ void notificarReduce(t_job *job, t_reduce *reduce) {
 	pthread_mutex_unlock(&Mnodes);
 
 	if (0 > serializeReduceToOrder(job->socket, reduce)) {
-		log_error(logger, "Job %d Died when sending reduce order", job->id);
+		log_error(logger, "|JOB %d| Died when sending reduce order", job->id);
 		freeJob(job);
 		pthread_exit(NULL);
 	}
