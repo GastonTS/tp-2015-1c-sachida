@@ -185,39 +185,39 @@ node_t* filesystem_getNodeById(char *nodeId) {
 }
 
 void filesystem_addNode(char *nodeId, uint16_t blocksCount, bool isNewNode) {
-	// TODO mutex.
 	node_t *node = filesystem_getNodeById(nodeId);
 	if (node) {
-		if (node->blocksCount != blocksCount) {
-			log_warning(mdfs_logger, "The node informed a different blocksCount. %d != %d", node->blocksCount, blocksCount);
-		} else {
-			if (isNewNode) {
-				// The node exists in the filesystem but he says that is new, so I should delete all blocks copies that are in that node.
-				t_list *files = mongo_file_getFilesThatHaveNode(node->id);
+		if (isNewNode) {
+			// The node exists in the filesystem but he says that is new, so I should delete all blocks copies that are in that node.
+			t_list *files = mongo_file_getFilesThatHaveNode(node->id);
 
-				// Delete the copies.
-				void listFiles(file_t *file) {
-					uint16_t blockIndex = 0;
-					void listBlocks(t_list* blockCopies) {
-						void listBlockCopies(file_block_t *blockCopy) {
-							if (strcmp(blockCopy->nodeId, node->id) == 0) {
-								mongo_file_deleteBlockCopy(file->id, blockIndex, blockCopy);
-							}
+			// Delete the copies.
+			void listFiles(file_t *file) {
+				uint16_t blockIndex = 0;
+				void listBlocks(t_list* blockCopies) {
+					void listBlockCopies(file_block_t *blockCopy) {
+						if (strcmp(blockCopy->nodeId, node->id) == 0) {
+							mongo_file_deleteBlockCopy(file->id, blockIndex, blockCopy);
 						}
-						list_iterate(blockCopies, (void *) listBlockCopies);
-						blockIndex++;
 					}
-					list_iterate(file->blocks, (void *) listBlocks);
+					list_iterate(blockCopies, (void *) listBlockCopies);
+					blockIndex++;
 				}
-				list_iterate(files, (void *) listFiles);
+				list_iterate(file->blocks, (void *) listBlocks);
+			}
+			list_iterate(files, (void *) listFiles);
 
-				// Finally, format the node:
-				// if the node changes the blocksCount it fucks all this shit !
-				filesystem_formatNode(node);
+			// Set the new blocksCount (Just in case it was changed..) and then format the node:
+			node->blocksCount = blocksCount;
+			filesystem_formatNode(node);
 
-				// Free files
-				list_destroy_and_destroy_elements(files, (void *) file_free);
-			} // Else: The node exists in the filesystem and he says that is not new, so he should have the same data. I don't have to do anything
+			// Free files
+			list_destroy_and_destroy_elements(files, (void *) file_free);
+		} else {
+			// The node exists in the filesystem and he says that is not new, so he should have the same data. I don't have to do anything
+			if (node->blocksCount != blocksCount) {
+				log_warning(mdfs_logger, "The node informed a different blocksCount (and is not new). %d != %d", node->blocksCount, blocksCount);
+			}
 		}
 	} else {
 		// The node does not exist, so I don't care whether he is new or not, just create a new one.

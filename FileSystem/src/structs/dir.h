@@ -2,6 +2,7 @@
 #define DIR_H
 
 #include "../mongo/mongo.h"
+#include <commons/string.h>
 
 #define	ROOT_DIR_ID	"0"
 
@@ -18,5 +19,6 @@ dir_t* dir_create();
 void dir_free(dir_t* dir);
 
 void freeSplits(char **splits);
+char* getFileName(char *path);
 
 #endif

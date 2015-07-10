@@ -71,3 +71,17 @@ void freeSplits(char **splits) {
 
 	free(splits);
 }
+
+char* getFileName(char *path) {
+	char *fileName;
+	char **dirNames = string_split(path, "/");
+	int i = 0;
+	while (dirNames[i]) {
+		fileName = dirNames[i];
+		i++;
+	}
+	fileName = strdup(fileName);
+	freeSplits(dirNames);
+
+	return fileName;
+}

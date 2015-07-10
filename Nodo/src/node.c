@@ -3,11 +3,14 @@
 #include "utils/socket.h"
 #include "connections/connections_node.h"
 
+#define _FILE_OFFSET_BITS  64
+
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <signal.h>
+#include <sys/errno.h>
 
 int node_initConfig(char* configFile);
 void node_waitUntilExit();
@@ -303,7 +306,7 @@ bool node_init() {
 	size_t binFileSize = node_getBinFileSize();
 	if (createFile) {
 		if (ftruncate(fd, binFileSize) == -1) {
-			log_error(node_logger, "Error while trying to truncate the binFile.");
+			log_error(node_logger, "Error while trying to truncate the binFile. errno %d", errno);
 			return 0;
 		}
 	} else {

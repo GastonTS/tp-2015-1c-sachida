@@ -281,20 +281,6 @@ void copyFile(char **parameters) {
 	char *source = parameters[2];
 	char *dest = parameters[3];
 
-	char* getFileName(char *path) {
-		char *fileName;
-		char **dirNames = string_split(path, "/");
-		int i = 0;
-		while (dirNames[i]) {
-			fileName = dirNames[i];
-			i++;
-		}
-		fileName = strdup(fileName);
-		freeSplits(dirNames);
-
-		return fileName;
-	}
-
 	if (!isNull(option) && !isNull(source) && !isNull(dest)) {
 
 		if (string_equals_ignore_case(option, "-fromfs")) {
