@@ -300,7 +300,7 @@ char *desserializaReduceResult(void *buffer, size_t offset, t_job *job) {
 		memcpy(nodeID, bufferOffset, snodeID);
 		nodeID[snodeID] = '\0';
 
-		if (strcmp(nodeID, "ErrorAlConectar")) {
+		if (!strcmp(nodeID, "ErrorAlConectar")) {
 			free(nodeID);
 			nodeID = strdup(reduce->finalNode);
 		}
