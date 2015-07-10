@@ -198,8 +198,9 @@ bool connections_node_sendBlock(nodeBlockSendOperation_t *sendOperation) {
 	e_socket_status status;
 	pthread_mutex_lock(&nodeConnection->mutex);
 	status = socket_send_packet(nodeConnection->socket, buffer, sBuffer);
-	status = socket_send_packet(nodeConnection->socket, sendOperation->block, sBlockData);
-	// TODO status.
+	if (status == SOCKET_ERROR_NONE) {
+		status = socket_send_packet(nodeConnection->socket, sendOperation->block, sBlockData);
+	}
 	pthread_mutex_unlock(&nodeConnection->mutex);
 
 	free(buffer);
