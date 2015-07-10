@@ -37,7 +37,7 @@ void connections_node_shutdown() {
 		free(nodeMutex);
 	}
 	pthread_mutex_lock(&nodexMutexLock);
-	dictionary_destroy_and_destroy_elements(nodesMutex, (void*) freeNodeMutex); // TODO free.
+	dictionary_destroy_and_destroy_elements(nodesMutex, (void*) freeNodeMutex);
 
 	pthread_mutex_destroy(&activeNodesLock);
 	pthread_mutex_destroy(&standbyNodesLock);
@@ -48,11 +48,6 @@ pthread_mutex_t* connections_node_getNodeMutex(char *nodeId) {
 	pthread_mutex_lock(&nodexMutexLock);
 	pthread_mutex_t *nodeMutex = dictionary_get(nodesMutex, nodeId);
 	pthread_mutex_unlock(&nodexMutexLock);
-	return nodeMutex;
-}
-
-void connections_node_createNodeMutex(char *nodeId) {
-	pthread_mutex_t *nodeMutex = connections_node_getNodeMutex(nodeId);
 	if (!nodeMutex) {
 		nodeMutex = malloc(sizeof(pthread_mutex_t));
 		pthread_mutex_init(nodeMutex, NULL);
@@ -60,6 +55,7 @@ void connections_node_createNodeMutex(char *nodeId) {
 		dictionary_put(nodesMutex, nodeId, nodeMutex);
 		pthread_mutex_unlock(&nodexMutexLock);
 	}
+	return nodeMutex;
 }
 
 /*
@@ -187,7 +183,6 @@ void* connections_node_accept(void *param) {
 	//  Save the connection as a reference to this node and create the mutex
 	nodeConnection->listenPort = listenPort;
 	connections_node_setAcceptedNodeConnection(nodeId, nodeConnection);
-	connections_node_createNodeMutex(nodeId);
 
 	log_info(mdfs_logger, "Node connected. Name: %s. listenPort %d. blocksCount %d. New: %s", nodeId, listenPort, blocksCount, isNewNode ? "true" : "false");
 	filesystem_addNode(nodeId, blocksCount, (bool) isNewNode);
@@ -289,12 +284,8 @@ char* connections_node_getBlock(file_block_t *fileBlock) {
 	}
 	pthread_mutex_unlock(nodeMutex);
 
-	char *block = malloc(sBuffer + 1); // TODO performance.
-	memcpy(block, buffer, sBuffer);
+	char *block = realloc(buffer, sBuffer + 1);
 	block[sBuffer] = '\0';
-
-	free(buffer);
-
 	return block;
 }
 

@@ -131,8 +131,10 @@ void connections_fs_deserializeSetBlock(void *buffer) {
 	numBlock = ntohs(numBlock);
 	offset += sizeof(numBlock);
 
-	node_setBlockFromPacket(numBlock, fsSocket);
-	// TODO status check
+	e_socket_status status = node_setBlockFromPacket(numBlock, fsSocket);
+	if (0 > status) {
+		log_error(node_logger, "Could not set the block request from the FS");
+	}
 }
 
 void connections_fs_deserializeGetBlock(void *buffer) {
@@ -140,7 +142,7 @@ void connections_fs_deserializeGetBlock(void *buffer) {
 	memcpy(&numBlock, buffer + sizeof(uint8_t), sizeof(numBlock));
 	numBlock = ntohs(numBlock);
 
-	// ACA LO MISMO.. ver se hacer un send que saque la data del mmap.....
+	//  ACA LO MISMO.. ver se hacer un send que saque la data del mmap.....
 	char *blockData = node_getBlock(numBlock);
 
 	if (blockData) {
