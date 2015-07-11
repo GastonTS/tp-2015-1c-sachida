@@ -102,8 +102,6 @@ void recvOrder(int fd) {
 
 	uint8_t order;
 	memcpy(&order, buffer, sizeof(order));
-
-	printf("\n Orden Rcv: %d\n", order);
 	fflush(stdout);
 	if (order == COMMAND_MAP) {
 		log_info(logger, "Map Recived");
