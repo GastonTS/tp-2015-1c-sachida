@@ -102,7 +102,7 @@ bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpFileName
 	bool result = node_popen_write(command, blockData);
 	free(command);
 	free(blockData);
-	log_info(node_logger, "MAP routine on block number %d to %s executed with status: %s", result ? "OK" : "FAIL");
+	log_info(node_logger, "MAP routine on block number %d to %s executed with status: %s", numBlock, tmpFileName, result ? "OK" : "FAIL");
 
 	return result;
 }
@@ -138,10 +138,10 @@ bool node_executeReduceRutine(char *reduceRutine, char *tmpFileNameToReduce, cha
 	snprintf(command, commandSize, "cat %s/%s | sort | %s >%s 2>%s", node_config->tmpDir, tmpFileNameToReduce, pathToReduceRutine, pathToFinalFile, pathToSTDERRFile);
 	//TODO ver sort y ver cat.
 
-	log_info(node_logger, "Executing REDUCE routine. Saving final result to file in tmp dir as: %s ", tmpFileNameToReduce, finalTmpFileName);
+	log_info(node_logger, "Executing REDUCE routine. Saving final result to file in tmp dir as: %s ", finalTmpFileName);
 	bool result = system(command) != -1;
 	free(command);
-	log_info(node_logger, "REDUCE routine to %s executed with status: %s", result ? "OK" : "FAIL");
+	log_info(node_logger, "REDUCE routine to %s executed with status: %s", finalTmpFileName, result ? "OK" : "FAIL");
 
 	return result;
 }
