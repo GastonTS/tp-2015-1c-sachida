@@ -8,6 +8,7 @@ t_log *logger;
 t_list *nodes;
 pthread_mutex_t McantJobs = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t Mnodes = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t MFileSystem = PTHREAD_MUTEX_INITIALIZER;
 uint16_t cantJobs;
 
 int initConfig(char* configFile);

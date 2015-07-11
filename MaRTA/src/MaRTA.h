@@ -21,6 +21,7 @@ extern t_list *nodes;
 extern t_log *logger;
 extern pthread_mutex_t McantJobs;
 extern pthread_mutex_t Mnodes;
+extern pthread_mutex_t MFileSystem;
 extern uint16_t cantJobs;
 
 #endif

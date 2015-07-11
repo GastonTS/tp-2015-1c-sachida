@@ -66,6 +66,7 @@ int requestFileBlocks(t_file *file) {
 		}
 		free(buffer);
 	}
+	pthread_mutex_lock(&MFileSystem);
 	request();
 
 	size_t sbuffer = 0;
@@ -73,6 +74,7 @@ int requestFileBlocks(t_file *file) {
 		FSConnectionLost();
 		request();
 	}
+	pthread_mutex_unlock(&MFileSystem);
 
 	uint16_t blocksCount;
 	memcpy(&blocksCount, buffer, sizeof(blocksCount));
@@ -166,6 +168,8 @@ bool copyFinalTemporal(t_job *job) {
 	bufferOffset += sResultFile;
 	memcpy(bufferOffset, job->finalReduce->tempResultName, sizeof(char) * 60);
 
+
+	pthread_mutex_lock(&MFileSystem);
 	while (0 > socket_send_packet(fsSocket, buffer, sbuffer)) {
 		FSConnectionLost();
 	}
@@ -176,6 +180,7 @@ bool copyFinalTemporal(t_job *job) {
 	while (0 > socket_recv_packet(fsSocket, &finalBuffer, &sfinalBuffer)) {
 		FSConnectionLost();
 	}
+	pthread_mutex_unlock(&MFileSystem);
 
 	bool result;
 
