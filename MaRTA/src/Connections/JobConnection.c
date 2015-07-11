@@ -70,7 +70,8 @@ t_job *desserializeJob(int socket, uint16_t id) {
 	bufferOffset += sizeof(sresultadoFinal);
 	memcpy(resultadoFinal, bufferOffset, sresultadoFinal);
 	resultadoFinal[sresultadoFinal] = '\0';
-	size_t sfiles = sbuffer - sizeof(combiner) - sizeof(sresultadoFinal) - sresultadoFinal;
+	size_t sfiles = sbuffer - sizeof(combiner) - sizeof(sresultadoFinal)
+			- sresultadoFinal;
 	char *stringFiles = malloc(sfiles + 1);
 	bufferOffset += sresultadoFinal;
 	memcpy(stringFiles, bufferOffset, sfiles);
@@ -126,7 +127,8 @@ e_socket_status sendDieOrder(int socket, uint8_t result) {
 e_socket_status serializeMapToOrder(int socket, t_map *map) {
 	uint8_t order = COMMAND_MAP;
 	uint16_t snodeIP = strlen(map->nodeIP);
-	size_t sbuffer = sizeof(uint8_t) + sizeof(uint16_t) + sizeof(snodeIP) + snodeIP + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(char) * 60;
+	size_t sbuffer = sizeof(uint8_t) + sizeof(uint16_t) + sizeof(snodeIP)
+			+ snodeIP + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(char) * 60;
 
 	uint16_t id = htons(map->id);
 	uint16_t serializedSNodeIP = htons(snodeIP);
@@ -168,10 +170,13 @@ void desserializeMapResult(void *buffer, size_t offset, t_job *job) {
 		return isMap(map, idMap);
 	}
 	t_map *map = list_find(job->maps, (void *) findMap);
-	log_info(logger, "|JOB %d| Map: %d Done on Node: %s -> Result: %d", job->id, map->id, map->nodeName, result);
+	uint16_t cantMaps = list_size(job->maps);
+	log_info(logger, "|JOB %d| Map(%d/%d): %d Done on Node: %s -> Result: %d",
+			job->id, job->mapsDone, cantMaps, map->id, map->nodeName, result);
 	removeMapNode(map);
 	if (result) {
 		map->done = true;
+		job->mapsDone++;
 	} else {
 		pthread_mutex_lock(&Mnodes);
 		deactivateNode(map->nodeName);
@@ -187,7 +192,8 @@ size_t totalTempsSize(t_list *temps) {
 	void upgradeSize(t_temp * temp) {
 		uint16_t snodeID = strlen(temp->nodeID);
 		uint16_t snodeIP = strlen(temp->nodeIP);
-		stemps += sizeof(snodeID) + snodeID + sizeof(snodeIP) + snodeIP + sizeof(uint16_t) + sizeof(char) * 60;
+		stemps += sizeof(snodeID) + snodeID + sizeof(snodeIP) + snodeIP
+				+ sizeof(uint16_t) + sizeof(char) * 60;
 	}
 	list_iterate(temps, (void *) upgradeSize);
 	return stemps;
@@ -214,7 +220,8 @@ void serializeTemp(t_temp *temporal, void *buffer, size_t *sbuffer) {
 	bufferOffset += sizeof(nodePort);
 	memcpy(bufferOffset, temporal->tempName, sizeof(char) * 60);
 
-	*sbuffer += sizeof(serializedsnodeID) + snodeID + sizeof(serializedsnodeIP) + snodeIP + sizeof(nodePort) + sizeof(char) * 60;
+	*sbuffer += sizeof(serializedsnodeID) + snodeID + sizeof(serializedsnodeIP)
+			+ snodeIP + sizeof(nodePort) + sizeof(char) * 60;
 }
 
 e_socket_status serializeReduceToOrder(int socket, t_reduce *reduce) {
@@ -236,8 +243,9 @@ e_socket_status serializeReduceToOrder(int socket, t_reduce *reduce) {
 	uint16_t serializedSNodeIP = htons(snodeIP);
 	countTemps = htons(countTemps);
 
-	size_t sbuffer = sizeof(order) + sizeof(reduceID) + sizeof(serializedSNodeIP) + snodeIP + sizeof(nodePort) + sizeof(char) * 60 + sizeof(countTemps)
-			+ stemps;
+	size_t sbuffer = sizeof(order) + sizeof(reduceID)
+			+ sizeof(serializedSNodeIP) + snodeIP + sizeof(nodePort)
+			+ sizeof(char) * 60 + sizeof(countTemps) + stemps;
 	void *buffer = malloc(sbuffer);
 
 	memcpy(buffer, &order, sizeof(order));
@@ -281,7 +289,8 @@ char *desserializaReduceResult(void *buffer, size_t offset, t_job *job) {
 		}
 		reduce = list_find(job->partialReduces, (void *) findReduce);
 	}
-	log_info(logger, "|JOB %d| Reduce: %d Done on Node: %s -> Result: %d", job->id, reduce->id, reduce->finalNode, result);
+	log_info(logger, "|JOB %d| Reduce: %d Done on Node: %s -> Result: %d",
+			job->id, reduce->id, reduce->finalNode, result);
 	removeReduceNode(reduce);
 	if (result) {
 		reduce->done = 1;

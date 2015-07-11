@@ -40,7 +40,8 @@ void setTempMapName(char tempMapName[60], uint16_t mapID, uint16_t jobID) {
 	strcpy(tempMapName, resultName);
 }
 
-t_map *CreateMap(uint16_t id, uint16_t numBlock, uint16_t nodePort, char *nodeName, char *nodeIP, uint16_t jobID) {
+t_map *CreateMap(uint16_t id, uint16_t numBlock, uint16_t nodePort,
+		char *nodeName, char *nodeIP, uint16_t jobID) {
 	t_map *map = malloc(sizeof(t_map));
 	map->id = id;
 	map->numBlock = numBlock;
@@ -53,7 +54,8 @@ t_map *CreateMap(uint16_t id, uint16_t numBlock, uint16_t nodePort, char *nodeNa
 	return map;
 }
 
-t_temp *CreateTemp(char *nodeID, char *nodeIP, uint16_t nodePort, uint16_t originMap, char tempName[60]) {
+t_temp *CreateTemp(char *nodeID, char *nodeIP, uint16_t nodePort,
+		uint16_t originMap, char tempName[60]) {
 	t_temp *temp = malloc(sizeof(t_temp));
 	temp->nodeID = nodeID;
 	temp->nodeIP = strdup(nodeIP);
@@ -71,7 +73,8 @@ t_file *CreateFile(char *path) {
 	return file;
 }
 
-void setTempReduceName(char tempResultName[60], uint16_t reduceID, uint16_t jobID) {
+void setTempReduceName(char tempResultName[60], uint16_t reduceID,
+		uint16_t jobID) {
 	char resultName[60];
 	memset(resultName, '\0', sizeof(char) * 60);
 	strcat(resultName, getTime());
@@ -87,7 +90,8 @@ void setTempReduceName(char tempResultName[60], uint16_t reduceID, uint16_t jobI
 	strcpy(tempResultName, resultName);
 }
 
-t_reduce *CreateReduce(uint16_t id, char *nodeName, char *nodeIP, uint16_t nodePort, uint16_t jobID) {
+t_reduce *CreateReduce(uint16_t id, char *nodeName, char *nodeIP,
+		uint16_t nodePort, uint16_t jobID) {
 	t_reduce *reduce = malloc(sizeof(t_reduce));
 	reduce->id = id;
 	reduce->finalNode = strdup(nodeName);
@@ -108,7 +112,8 @@ t_reduce *initReduce() {
 	return reduce;
 }
 
-void setFinalReduce(t_reduce *reduce, char *nodeName, char *nodeIP, uint16_t nodePort, uint16_t jobID) {
+void setFinalReduce(t_reduce *reduce, char *nodeName, char *nodeIP,
+		uint16_t nodePort, uint16_t jobID) {
 	reduce->id = 0;
 	reduce->finalNode = strdup(nodeName);
 	reduce->nodeIP = strdup(nodeIP);
@@ -125,6 +130,7 @@ t_job *CreateJob(uint16_t id, bool combiner, char *resultadoFinal) {
 	job->partialReduces = list_create();
 	job->finalReduce = initReduce();
 	job->maps = list_create();
+	job->mapsDone = 0;
 	return job;
 }
 

@@ -11,9 +11,11 @@ typedef struct {
 
 void notificarReduce(t_job *job, t_reduce *reduce) {
 	if (reduce->id)
-		log_info(logger, "|JOB %d| Planned Partial Reduce: %d on Node: %s", job->id, reduce->id, reduce->finalNode);
+		log_info(logger, "|JOB %d| Planned Partial Reduce: %d on Node: %s",
+				job->id, reduce->id, reduce->finalNode);
 	else
-		log_info(logger, "|JOB %d| Planned Final Reduce: %d on Node: %s", job->id, reduce->id, reduce->finalNode);
+		log_info(logger, "|JOB %d| Planned Final Reduce: %d on Node: %s",
+				job->id, reduce->id, reduce->finalNode);
 	reduce->done = false;
 
 	pthread_mutex_lock(&Mnodes);
@@ -29,12 +31,14 @@ void notificarReduce(t_job *job, t_reduce *reduce) {
 }
 
 t_temp * mapToTemporal(t_map *map) {
-	t_temp *temporal = CreateTemp(map->nodeName, map->nodeIP, map->nodePort, map->id, map->tempResultName);
+	t_temp *temporal = CreateTemp(map->nodeName, map->nodeIP, map->nodePort,
+			map->id, map->tempResultName);
 	return temporal;
 }
 
 t_temp * reduceToTemporal(t_reduce *reduce) {
-	t_temp *temporal = CreateTemp(reduce->finalNode, reduce->nodeIP, reduce->nodePort, 0, reduce->tempResultName);
+	t_temp *temporal = CreateTemp(reduce->finalNode, reduce->nodeIP,
+			reduce->nodePort, 0, reduce->tempResultName);
 	return temporal;
 }
 
@@ -42,6 +46,7 @@ int rePlanMapsFromNode(t_job *job, char *node) {
 	int fileAvailable = 1;
 	void rePlanByNode(t_map *map) {
 		if (!strcmp(map->nodeName, node)) {
+			job->mapsDone--;
 			if (!rePlanMap(job, map))
 				fileAvailable = 0;
 		}
@@ -79,7 +84,8 @@ void noCombinerReducePlanning(t_job *job) {
 				if (isActive(count->node))
 					selectedCount = count;
 			} else {
-				if ((selectedCount->count < count->count) && isActive(count->node))
+				if ((selectedCount->count < count->count)
+						&& isActive(count->node))
 					selectedCount = count;
 			}
 		}
@@ -91,7 +97,8 @@ void noCombinerReducePlanning(t_job *job) {
 			notifFileUnavailable(job);
 		}
 
-		setFinalReduce(job->finalReduce, selectedCount->node->name, selectedCount->node->ip, selectedCount->node->port, job->id);
+		setFinalReduce(job->finalReduce, selectedCount->node->name,
+				selectedCount->node->ip, selectedCount->node->port, job->id);
 		list_destroy_and_destroy_elements(counts, (void *) free);
 
 		void createTemporal(t_map *map) {
@@ -114,7 +121,8 @@ void noCombinerReducePlanning(t_job *job) {
 			finalFailed = true;
 			if (!rePlanMapsFromNode(job, fallenNode))
 				notifFileUnavailable(job);
-			list_clean_and_destroy_elements(job->finalReduce->temps, (void *) freeTemp);
+			list_clean_and_destroy_elements(job->finalReduce->temps,
+					(void *) freeTemp);
 			free(job->finalReduce->finalNode);
 			free(job->finalReduce->nodeIP);
 		}
@@ -130,7 +138,8 @@ void combinerPartialsReducePlanning(t_job *job) {
 		}
 		t_reduce *reduce = list_find(job->partialReduces, (void *) findReduce);
 		if (reduce == NULL) {
-			reduce = CreateReduce((list_size(job->partialReduces) + 1), map->nodeName, map->nodeIP, map->nodePort, job->id);
+			reduce = CreateReduce((list_size(job->partialReduces) + 1),
+					map->nodeName, map->nodeIP, map->nodePort, job->id);
 			list_add(reduce->temps, temporal);
 			list_add(job->partialReduces, reduce);
 		} else
@@ -147,13 +156,15 @@ void combinerPartialsReducePlanning(t_job *job) {
 void searchNode(t_reduce *reduce, t_node **selectedNode) {
 	bool lessWorkLoad(t_node *lessBusy, t_node *busy) {
 		if (lessBusy && busy)
-			return workLoad(lessBusy->maps, lessBusy->reduces) < workLoad(busy->maps, busy->reduces);
+			return workLoad(lessBusy->maps, lessBusy->reduces)
+					< workLoad(busy->maps, busy->reduces);
 		return 0;
 	}
 
 	t_node *actualNode = findNode(nodes, reduce->finalNode);
 
-	if ((*selectedNode == NULL || lessWorkLoad(actualNode, *selectedNode)) && isActive(actualNode)) {
+	if ((*selectedNode == NULL || lessWorkLoad(actualNode, *selectedNode))
+			&& isActive(actualNode)) {
 		*selectedNode = actualNode;
 	}
 }
@@ -166,7 +177,8 @@ void combinerFinalReducePlanning(t_job *job) {
 		searchNode(reduce, &selectedNode);
 	}
 	list_iterate(job->partialReduces, (void *) selectFinalNode);
-	setFinalReduce(job->finalReduce, selectedNode->name, selectedNode->ip, selectedNode->port, job->id);
+	setFinalReduce(job->finalReduce, selectedNode->name, selectedNode->ip,
+			selectedNode->port, job->id);
 	pthread_mutex_unlock(&Mnodes);
 
 	void createFinalTemporals(t_reduce *reduce) {
@@ -209,7 +221,8 @@ void combinerReducePlanning(t_job *job) {
 					notifFileUnavailable(job);
 				}
 				list_clean(fallenNodes);
-				list_clean_and_destroy_elements(job->partialReduces, (void *) freeReduce);
+				list_clean_and_destroy_elements(job->partialReduces,
+						(void *) freeReduce);
 			}
 		} while (partialsFailed);
 		list_clean(fallenNodes);
@@ -226,8 +239,10 @@ void combinerReducePlanning(t_job *job) {
 				list_destroy(fallenNodes);
 				notifFileUnavailable(job);
 			}
-			list_clean_and_destroy_elements(job->partialReduces, (void *) freeReduce);
-			list_clean_and_destroy_elements(job->finalReduce->temps, (void *) freeTemp);
+			list_clean_and_destroy_elements(job->partialReduces,
+					(void *) freeReduce);
+			list_clean_and_destroy_elements(job->finalReduce->temps,
+					(void *) freeTemp);
 		}
 	} while (finalFailed);
 }
