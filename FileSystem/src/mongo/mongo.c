@@ -13,7 +13,7 @@ int mongo_init() {
 }
 
 mongoc_client_t* mongo_getClient() {
-	if (client == 0) {
+	if (!client) {
 		mongo_init();
 	}
 	return client;

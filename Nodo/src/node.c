@@ -98,10 +98,11 @@ bool node_executeMapRutine(char *mapRutine, uint16_t numBlock, char *tmpFileName
 	char *command = malloc(commandSize);
 	snprintf(command, commandSize, "%s | sort >%s 2>%s", pathToMapRutine, pathToFinalSortedFile, pathToSTDERRFile);
 
-	log_info(node_logger, "Executing MAP rutine on block number %d. Saving sorted to file in tmp dir as: %s", numBlock, tmpFileName);
+	log_info(node_logger, "Executing MAP routine on block number %d. Saving sorted to file in tmp dir as: %s", numBlock, tmpFileName);
 	bool result = node_popen_write(command, blockData);
 	free(command);
 	free(blockData);
+	log_info(node_logger, "MAP routine on block number %d to %s executed with status: %s", result ? "OK" : "FAIL");
 
 	return result;
 }
@@ -137,9 +138,10 @@ bool node_executeReduceRutine(char *reduceRutine, char *tmpFileNameToReduce, cha
 	snprintf(command, commandSize, "cat %s/%s | sort | %s >%s 2>%s", node_config->tmpDir, tmpFileNameToReduce, pathToReduceRutine, pathToFinalFile, pathToSTDERRFile);
 	//TODO ver sort y ver cat.
 
-	log_info(node_logger, "Executing REDUCE rutine to %s. Saving final result to file in tmp dir as: %s ", tmpFileNameToReduce, finalTmpFileName);
+	log_info(node_logger, "Executing REDUCE routine. Saving final result to file in tmp dir as: %s ", tmpFileNameToReduce, finalTmpFileName);
 	bool result = system(command) != -1;
 	free(command);
+	log_info(node_logger, "REDUCE routine to %s executed with status: %s", result ? "OK" : "FAIL");
 
 	return result;
 }
@@ -210,6 +212,7 @@ e_socket_status node_setBlockFromPacket(uint16_t numBlock, int socket) {
 bool node_createExecutableFileFromString(char *pathToFile, char *str) {
 	FILE *fp = fopen(pathToFile, "w");
 	if (!fp) {
+		log_error(node_logger, "Couldn't create executable file %s because open failed", pathToFile);
 		return 0;
 	}
 
@@ -219,12 +222,14 @@ bool node_createExecutableFileFromString(char *pathToFile, char *str) {
 
 	int fd = fileno(fp);
 	if (!fd) {
+		log_error(node_logger, "Couldn't create executable file %s because it couldn't get the fileno", pathToFile);
 		fclose(fp);
 		return 0;
 	}
 
 	// Sets exec mode.
 	if (fchmod(fd, 0755)) {
+		log_error(node_logger, "Couldn't create executable file %s because it couldn't change the exec mode", pathToFile);
 		fclose(fp);
 		return 0;
 	}
@@ -232,6 +237,7 @@ bool node_createExecutableFileFromString(char *pathToFile, char *str) {
 	fflush(fp);
 	int result = fclose(fp);
 	if (result) {
+		log_error(node_logger, "Couldn't create executable file %s because it couldn't close the file", pathToFile);
 		return 0;
 	}
 
@@ -264,12 +270,14 @@ bool node_createTmpFileFromStringList(char *tmpFileName, t_list *stringParts) {
 bool node_popen_write(char *command, char *data) {
 	FILE *pipe = popen(command, "w");
 	if (!pipe) {
+		log_error(node_logger, "Couldn't open a pipe to execute the routine");
 		return 0;
 	}
 
 	int result = fputs(data, pipe);
 
 	if (result < 0) {
+		log_error(node_logger, "Couldn't write to the pipe. Result error: %d", result);
 		pclose(pipe);
 		return 0;
 	}

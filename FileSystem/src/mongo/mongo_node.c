@@ -18,10 +18,10 @@ void mongo_node_init() {
 
 	// Create index to avoid duplicate nodes.
 	/*
-	const bson_t *indexKeys = BCON_NEW("name", BCON_INT32(1));
-	mongo_createIndexIfAbsent(nodeCollection, "name_1", indexKeys, 1);
-	bson_destroy((bson_t *) indexKeys);
-	*/
+	 const bson_t *indexKeys = BCON_NEW("name", BCON_INT32(1));
+	 mongo_createIndexIfAbsent(nodeCollection, "name_1", indexKeys, 1);
+	 bson_destroy((bson_t *) indexKeys);
+	 */
 }
 
 void mongo_node_shutdown() {
@@ -62,7 +62,7 @@ void mongo_node_updateBlocks(node_t *node) {
 	mongo_node_checkInit();
 
 	query = BCON_NEW("_id", BCON_UTF8(node->id));
-	update = BCON_NEW("$set", "{", "blocks", BCON_BIN(BSON_SUBTYPE_BINARY, (const uint8_t * ) node->blocks->bitarray, node->blocks->size), "}");
+	update = BCON_NEW("$set", "{", "blocks", BCON_BIN(BSON_SUBTYPE_BINARY, (const uint8_t * ) node->blocks->bitarray, node->blocks->size), "blocksCount", BCON_INT32(node->blocksCount), "}");
 
 	mongo_update(nodeCollection, query, update);
 }
