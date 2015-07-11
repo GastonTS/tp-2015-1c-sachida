@@ -22,6 +22,7 @@ void* connections_job_accept(void *param) {
 
 	pthread_t listenActionsTh;
 	if (pthread_create(&listenActionsTh, NULL, (void *) connections_job_listenActions, (void *) socketAcceptedPtr)) {
+		socket_close(*socketAcceptedPtr);
 		free(socketAcceptedPtr);
 		log_error(node_logger, "Error while trying to create new thread: connections_job_listenActions");
 	}

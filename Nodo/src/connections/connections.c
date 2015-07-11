@@ -44,6 +44,7 @@ void *connections_listenerThread(void *param) {
 			int *socketAcceptedPtr = malloc(sizeof(socketAccepted));
 			*socketAcceptedPtr = socketAccepted;
 			if (pthread_create(&acceptedConnectionTh, NULL, (void *) connections_job_accept, (void *) socketAcceptedPtr)) {
+				socket_close(socketAccepted);
 				free(socketAcceptedPtr);
 				log_error(node_logger, "Error while trying to create new thread: connections_job_accept");
 			}
@@ -52,6 +53,7 @@ void *connections_listenerThread(void *param) {
 			int *socketAcceptedPtr = malloc(sizeof(socketAccepted));
 			*socketAcceptedPtr = socketAccepted;
 			if (pthread_create(&acceptedConnectionTh, NULL, (void *) connections_node_accept, (void *) socketAcceptedPtr)) {
+				socket_close(socketAccepted);
 				free(socketAcceptedPtr);
 				log_error(node_logger, "Error while trying to create new thread: connections_node_accept");
 			}
