@@ -3,7 +3,7 @@
 #include "../node.h"
 #include <commons/collections/list.h>
 
-void* connections_job_listenActions(void *param);
+void connections_job_listenAction(int socket);
 void connections_job_deserializeMap(int socket, void *buffer);
 void connections_job_deserializeReduce(int socket, void *buffer);
 
@@ -17,31 +17,19 @@ void connections_job_shutdown() {
 
 void* connections_job_accept(void *param) {
 	int *socketAcceptedPtr = (int *) param;
+	int socket = *socketAcceptedPtr;
+	free(socketAcceptedPtr);
 
 	log_info(node_logger, "New job connected.");
 
-	sem_wait(&routines_sem);
+	// sem_wait(&routines_sem);
 
-	/*
-	pthread_t listenActionsTh;
-	if (pthread_create(&listenActionsTh, NULL, (void *) connections_job_listenActions, (void *) socketAcceptedPtr)) {
-		socket_close(*socketAcceptedPtr);
-		free(socketAcceptedPtr);
-		log_error(node_logger, "Error while trying to create new thread: connections_job_listenActions");
-	}
-	pthread_detach(listenActionsTh);
-	*/
-
-	connections_job_listenActions(socketAcceptedPtr);
+	connections_job_listenAction(socket);
 
 	return NULL;
 }
 
-void* connections_job_listenActions(void *param) {
-	int *socketAcceptedPtr = (int *) param;
-	int socket = *socketAcceptedPtr;
-	free(socketAcceptedPtr);
-
+void connections_job_listenAction(int socket) {
 	size_t sBuffer;
 	void *buffer = NULL;
 
@@ -65,8 +53,7 @@ void* connections_job_listenActions(void *param) {
 	}
 
 	socket_close(socket);
-	sem_post(&routines_sem);
-	return NULL;
+	// sem_post(&routines_sem);
 }
 
 void connections_job_deserializeMap(int socket, void *buffer) {

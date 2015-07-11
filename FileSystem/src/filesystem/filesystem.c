@@ -727,7 +727,7 @@ t_list* filesystem_getFSFileBlocks(char *route, size_t *fileSize) {
 	fstat(fd, &stat);
 	*fileSize = stat.st_size;
 
-	char *fileStr = (char *) mmap(0, *fileSize, PROT_READ, MAP_PRIVATE, fd, 0);
+	char *fileStr = (char *) mmap(0, *fileSize, PROT_READ, MAP_PRIVATE | MAP_NORESERVE, fd, 0);
 	close(fd);
 
 	t_list *blocks = filesystem_getBlocksFromStr(fileStr, *fileSize);
