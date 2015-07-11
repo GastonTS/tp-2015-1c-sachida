@@ -102,7 +102,6 @@ void recvOrder(int fd) {
 
 	uint8_t order;
 	memcpy(&order, buffer, sizeof(order));
-	fflush(stdout);
 	if (order == COMMAND_MAP) {
 		log_info(logger, "Map Recived");
 		t_map *map = malloc(sizeof(t_map));
@@ -349,7 +348,6 @@ t_map* desserializeMapOrder(void *buffer) {
 	map->numBlock = numBlock;
 	map->tempResultName = strdup(tempResultName);
 
-	fflush(stdout);
 	free(nodeIP);
 	return (map);
 

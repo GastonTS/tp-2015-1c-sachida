@@ -190,8 +190,6 @@ bool copyFinalTemporal(t_job *job) {
 		uint8_t reason;
 		memcpy(&reason, finalBuffer + sizeof(result), sizeof(reason));
 
-		printf("\n\n%d\n\n", reason);
-
 		if (reason == COMMAND_RESULT_CANT_COPY) {
 			log_error(logger, "|JOB %d| Cant copy final result to MDFS", job->id);
 			sendDieOrder(job->socket, reason);
