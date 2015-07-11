@@ -9,7 +9,7 @@
 extern t_log* mdfs_logger;
 
 // TODO cambiar en la entrega !!!!
-#define FILESYSTEM_BLOCK_COPIES 1
+#define FILESYSTEM_BLOCK_COPIES 3
 #define NODE_BLOCK_SIZE 20 * 1024 * 1024
 
 // Holds an operation to be done. ALL POINTERS ARE FREED BY OTHERS.

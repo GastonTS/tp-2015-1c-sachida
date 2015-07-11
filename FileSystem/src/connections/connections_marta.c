@@ -232,11 +232,10 @@ bool connections_marta_copyFinalResult(void *bufferReceived) {
 
 	memcpy(finalTmpName, bufferReceived + offset, sizeof(char) * 60);
 
-	uint8_t failReason = 0;
+	uint8_t failReason = COMMAND_RESULT_CANT_COPY;
 	bool result = filesystem_copyTmpFileToMDFS(nodeId, finalTmpName, resultFileName, &failReason);
 	free(nodeId);
 	free(resultFileName);
-
 	size_t sbuffer = sizeof(result);
 	void *buffer;
 	if (result) {

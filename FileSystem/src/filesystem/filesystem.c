@@ -8,7 +8,6 @@
 // #include <semaphore.h>
 
 #include "../connections/connections_node.h"
-#include "../connections/connections.h"
 
 void filesystem_formatNode(node_t *node);
 void filesystem_createLocalFileFromString(char *pathToFile, char *str);
@@ -605,7 +604,7 @@ bool filesystem_copyTmpFileToMDFS(char *nodeId, char *finalTmpName, char *result
 
 	if (!tmpFileContent) {
 		log_error(mdfs_logger, "Couldn't get the tmp file content from the node");
-		*failReason = COMMAND_FS_TO_MARTA_CANT_COPY;
+		*failReason = 0;
 		file_free(file);
 		return 0;
 	}

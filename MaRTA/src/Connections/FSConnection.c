@@ -183,10 +183,12 @@ bool copyFinalTemporal(t_job *job) {
 
 	if (!result) {
 		uint8_t reason;
+		memcpy(&reason, finalBuffer + sizeof(result), sizeof(reason));
 
-		memcpy(&reason, finalBuffer, sizeof(reason));
-		if (reason == COMMAND_FS_TO_MARTA_CANT_COPY) {
-			log_error(logger, "|JOB %d| Cant copy final result to MDFS, not enough space", job->id);
+		printf("\n\n%d\n\n", reason);
+
+		if (reason == COMMAND_RESULT_CANT_COPY) {
+			log_error(logger, "|JOB %d| Cant copy final result to MDFS", job->id);
 			sendDieOrder(job->socket, reason);
 			freeJob(job);
 			free(finalBuffer);
