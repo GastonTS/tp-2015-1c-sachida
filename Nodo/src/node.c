@@ -23,6 +23,7 @@ bool node_createExecutableFileFromString(char *pathToFile, char *str);
 t_log *node_logger;
 t_nodeCfg *node_config;
 
+sem_t routines_sem;
 pthread_rwlock_t *blocks_mutex = NULL;
 void *binFileMap = NULL;
 
@@ -350,6 +351,10 @@ bool node_init() {
 	}
 	// ...
 
+	// Create sem for routines
+	sem_init(&routines_sem, 0, 10);
+	// ...
+
 	return 1;
 }
 
@@ -456,5 +461,6 @@ void node_free() {
 		}
 		free(node_config);
 	}
+	sem_destroy(&routines_sem);
 	log_destroy(node_logger);
 }

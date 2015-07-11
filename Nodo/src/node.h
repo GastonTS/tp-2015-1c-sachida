@@ -10,6 +10,7 @@
 #include <commons/string.h>
 #include <commons/collections/list.h>
 #include "utils/socket.h"
+#include <semaphore.h>
 
 #define BLOCK_SIZE 20 * 1024 * 1024 // 20 MB de bloques
 
@@ -24,6 +25,7 @@ typedef struct {
 	uint16_t blocksCount;
 } t_nodeCfg;
 
+extern sem_t routines_sem;
 extern t_log* node_logger;
 extern t_nodeCfg* node_config;
 

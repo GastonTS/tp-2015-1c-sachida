@@ -20,6 +20,8 @@ void* connections_job_accept(void *param) {
 
 	log_info(node_logger, "New job connected.");
 
+	sem_wait(&routines_sem);
+
 	pthread_t listenActionsTh;
 	if (pthread_create(&listenActionsTh, NULL, (void *) connections_job_listenActions, (void *) socketAcceptedPtr)) {
 		socket_close(*socketAcceptedPtr);
@@ -36,16 +38,11 @@ void* connections_job_listenActions(void *param) {
 	int socket = *socketAcceptedPtr;
 	free(socketAcceptedPtr);
 
-	while (1) {
-		size_t sBuffer;
-		void *buffer = NULL;
+	size_t sBuffer;
+	void *buffer = NULL;
 
-		e_socket_status status = socket_recv_packet(socket, &buffer, &sBuffer);
-		if (0 > status) {
-			socket_close(socket);
-			return NULL;
-		}
-
+	e_socket_status status = socket_recv_packet(socket, &buffer, &sBuffer);
+	if (status == SOCKET_ERROR_NONE) {
 		uint8_t command;
 		memcpy(&command, buffer, sizeof(uint8_t));
 
@@ -62,6 +59,10 @@ void* connections_job_listenActions(void *param) {
 		}
 		free(buffer);
 	}
+
+	socket_close(socket);
+	sem_post(&routines_sem);
+	return NULL;
 }
 
 void connections_job_deserializeMap(int socket, void *buffer) {
