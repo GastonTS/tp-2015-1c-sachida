@@ -330,7 +330,7 @@ bool node_init() {
 
 	// Map the file
 	log_info(node_logger, "Mapping the binFile..");
-	binFileMap = mmap(0, binFileSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, fd, 0);
+	binFileMap = mmap(0, binFileSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, fd, 0);
 	close(fd);
 
 	if (!binFileMap) {
