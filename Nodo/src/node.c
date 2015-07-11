@@ -23,6 +23,7 @@ bool node_createExecutableFileFromString(char *pathToFile, char *str);
 t_log *node_logger;
 t_nodeCfg *node_config;
 
+sem_t routines_sem;
 pthread_rwlock_t *blocks_mutex = NULL;
 void *binFileMap = NULL;
 
@@ -330,7 +331,7 @@ bool node_init() {
 
 	// Map the file
 	log_info(node_logger, "Mapping the binFile..");
-	binFileMap = mmap(0, binFileSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, fd, 0);
+	binFileMap = mmap(0, binFileSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, fd, 0);
 	close(fd);
 
 	if (!binFileMap) {
@@ -348,6 +349,10 @@ bool node_init() {
 			return 0;
 		}
 	}
+	// ...
+
+	// Create sem for routines
+	sem_init(&routines_sem, 0, 10);
 	// ...
 
 	return 1;
@@ -456,5 +461,6 @@ void node_free() {
 		}
 		free(node_config);
 	}
+	sem_destroy(&routines_sem);
 	log_destroy(node_logger);
 }
