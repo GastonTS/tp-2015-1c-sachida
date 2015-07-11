@@ -352,7 +352,7 @@ bool node_init() {
 	// ...
 
 	// Create sem for routines
-	sem_init(&routines_sem, 0, 10);
+	sem_init(&routines_sem, 0, 5);
 	// ...
 
 	return 1;
