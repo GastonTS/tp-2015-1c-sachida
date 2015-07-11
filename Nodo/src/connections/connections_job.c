@@ -210,11 +210,14 @@ void connections_job_deserializeReduce(int socket, void *buffer) {
 		pthread_t threads[list_size(getTmpFileOperations)];
 		int count = 0;
 		void runOperations(node_connection_getTmpFileOperation_t *operation) {
-			if (pthread_create(&(threads[count]), NULL, (void *) getTmpFileFromNode, (void*) operation)) {
-				failed = 1;
-				log_error(node_logger, "Error while trying to create new thread: getTmpFileFromNode");
+			if (!failed) {
+				if (pthread_create(&(threads[count]), NULL, (void *) getTmpFileFromNode, (void*) operation)) {
+					failed = 1;
+					log_error(node_logger, "Error while trying to create new thread: getTmpFileFromNode");
+				} else {
+					count++;
+				}
 			}
-			count++;
 		}
 		list_iterate(getTmpFileOperations, (void *) runOperations);
 		int i;
