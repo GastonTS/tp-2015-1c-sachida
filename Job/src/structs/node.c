@@ -49,7 +49,7 @@ void serializeMap(int sock_nodo, t_map* map) {
 
 	e_socket_status status = socket_send_packet(sock_nodo, buffer, sbuffer);
 	if (status > 0) {
-		log_info(logger, "Map: %d --> send", map->mapID);
+		log_info(logger, "Map: %d --> send to nodo", map->mapID);
 	}
 	//free(fileMap);
 	free(buffer);
@@ -92,7 +92,7 @@ void serializeReduce(int sock_nodo, t_reduce* reduce) {
 	e_socket_status status = socket_send_packet(sock_nodo, buffer, sbuffer);
 
 	if (status > 0) {
-		log_info(logger, "Reduce: %d --> send", reduce->reduceID);
+		log_info(logger, "Reduce: %d --> send to nodo", reduce->reduceID);
 	}
 	//free(fileMap);
 	free(buffer);

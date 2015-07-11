@@ -147,8 +147,6 @@ void atenderMapper(void * parametros) {
 		return;
 	}
 
-	log_info(logger, "Map: %d --> connecting nodo: %d", map->mapID, sock_nodo);
-
 	hand_nodo = socket_handshake_to_server(sock_nodo, HANDSHAKE_NODO,
 	HANDSHAKE_JOB);
 	if (!hand_nodo) {
@@ -159,7 +157,6 @@ void atenderMapper(void * parametros) {
 	}
 
 	/* Serializo y mando datos */
-	log_info(logger, "Map: %d --> Handshake Map Nodo: %d", map->mapID, hand_nodo);
 	serializeMap(sock_nodo, map);
 
 	/* Wait for confirmation */
@@ -174,8 +171,8 @@ void atenderMapper(void * parametros) {
 		bool result;
 		memcpy(&result, buffer, sizeof(result));
 		sendMapResult(map, result);
+		free(buffer);
 	}
-	free(buffer);
 	socket_close(sock_nodo);
 	freeThreadMap(map);
 	pthread_exit(&status);
@@ -219,8 +216,6 @@ void atenderReducer(void * parametros) {
 		pthread_exit(&sock_nodo);
 	}
 
-	log_info(logger, "Reduce: %d --> Connect to Nodo: %d", reduce->reduceID, sock_nodo);
-
 	hand_nodo = socket_handshake_to_server(sock_nodo, HANDSHAKE_NODO,
 	HANDSHAKE_JOB);
 	if (!hand_nodo) {
@@ -231,9 +226,7 @@ void atenderReducer(void * parametros) {
 	}
 
 	/* Serializo y mando datos */
-	log_info(logger, "Reduce: %d --> Handshake to Nodo: %d", reduce->reduceID, hand_nodo);
 	serializeReduce(sock_nodo, reduce);
-	log_info(logger, "Reduce: %d --> Sending2 to nodo: ", reduce->reduceID);
 	/* Wait for confirmation */
 	void *buffer;
 	size_t sbuffer;
@@ -243,7 +236,7 @@ void atenderReducer(void * parametros) {
 	if (status < 0) {
 		char *errorAlConectar = strdup("ErrorAlConectar");
 		failReduce(reduce, errorAlConectar);
-		free(buffer);
+		//free(buffer);
 		log_error(logger, "Reduce: %d ERROR --> Fail Recv Nodo", reduce->reduceID);
 	} else {
 		bool result;
